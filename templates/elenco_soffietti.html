@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Elenco Soffietti</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: url("{{ url_for('static', filename='images/sfondo.jpg') }}") no-repeat center center fixed;
+            background-size: cover;
+            color: #fff;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            width: 95%;
+            max-width: 1400px;
+            margin: 40px auto;
+            background: rgba(255, 255, 255, 0.12);
+            backdrop-filter: blur(8px);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.25);
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: white;
+            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            border-radius: 10px;
+            overflow: hidden;
+            font-size: 13px;
+        }
+
+        th, td {
+            padding: 4px 8px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+        }
+
+        th {
+            background-color: rgba(0, 123, 255, 0.8);
+            color: white;
+            font-size: 12px;
+        }
+
+        tr:hover {
+            background-color: rgba(255,255,255,0.1);
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 6px 10px;
+            border-radius: 6px;
+            text-decoration: none;
+            color: white;
+            font-weight: bold;
+            margin: 4px;
+            font-size: 13px;
+            transition: 0.2s;
+        }
+
+        .btn:hover {
+            transform: scale(1.05);
+            opacity: 0.9;
+        }
+
+        .btn-home { background-color: #6c757d; }
+        .btn-lista { background-color: #007bff; }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🪟 Elenco Tetti a Soffietto</h1>
+
+        <div style="text-align:center; margin-bottom:15px;">
+            <a href="{{ url_for('home') }}" class="btn btn-home">🏠 Torna alla Home</a>
+            <a href="{{ url_for('lista_commesse') }}" class="btn btn-lista">📋 Elenco Commesse</a>
+        </div>
+
+        {% if commesse %}
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nome Commessa</th>
+                    <th>Tipo Intervento</th>
+                    <th>Data Conferma</th>
+                    <th>Data Arrivo Materiali</th>
+                    <th>Data Inizio</th>
+                    <th>Ore Necessarie</th>
+                    <th>Ore Eseguite</th>
+                    <th>Ore Rimanenti</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for commessa in commesse %}
+                <tr>
+                    <td>{{ commessa['id'] }}</td>
+                    <td>{{ commessa['nome'] }}</td>
+                    <td>{{ commessa['tipo_intervento'] or '-' }}</td>
+                    <td>{{ commessa['data_conferma'] or '-' }}</td>
+                    <td>{{ commessa['data_arrivo_materiali'] or '-' }}</td>
+                    <td>{{ commessa['data_inizio'] or '-' }}</td>
+                    <td>{{ commessa['ore_necessarie'] or '0' }}</td>
+                    <td>{{ commessa['ore_eseguite'] or '0' }}</td>
+                    <td>{{ commessa['ore_rimanenti'] or '0' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+            <p style="text-align:center; color:white;">Nessuna commessa con tetto a soffietto trovata.</p>
+        {% endif %}
+    </div>
+</body>
+</html>

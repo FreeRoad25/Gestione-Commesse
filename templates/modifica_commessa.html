@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Modifica Commessa</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 700px;
+            margin: 40px auto;
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: #007bff;
+            margin-bottom: 25px;
+        }
+
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        label {
+            font-weight: bold;
+        }
+
+        input, select {
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        .back {
+            display: block;
+            text-align: center;
+            margin-top: 20px;
+            color: #007bff;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>✏️ Modifica Commessa</h1>
+
+        <form method="POST" action="{{ url_for('modifica_commessa', id=commessa['id']) }}">
+
+    <label for="nome">Nome Commessa:</label>
+    <input 
+        type="text" 
+        id="nome" 
+        name="nome" 
+        value="{{ commessa['nome'] }}" 
+        required 
+        placeholder="Inserisci nome commessa">
+
+    <label for="tipo_intervento">Tipo Intervento:</label>
+    <select id="tipo_intervento" name="tipo_intervento" onchange="mostraAltro()" required>
+        <option value="">-- Seleziona --</option>
+        <option value="Carrozzeria" {% if commessa['tipo_intervento'] == 'Carrozzeria' %}selected{% endif %}>Carrozzeria</option>
+        <option value="Allestimento" {% if commessa['tipo_intervento'] == 'Allestimento' %}selected{% endif %}>Allestimento</option>
+        <option value="Riparazione" {% if commessa['tipo_intervento'] == 'Riparazione' %}selected{% endif %}>Riparazione</option>
+        <option value="Tetto a Soffietto" {% if commessa['tipo_intervento'] == 'Tetto a Soffietto' %}selected{% endif %}>Tetto a Soffietto</option>
+        <option value="Altro" {% if commessa['tipo_intervento'] not in ['Carrozzeria', 'Allestimento', 'Riparazione', 'Tetto a Soffietto'] %}selected{% endif %}>➕ Altro...</option>
+    </select>
+
+    <div id="altro_container" style="display:none; margin-top:10px;">
+        <label for="altro_input">Specifica nuovo tipo:</label>
+        <input 
+            type="text" 
+            id="altro_input" 
+            name="altro_input" 
+            placeholder="Inserisci nuovo tipo..."
+            value="{% if commessa['tipo_intervento'] not in ['Carrozzeria', 'Allestimento', 'Riparazione', 'Tetto a Soffietto'] %}{{ commessa['tipo_intervento'] }}{% endif %}">
+    </div>
+
+<script>
+function mostraAltro() {
+    const select = document.getElementById('tipo_intervento');
+    const divAltro = document.getElementById('altro_container');
+    if (select.value === 'Altro') {
+        divAltro.style.display = 'block';
+    } else {
+        divAltro.style.display = 'none';
+    }
+}
+// Mostra il campo "Altro" se già selezionato
+document.addEventListener('DOMContentLoaded', function() {
+    mostraAltro();
+});
+</script>
+
+            <label for="data_conferma">Data Conferma:</label>
+            <input type="date" id="data_conferma" name="data_conferma" value="{{ commessa['data_conferma'] }}">
+
+            <label for="data_arrivo_materiali">Data Arrivo Materiali:</label>
+            <input type="date" id="data_arrivo_materiali" name="data_arrivo_materiali" value="{{ commessa['data_arrivo_materiali'] }}">
+
+            <label for="data_inizio">Data Inizio:</label>
+            <input type="date" id="data_inizio" name="data_inizio" value="{{ commessa['data_inizio'] }}">
+
+            <label for="ore_necessarie">Ore Necessarie:</label>
+            <input type="number" id="ore_necessarie" name="ore_necessarie" min="1" step="0.5" value="{{ commessa['ore_necessarie'] }}">
+
+            <label for="marca_veicolo">Marca Veicolo:</label>
+            <input type="text" id="marca_veicolo" name="marca_veicolo" value="{{ commessa['marca_veicolo'] }}">
+
+            <label for="modello_veicolo">Modello Veicolo:</label>
+            <input type="text" id="modello_veicolo" name="modello_veicolo" value="{{ commessa['modello_veicolo'] }}">
+
+            <label for="dimensioni">Dimensioni:</label>
+            <input type="text" id="dimensioni" name="dimensioni" value="{{ commessa['dimensioni'] }}">
+
+            <label for="data_consegna">Data Consegna:</label>
+            <input type="date" id="data_consegna" name="data_consegna" value="{{ commessa['data_consegna'] }}">
+
+            <button type="submit">💾 Salva Modifiche</button>
+        </form>
+
+        <a href="{{ url_for('lista_commesse') }}" class="back">⬅ Torna all'elenco commesse</a>
+    </div>
+</body>
+</html>

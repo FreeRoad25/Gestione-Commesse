@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Aggiungi Nuova Commessa</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 700px;
+            margin: 40px auto;
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: #007bff;
+            margin-bottom: 25px;
+        }
+
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        label {
+            font-weight: bold;
+        }
+
+        input, select {
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        button {
+            background-color: #28a745;
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #218838;
+        }
+
+        .back {
+            display: block;
+            text-align: center;
+            margin-top: 20px;
+            color: #007bff;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>➕ Aggiungi Nuova Commessa</h1>
+
+        <form method="POST" action="{{ url_for('aggiungi_commessa') }}">
+            
+            <label for="nome">Nome Commessa:</label>
+            <input type="text" id="nome" name="nome" required>
+
+        <label for="tipo_intervento">Tipo Intervento:</label>
+<select id="tipo_intervento" name="tipo_intervento" onchange="mostraAltro()" required>
+    <option value="">-- Seleziona --</option>
+    <option value="Carrozzeria">Carrozzeria</option>
+    <option value="Allestimento">Allestimento</option>
+    <option value="Riparazione">Riparazione</option>
+    <option value="Tetto a Soffietto">Tetto a Soffietto</option>
+    <option value="Altro">➕ Altro...</option>
+</select>
+
+<!-- Campo nascosto che appare se si sceglie “Altro” -->
+<div id="altro_container" style="display:none; margin-top:10px;">
+    <label for="altro_input">Specifica nuovo tipo:</label>
+    <input type="text" id="altro_input" name="altro_input" placeholder="Inserisci nuovo tipo...">
+</div>
+
+<script>
+function mostraAltro() {
+    const select = document.getElementById('tipo_intervento');
+    const divAltro = document.getElementById('altro_container');
+    if (select.value === 'Altro') {
+        divAltro.style.display = 'block';
+    } else {
+        divAltro.style.display = 'none';
+        document.getElementById('altro_input').value = '';
+    }
+}
+</script>
+
+
+            <label for="data_arrivo_materiali">Data Arrivo Materiali:</label>
+            <input type="date" id="data_arrivo_materiali" name="data_arrivo_materiali">
+
+            <label for="data_inizio">Data Inizio:</label>
+            <input type="date" id="data_inizio" name="data_inizio">
+
+            <label for="ore_necessarie">Ore Necessarie:</label>
+            <input type="number" id="ore_necessarie" name="ore_necessarie" min="1" step="0.5" required>
+
+            <label for="marca_veicolo">Marca Veicolo:</label>
+            <input type="text" id="marca_veicolo" name="marca_veicolo">
+
+            <label for="modello_veicolo">Modello Veicolo:</label>
+            <input type="text" id="modello_veicolo" name="modello_veicolo">
+
+            <label for="dimensioni">Dimensioni:</label>
+            <input type="text" id="dimensioni" name="dimensioni" placeholder="es. 4.5m x 1.8m x 1.6m">
+
+            <label for="data_consegna">Data Consegna (provvisoria):</label>
+            <input type="date" id="data_consegna" name="data_consegna">
+
+            <button type="submit">💾 Salva Commessa</button>
+        </form>
+
+        <a href="{{ url_for('lista_commesse') }}" class="back">⬅ Torna all'elenco commesse</a>
+    </div>
+</body>
+</html>

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Gestione Commesse</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        body {
+            text-align: center;
+            margin: 0;
+            padding: 0;
+        }
+        .btn {
+            display: inline-block;
+            margin: 10px;
+            padding: 15px 25px;
+            font-size: 18px;
+            font-weight: bold;
+            border-radius: 10px;
+            color: white;
+            text-decoration: none;
+            transition: 0.2s;
+        }
+        .btn:hover {
+            transform: scale(1.05);
+            opacity: 0.9;
+        }
+        .btn-primary { background-color: #007bff; }
+        .btn-success { background-color: #28a745; }
+        .btn-warning { background-color: #ffc107; color: #000; }
+        .btn-secondary { background-color: #6c757d; }
+        .btn-dark { background-color: #343a40; }
+        .btn-info { background-color: #17a2b8; }
+        .btn-light { background-color: #adb5bd; color: #000; }
+    </style>
+</head>
+<body class="index-page">
+    <div class="container">
+        <!-- Logo aziendale -->
+        <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Logo Azienda" class="logo">
+
+        <h1>Gestione Commesse</h1>
+
+        <!-- Pulsanti principali -->
+        <a href="{{ url_for('lista_commesse') }}" class="btn btn-primary">📋 Elenco Commesse</a>
+        <a href="{{ url_for('aggiungi_commessa') }}" class="btn btn-success">➕ Nuova Commessa</a>
+        <a href="{{ url_for('operatori') }}" class="btn btn-warning">👷 Operatori</a>
+        <a href="{{ url_for('consegna_veicolo') }}" class="btn btn-secondary">🚗 Consegna Veicolo</a>
+
+
+        <hr style="margin: 30px auto; width: 60%; border: 1px solid rgba(255,255,255,0.3);">
+
+        <!-- 🔹 Nuove funzioni -->
+        <a href="{{ url_for('elenco_soffietti') }}" class="btn btn-warning">🪟 Elenco Soffietti</a>
+        <a href="{{ url_for('archivio_consegnati') }}" class="btn btn-info">📁 Archivio Consegnati</a>
+        <a href="#" class="btn btn-light">🏭 Magazzino</a>
+    </div>
+</body>
+</html>

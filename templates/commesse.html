@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Elenco Commesse</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            width: 95%;
+            max-width: 1400px;
+            margin: 40px auto;
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+
+        .actions {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 10px 20px;
+            border-radius: 6px;
+            color: white;
+            text-decoration: none;
+            font-weight: bold;
+            margin: 0 8px;
+        }
+
+        .btn-success { background-color: #28a745; }
+        .btn-secondary { background-color: #17a2b8; }
+        .btn-warning { background-color: #ffc107; color: #000; }
+        .btn-danger { background-color: #dc3545; }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        th, td {
+            padding: 10px 8px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        th {
+            background-color: #007bff;
+            color: white;
+            text-align: center;
+        }
+
+        tr:hover {
+            background-color: #f9f9f9;
+        }
+
+        td {
+            text-align: center;
+        }
+
+        td.actions {
+            white-space: nowrap;
+        }
+
+        .small {
+            font-size: 12px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📋 Elenco Commesse</h1>
+
+        <div class="actions">
+            <a href="{{ url_for('aggiungi_commessa') }}" class="btn btn-success">➕ Aggiungi Nuova Commessa</a>
+            <a href="{{ url_for('home') }}" class="btn btn-secondary">🏠 Torna alla Home</a>
+        </div>
+
+        {% if commesse %}
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nome Commessa</th>
+                    <th>Tipo Intervento</th>
+                    <th>Data Conferma</th>
+                    <th>Arrivo Materiali</th>
+                    <th>Inizio</th>
+                    <th>Ore Necessarie</th>
+                    <th>Ore Eseguite</th>
+                    <th>Ore Rimanenti</th>
+                    <th>Marca</th>
+                    <th>Modello</th>
+                    <th>Dimensioni</th>
+                    <th>Consegna</th>
+                    <th>Stato</th>
+                    <th class="center">Azioni</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for commessa in commesse %}
+                <tr>
+                    <td>{{ commessa['id'] }}</td>
+                    <td>{{ commessa['nome'] }}</td>
+                    <td>{{ commessa['tipo_intervento'] or '-' }}</td>
+                    <td>{{ commessa['data_conferma'] or '-' }}</td>
+                    <td>{{ commessa['data_arrivo_materiali'] or '-' }}</td>
+                    <td>{{ commessa['data_inizio'] or '-' }}</td>
+                    <td>{{ commessa['ore_necessarie'] or '-' }}</td>
+                    <td>{{ commessa['ore_eseguite'] or '-' }}</td>
+                    <td>{{ commessa['ore_rimanenti'] or '-' }}</td>
+                    <td>{{ commessa['marca_veicolo'] or '-' }}</td>
+                    <td>{{ commessa['modello_veicolo'] or '-' }}</td>
+                    <td>{{ commessa['dimensioni'] or '-' }}</td>
+                    <td>{{ commessa['data_consegna'] or '-' }}</td>
+                    <td>{{ commessa['stato'] or '-' }}</td>
+                    <td class="actions">
+                        <a href="{{ url_for('modifica_commessa', id=commessa['id']) }}" class="btn btn-warning">✏️</a>
+                        <a href="{{ url_for('elimina_commessa', id=commessa['id']) }}" class="btn btn-danger" onclick="return confirm('Sei sicuro di voler eliminare questa commessa?');">🗑️</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="center small">Nessuna commessa presente.</p>
+        {% endif %}
+    </div>
+</body>
+</html>

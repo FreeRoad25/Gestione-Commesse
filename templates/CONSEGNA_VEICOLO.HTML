@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Consegna Veicolo</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        body {
+            text-align: center;
+            margin: 0;
+            padding: 0;
+        }
+        form {
+            margin-top: 40px;
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: blur(10px);
+            padding: 20px;
+            border-radius: 12px;
+            display: inline-block;
+        }
+        select {
+            padding: 10px;
+            font-size: 16px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            width: 300px;
+        }
+        button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚗 Consegna Veicolo</h1>
+
+        <form method="POST">
+            <label for="commessa">Seleziona una commessa da consegnare:</label><br><br>
+
+            <select name="id_commessa" required>
+                <option value="">-- Seleziona Commessa --</option>
+                {% for c in commesse %}
+                    <option value="{{ c['id'] }}">
+                        {{ c['id'] }} - {{ c['nome'] }} ({{ c['tipo_intervento'] or 'N/A' }})
+                    </option>
+                {% endfor %}
+            </select>
+            <br>
+            <button type="submit">Procedi alla Consegna</button>
+        </form>
+
+        <br><br>
+        <a href="{{ url_for('home') }}" class="btn btn-secondary">⬅ Torna alla Home</a>
+    </div>
+</body>
+</html>
