@@ -150,18 +150,14 @@ def modifica_commessa(id):
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
 
-    # Recupera la commessa da modificare
+    # Recupera i dati esistenti della commessa
     c.execute("SELECT * FROM commesse WHERE id = ?", (id,))
     commessa = c.fetchone()
-
-    if not commessa:
-        conn.close()
-        return "Commessa non trovata", 404
 
     if request.method == "POST":
         nome = request.form.get("nome")
 
-        # 🔹 Tipo intervento (gestisce anche l'opzione "Altro")
+        # ✅ Tipo intervento (gestisce anche l'opzione "Altro")
         tipo_intervento = request.form.get("tipo_intervento", "").strip()
         altro_input = request.form.get("altro_input", "").strip()
 
@@ -169,7 +165,10 @@ def modifica_commessa(id):
             tipo_intervento = altro_input
         elif tipo_intervento.lower() == "altro" and not altro_input:
             tipo_intervento = "Non specificato"
+        elif not tipo_intervento:
+            tipo_intervento = commessa["tipo_intervento"]  # ✅ mantiene quello vecchio
 
+        # altri campi
         data_conferma = request.form.get("data_conferma")
         data_arrivo_materiali = request.form.get("data_arrivo_materiali")
         data_inizio = request.form.get("data_inizio")
@@ -179,21 +178,19 @@ def modifica_commessa(id):
         dimensioni = request.form.get("dimensioni")
         data_consegna = request.form.get("data_consegna")
 
-        # 🔹 Aggiorna nel database
+        # ✅ Aggiorna nel database
         c.execute("""
-            UPDATE commesse 
-            SET nome=?, tipo_intervento=?, data_conferma=?, data_arrivo_materiali=?, data_inizio=?, 
-                ore_necessarie=?, marca_veicolo=?, modello_veicolo=?, dimensioni=?, data_consegna=? 
+            UPDATE commesse
+            SET nome=?, tipo_intervento=?, data_conferma=?, data_arrivo_materiali=?,
+                data_inizio=?, ore_necessarie=?, marca_veicolo=?, modello_veicolo=?,
+                dimensioni=?, data_consegna=?
             WHERE id=?
         """, (nome, tipo_intervento, data_conferma, data_arrivo_materiali, data_inizio,
               ore_necessarie, marca, modello, dimensioni, data_consegna, id))
         conn.commit()
         conn.close()
-
-        # 🔹 Torna alla lista dopo la modifica
         return redirect(url_for("lista_commesse"))
 
-    # 🔹 Se non è POST, mostra il form con i dati esistenti
     conn.close()
     return render_template("modifica_commessa.html", commessa=commessa)
 
@@ -412,6 +409,8 @@ def aggiorna_saldato(id):
     print(f"✅ Commessa {id} aggiornata correttamente a: {nuova_saldato}")
     return redirect(url_for("archivio_consegnati"))
 # 🔹 Avvio dell’app
-if __name__ == '__main__':
-    crea_database()
-    app.run(debug=True)
+import os
+
+if _name_ == '_main_':
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
