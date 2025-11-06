@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Gestione Magazzino</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        body {
+            background-image: url("{{ url_for('static', filename='images/sfondo.jpg') }}");
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            background-position: center;
+            background-size: cover;
+            font-family: Arial, sans-serif;
+            color: #fff;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            width: 80%;
+            max-width: 900px;
+            margin: 100px auto;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(8px);
+            padding: 40px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        h2 {
+            color: white;
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.6);
+            margin-bottom: 30px;
+        }
+
+        .menu-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 20px;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 15px 25px;
+            border-radius: 10px;
+            text-decoration: none;
+            color: white;
+            background-color: rgba(0, 123, 255, 0.85);
+            transition: 0.2s;
+            border: none;
+            font-size: 1.1em;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.2);
+        }
+
+        .btn:hover {
+            transform: scale(1.08);
+            background-color: rgba(0, 123, 255, 1);
+        }
+
+        .btn-home {
+            background-color: rgba(108, 117, 125, 0.8);
+        }
+
+        .btn-home:hover {
+            background-color: rgba(108, 117, 125, 1);
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>📦 Gestione Magazzino</h2>
+    <p>Seleziona una delle opzioni qui sotto per gestire articoli, movimenti o scarichi.</p>
+
+    <div class="menu-buttons">
+        <a href="{{ url_for('magazzino_articoli') }}" class="btn">📋 Articoli</a>
+        <a href="{{ url_for('scarico_magazzino') }}" class="btn">🔽 Scarico</a>
+        <a href="{{ url_for('carico_magazzino') }}" class="btn">⬆ Carico</a>
+        <a href="{{ url_for('movimenti_magazzino') }}" class="btn">📜 Movimenti</a>
+        <a href="{{ url_for('home') }}" class="btn btn-home">🏠 Torna alla Home</a>
+        <a href="{{ url_for('magazzino_sottoscorta') }}" class="btn" style="background-color: #ff9800;">⚠ Sottoscorta</a>
+    </div>
+</div>
+
+</body>
+</html>

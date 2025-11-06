@@ -39,11 +39,16 @@
             font-weight: bold;
         }
 
-        input, select {
+        input, select, textarea {
             padding: 10px;
             border: 1px solid #ccc;
             border-radius: 6px;
             font-size: 14px;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 70px;
         }
 
         button {
@@ -67,46 +72,61 @@
             color: #007bff;
             text-decoration: none;
         }
+
+        .back:hover {
+            text-decoration: underline;
+        }
+
+        .file-upload {
+            background: #f8f9fa;
+            border: 1px dashed #ccc;
+            padding: 15px;
+            border-radius: 6px;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>➕ Aggiungi Nuova Commessa</h1>
 
-        <form method="POST" action="{{ url_for('aggiungi_commessa') }}">
-            
+        <form method="POST" action="{{ url_for('aggiungi_commessa') }}" enctype="multipart/form-data">
+
             <label for="nome">Nome Commessa:</label>
             <input type="text" id="nome" name="nome" required>
 
-        <label for="tipo_intervento">Tipo Intervento:</label>
-<select id="tipo_intervento" name="tipo_intervento" onchange="mostraAltro()" required>
-    <option value="">-- Seleziona --</option>
-    <option value="Carrozzeria">Carrozzeria</option>
-    <option value="Allestimento">Allestimento</option>
-    <option value="Riparazione">Riparazione</option>
-    <option value="Tetto a Soffietto">Tetto a Soffietto</option>
-    <option value="Altro">➕ Altro...</option>
-</select>
+            <label for="tipo_intervento">Tipo Intervento:</label>
+            <select id="tipo_intervento" name="tipo_intervento" onchange="mostraAltro()" required>
+                <option value="">-- Seleziona --</option>
 
-<!-- Campo nascosto che appare se si sceglie “Altro” -->
-<div id="altro_container" style="display:none; margin-top:10px;">
-    <label for="altro_input">Specifica nuovo tipo:</label>
-    <input type="text" id="altro_input" name="altro_input" placeholder="Inserisci nuovo tipo...">
-</div>
+                <!-- Tipi base -->
+                <option value="Carrozzeria">Carrozzeria</option>
+                <option value="Allestimento">Allestimento</option>
+                <option value="Riparazione">Riparazione</option>
+                <option value="Tetto a Soffietto">Tetto a Soffietto</option>
 
-<script>
-function mostraAltro() {
-    const select = document.getElementById('tipo_intervento');
-    const divAltro = document.getElementById('altro_container');
-    if (select.value === 'Altro') {
-        divAltro.style.display = 'block';
-    } else {
-        divAltro.style.display = 'none';
-        document.getElementById('altro_input').value = '';
-    }
-}
-</script>
+                <!-- Tipi personalizzati dal database -->
+                {% for tipo in tipi_intervento %}
+                    {% if tipo not in ['Carrozzeria', 'Allestimento', 'Riparazione', 'Tetto a Soffietto'] %}
+                        <option value="{{ tipo }}">{{ tipo }}</option>
+                    {% endif %}
+                {% endfor %}
 
+                <option value="Altro">➕ Altro...</option>
+            </select>
+
+            <div id="altro_container" style="display:none; margin-top:10px;">
+                <label for="altro_input">Specifica nuovo tipo:</label>
+                <input type="text" id="altro_input" name="altro_input" placeholder="Inserisci nuovo tipo...">
+            </div>
+
+            <script>
+            function mostraAltro() {
+                const select = document.getElementById('tipo_intervento');
+                const divAltro = document.getElementById('altro_container');
+                divAltro.style.display = (select.value === 'Altro') ? 'block' : 'none';
+                if (select.value !== 'Altro') document.getElementById('altro_input').value = '';
+            }
+            </script>
 
             <label for="data_arrivo_materiali">Data Arrivo Materiali:</label>
             <input type="date" id="data_arrivo_materiali" name="data_arrivo_materiali">
@@ -117,17 +137,39 @@ function mostraAltro() {
             <label for="ore_necessarie">Ore Necessarie:</label>
             <input type="number" id="ore_necessarie" name="ore_necessarie" min="1" step="0.5" required>
 
+            <!-- 🔹 Marca e Modello dinamici -->
             <label for="marca_veicolo">Marca Veicolo:</label>
-            <input type="text" id="marca_veicolo" name="marca_veicolo">
+            <input list="marche_list" id="marca_veicolo" name="marca_veicolo" placeholder="es. Volkswagen">
+            <datalist id="marche_list">
+                {% for m in marche %}
+                    <option value="{{ m }}">
+                {% endfor %}
+            </datalist>
 
             <label for="modello_veicolo">Modello Veicolo:</label>
-            <input type="text" id="modello_veicolo" name="modello_veicolo">
+            <input list="modelli_list" id="modello_veicolo" name="modello_veicolo" placeholder="es. Crafter">
+            <datalist id="modelli_list">
+                {% for mod in modelli %}
+                    <option value="{{ mod }}">
+                {% endfor %}
+            </datalist>
 
             <label for="dimensioni">Dimensioni:</label>
             <input type="text" id="dimensioni" name="dimensioni" placeholder="es. 4.5m x 1.8m x 1.6m">
 
             <label for="data_consegna">Data Consegna (provvisoria):</label>
             <input type="date" id="data_consegna" name="data_consegna">
+
+            <!-- 📝 Note Importanti -->
+            <label for="note_importanti">📝 Note Importanti:</label>
+            <textarea id="note_importanti" name="note_importanti" placeholder="Inserisci eventuali note o dettagli importanti..."></textarea>
+
+            <!-- Upload file -->
+            <div class="file-upload">
+                <label for="file_commessa">📎 Allegati (foto, PDF, documenti...)</label><br>
+                <input type="file" id="file_commessa" name="file_commessa" multiple>
+                <p style="font-size:12px; color:#666;">Puoi selezionare più file contemporaneamente.</p>
+            </div>
 
             <button type="submit">💾 Salva Commessa</button>
         </form>

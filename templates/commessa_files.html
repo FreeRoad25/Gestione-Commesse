@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>File Allegati Commessa</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-image: url("{{ url_for('static', filename='images/sfondo.jpg') }}");
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            background-position: center;
+            background-size: cover;
+            color: #fff;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 800px;
+            margin: 40px auto;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(8px);
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            text-align: center;
+        }
+
+        h2 {
+            color: #00c3ff;
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.6);
+            margin-bottom: 20px;
+        }
+
+        p {
+            font-size: 15px;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 8px 15px;
+            border-radius: 6px;
+            text-decoration: none;
+            color: white;
+            background-color: #007bff;
+            margin: 5px;
+            transition: 0.2s;
+            border: none;
+            cursor: pointer;
+        }
+
+        .btn:hover {
+            transform: scale(1.05);
+            opacity: 0.9;
+        }
+
+        .btn-secondary { background-color: #6c757d; }
+        .btn-danger { background-color: #dc3545; }
+
+        ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        li {
+            background: rgba(255, 255, 255, 0.08);
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .file-info {
+            text-align: left;
+        }
+
+        .file-link {
+            color: #00c3ff;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .file-link:hover {
+            text-decoration: underline;
+        }
+
+        .file-date {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+
+        .no-files {
+            font-style: italic;
+            opacity: 0.8;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h2>📂 File allegati — {{ commessa.nome }}</h2>
+
+    {% if files and files|length > 0 %}
+        <ul>
+            {% for f in files %}
+            <li>
+                <div class="file-info">
+                    <a href="{{ url_for('download_commessa_file', file_id=f.id) }}" target="_blank" class="file-link">
+                        📄 {{ f.original_name or f.filename }}
+                    </a><br>
+                    <span class="file-date">Caricato il {{ f.upload_date[:10].replace('-', '/') }}</span>
+                </div>
+
+                <form method="POST" action="{{ url_for('delete_commessa_file', file_id=f.id) }}" style="margin:0;">
+                    <button type="submit" class="btn btn-danger">🗑 Elimina</button>
+                </form>
+            </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p class="no-files">✅ Nessun file allegato a questa commessa.</p>
+    {% endif %}
+
+    <div style="margin-top: 25px;">
+        <a href="{{ url_for('modifica_commessa', id=commessa.id) }}" class="btn btn-secondary">✏ Torna alla Commessa</a>
+        <a href="{{ url_for('lista_commesse') }}" class="btn">🏠 Elenco Commesse</a>
+    </div>
+</div>
+</body>
+</html>

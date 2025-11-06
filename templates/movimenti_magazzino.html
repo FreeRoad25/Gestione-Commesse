@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Movimenti Magazzino</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        body {
+            background-image: url("{{ url_for('static', filename='images/sfondo.jpg') }}");
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            background-position: center;
+            background-size: cover;
+            font-family: Arial, sans-serif;
+            color: #fff;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 1100px;
+            margin: 40px auto;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(8px);
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            text-align: center;
+        }
+
+        h2 {
+            color: white;
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.6);
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            font-size: 16px;
+            margin-bottom: 20px;
+            opacity: 0.9;
+        }
+
+        .mag-menu {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .mag-menu .btn {
+            display: inline-block;
+            padding: 8px 15px;
+            border-radius: 6px;
+            text-decoration: none;
+            color: white;
+            background-color: #007bff;
+            margin: 5px;
+            transition: 0.2s;
+            border: none;
+            cursor: pointer;
+        }
+
+        .mag-menu .btn:hover {
+            transform: scale(1.05);
+            opacity: 0.9;
+        }
+
+        form.filtro-form {
+            margin-bottom: 20px;
+        }
+
+        form.filtro-form input,
+        form.filtro-form select {
+            padding: 8px;
+            margin: 4px;
+            border-radius: 6px;
+            border: none;
+            width: 230px;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 8px 15px;
+            border-radius: 6px;
+            text-decoration: none;
+            color: white;
+            background-color: #007bff;
+            margin: 5px;
+            transition: 0.2s;
+            border: none;
+            cursor: pointer;
+        }
+
+        .btn-secondary { background-color: #6c757d; }
+        .btn-success { background-color: #28a745; }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        th, td {
+            padding: 10px;
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+            text-align: left;
+        }
+
+        th {
+            background-color: rgba(0, 123, 255, 0.8);
+        }
+
+        tr:hover { background-color: rgba(255, 255, 255, 0.04); }
+
+        .no-results {
+            margin-top: 20px;
+            font-style: italic;
+            opacity: 0.8;
+        }
+
+        /* === 🔹 Stile per la stampa === */
+        @media print {
+            @page {
+                size: A4 landscape;
+                margin: 10mm;
+            }
+
+            body {
+                background: white;
+                color: black;
+                print-color-adjust: exact;
+                -webkit-print-color-adjust: exact;
+                font-size: 11px;
+            }
+
+            .container {
+                box-shadow: none;
+                background: white;
+                color: black;
+                backdrop-filter: none;
+                width: 100%;
+                max-width: 100%;
+                padding: 0;
+            }
+
+            .mag-menu, .filtro-form, .btn, .btn-secondary {
+                display: none !important;
+            }
+
+            h2 {
+                color: black;
+                text-shadow: none;
+                font-size: 16px;
+                text-align: center;
+                margin-bottom: 4px;
+            }
+
+            .subtitle {
+                color: black;
+                text-align: center;
+                margin-bottom: 8px;
+                font-size: 12px;
+            }
+
+            table {
+                border: 1px solid #000;
+                width: 100%;
+                margin: auto;
+                border-collapse: collapse;
+                font-size: 10px;
+                table-layout: fixed;
+            }
+
+            th, td {
+                border: 1px solid #000;
+                color: black;
+                padding: 5px;
+                word-wrap: break-word;
+                text-align: center;
+            }
+
+            th:nth-child(1), td:nth-child(1) { width: 12%; }
+            th:nth-child(2), td:nth-child(2) { width: 20%; }
+            th:nth-child(3), td:nth-child(3) { width: 10%; }
+            th:nth-child(4), td:nth-child(4) { width: 10%; }
+            th:nth-child(5), td:nth-child(5) { width: 48%; text-align: left; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h2>📜 Movimenti Magazzino</h2>
+    {% if filtro_commessa %}
+        <div class="subtitle">Commessa: <strong>{{ filtro_commessa }}</strong></div>
+    {% endif %}
+
+    <!-- 🔹 Menu magazzino -->
+    <div class="mag-menu">
+        <a href="{{ url_for('magazzino') }}" class="btn">📦 Articoli</a>
+        <a href="{{ url_for('scarico_magazzino') }}" class="btn">🔽 Scarico</a>
+        <a href="{{ url_for('carico_magazzino') }}" class="btn">⬆ Carico</a>
+        <a href="{{ url_for('movimenti_magazzino') }}" class="btn">📜 Movimenti</a>
+    </div>
+
+    <!-- 🔹 Form ricerca -->
+    <form method="GET" action="{{ url_for('movimenti_magazzino') }}" class="filtro-form">
+        <input type="text" name="ricerca" placeholder="🔍 Articolo o Codice a Barre...">
+
+        <select name="id_commessa">
+            <option value="">-- Tutte le commesse --</option>
+            {% for com in commesse %}
+                <option value="{{ com.id }}" {% if request.args.get('id_commessa') == com.id|string %}selected{% endif %}>
+                    {{ com.nome }}
+                </option>
+            {% endfor %}
+        </select>
+
+        <select name="tipo">
+            <option value="">-- Tipo movimento --</option>
+            <option value="Carico">Carico</option>
+            <option value="Scarico">Scarico</option>
+        </select>
+
+        <button type="submit" class="btn">🔎 Cerca</button>
+        {% if movimenti and movimenti|length > 0 %}
+            <button type="button" class="btn btn-success" onclick="window.print()">🖨 Stampa Lista</button>
+        {% endif %}
+    </form>
+
+    {% if movimenti and movimenti|length > 0 %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Data Movimento</th>
+                    <th>Articolo</th>
+                    <th>Tipo</th>
+                    <th>Quantità</th>
+                    <th>Note</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for mov in movimenti %}
+                    <tr>
+                        <td>{{ mov.data_movimento[:10].replace('-', '/') }} {{ mov.data_movimento[11:16] }}</td>
+                        <td>{{ mov.articolo }}</td>
+                        <td>{{ mov.tipo_movimento }}</td>
+                        <td>{{ "%.2f"|format(mov.quantita) }}</td>
+                        <td>{{ mov.note or '' }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p class="no-results">Nessun movimento da mostrare. Effettua una ricerca qui sopra.</p>
+    {% endif %}
+
+    <div style="margin-top: 25px;">
+        <a href="{{ url_for('magazzino') }}" class="btn btn-secondary">🏠 Torna al Magazzino</a>
+    </div>
+</div>
+</body>
+</html>

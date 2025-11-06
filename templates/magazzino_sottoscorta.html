@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Articoli Sottoscorta</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        body {
+            background-image: url("{{ url_for('static', filename='images/sfondo.jpg') }}");
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            background-position: center;
+            background-size: cover;
+            font-family: Arial, sans-serif;
+            color: #fff;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 1000px;
+            margin: 40px auto;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(8px);
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            text-align: center;
+        }
+
+        h2 {
+            color: #ff9900;
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.6);
+            margin-bottom: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        th, td {
+            padding: 10px;
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+            text-align: left;
+        }
+
+        th {
+            background-color: rgba(255, 153, 0, 0.9);
+            color: #fff;
+        }
+
+        tr:hover { background-color: rgba(255, 255, 255, 0.05); }
+
+        .btn {
+            display: inline-block;
+            padding: 8px 15px;
+            border-radius: 6px;
+            text-decoration: none;
+            color: white;
+            background-color: #007bff;
+            margin: 5px;
+            transition: 0.2s;
+            border: none;
+            cursor: pointer;
+        }
+
+        .btn:hover { transform: scale(1.05); }
+
+        .btn-secondary { background-color: #6c757d; }
+        .btn-print { background-color: #28a745; }
+
+        /* === 🔹 STAMPA === */
+        @media print {
+            @page {
+                size: A4 landscape;
+                margin: 10mm;
+            }
+
+            body {
+                background: white;
+                color: black;
+                font-size: 11px;
+                -webkit-print-color-adjust: exact;
+print-color-adjust: exact;
+            }
+
+            .container {
+                box-shadow: none;
+                background: white;
+                color: black;
+                padding: 0;
+                margin: 0;
+            }
+
+            .btn, .btn-secondary, .btn-print {
+                display: none !important;
+            }
+
+            h2 {
+                color: black;
+                text-shadow: none;
+                text-align: center;
+                margin-bottom: 10px;
+                font-size: 16px;
+            }
+
+            table {
+                border: 1px solid #000;
+                width: 100%;
+                margin: auto;
+                border-collapse: collapse;
+                font-size: 10px;
+            }
+
+            th, td {
+                border: 1px solid #000;
+                color: black;
+                padding: 6px;
+                text-align: center;
+            }
+
+            th:nth-child(1), td:nth-child(1) { width: 15%; }
+            th:nth-child(2), td:nth-child(2) { width: 35%; text-align: left; }
+            th:nth-child(3), td:nth-child(3) { width: 10%; }
+            th:nth-child(4), td:nth-child(4) { width: 10%; }
+            th:nth-child(5), td:nth-child(5) { width: 30%; }
+        } /* ✅ QUESTA CHIUDE IL BLOCCO MANCANTE */
+    </style>
+</head>
+<body>
+<div class="container">
+    <h2>⚠ Articoli Sottoscorta</h2>
+
+    {% if articoli and articoli|length > 0 %}
+        <button class="btn btn-print" onclick="window.print()">🖨 Stampa Lista</button>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Codice</th>
+                    <th>Descrizione</th>
+                    <th>Quantità</th>
+                    <th>Scorta Minima</th>
+                    <th>Fornitore</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for art in articoli %}
+                <tr>
+                    <td>{{ art.codice }}</td>
+                    <td>{{ art.descrizione }}</td>
+                    <td>{{ "%.2f"|format(art.quantita) }}</td>
+                    <td>{{ "%.2f"|format(art.scorta_minima) }}</td>
+                    <td>{{ art.fornitore or '' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p style="margin-top:20px; font-style:italic;">✅ Nessun articolo è sotto la scorta minima.</p>
+    {% endif %}
+
+    <div style="margin-top: 25px;">
+        <a href="{{ url_for('magazzino') }}" class="btn btn-secondary">🏠 Torna al Magazzino</a>
+    </div>
+</div>
+</body>
+</html>

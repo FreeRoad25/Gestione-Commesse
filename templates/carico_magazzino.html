@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Carico Magazzino</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        body {
+            background-image: url("{{ url_for('static', filename='images/sfondo.jpg') }}");
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            background-position: center;
+            background-size: cover;
+            font-family: Arial, sans-serif;
+            color: #fff;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 700px;
+            margin: 40px auto;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(8px);
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            text-align: center;
+        }
+
+        h2 {
+            color: white;
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.6);
+            margin-bottom: 20px;
+        }
+
+        select, input {
+            width: 90%;
+            padding: 8px;
+            margin: 8px 0;
+            border-radius: 6px;
+            border: none;
+            font-size: 14px;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 8px 15px;
+            border-radius: 6px;
+            text-decoration: none;
+            color: white;
+            background-color: #007bff;
+            margin: 8px;
+            transition: 0.2s;
+            border: none;
+            cursor: pointer;
+        }
+
+        .btn:hover {
+            transform: scale(1.05);
+            opacity: 0.9;
+        }
+
+        .btn-secondary {
+            background-color: #6c757d;
+        }
+
+        .mag-menu {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .mag-menu .btn {
+            margin: 5px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h2>⬆ Carico Magazzino</h2>
+
+    <!-- 🔹 Menu Navigazione Magazzino -->
+    <div class="mag-menu">
+        <a href="{{ url_for('magazzino') }}" class="btn">📦 Articoli</a>
+        <a href="{{ url_for('scarico_magazzino') }}" class="btn">🔽 Scarico</a>
+        <a href="{{ url_for('carico_magazzino') }}" class="btn">⬆ Carico</a>
+        <a href="{{ url_for('movimenti_magazzino') }}" class="btn">📜 Movimenti</a>
+    </div>
+
+    <!-- 🔹 Form Carico -->
+    <form method="POST" action="{{ url_for('carico_magazzino') }}">
+        <!-- 🔹 Campo Codice a barre -->
+        <label>Codice a barre:</label><br>
+        <input type="text" id="codice_barre" name="codice_barre"
+               placeholder="Scansiona o inserisci il codice"
+               style="width:90%; background:#fff; color:#000; border-radius:6px; border:none; padding:8px;"
+               autocomplete="off"><br>
+
+        <label>Articolo:</label><br>
+        <select name="id_articolo" id="id_articolo" required onchange="mostraCodiceBarre()">
+            <option value="">-- Seleziona articolo --</option>
+            {% for art in articoli %}
+                <option value="{{ art.id }}" data-barcode="{{ art.codice_barre }}">
+                    {{ art.descrizione }} ({{ art.quantita }} disponibili)
+                </option>
+            {% endfor %}
+        </select><br>
+
+        <label>Quantità da caricare:</label><br>
+        <input type="number" step="0.01" min="0" name="quantita" required><br>
+
+        <label>Note:</label><br>
+        <input type="text" name="note" placeholder="Annotazioni facoltative"><br>
+
+        <button type="submit" class="btn">💾 Conferma Carico</button>
+    </form>
+
+    <!-- 🔹 Pulsante per tornare al Magazzino -->
+    <div style="text-align:center; margin-top:25px;">
+        <a href="{{ url_for('magazzino') }}" class="btn btn-secondary">🏠 Torna al Magazzino</a>
+    </div>
+</div>
+
+<!-- 🔹 Script per mostrare e cercare codice a barre -->
+<script>
+function mostraCodiceBarre() {
+    const select = document.getElementById('id_articolo');
+    const opt = select.options[select.selectedIndex];
+    document.getElementById('codice_barre').value = opt ? (opt.dataset.barcode || "") : "";
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const inputBarcode = document.getElementById('codice_barre');
+    const selectArticolo = document.getElementById('id_articolo');
+
+    inputBarcode.addEventListener('change', function() {
+        const codice = inputBarcode.value.trim();
+        if (!codice) return;
+
+        let trovato = false;
+        for (let option of selectArticolo.options) {
+            if (option.dataset.barcode && option.dataset.barcode.trim() === codice) {
+                option.selected = true;
+                mostraCodiceBarre();
+                trovato = true;
+                break;
+            }
+        }
+
+        if (!trovato) {
+            alert("❌ Nessun articolo trovato per questo codice a barre");
+        }
+    });
+
+    mostraCodiceBarre();
+});
+</script>
+
+</body>
+</html>

@@ -5,82 +5,162 @@
     <title>Gestione Operatori</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f4f9;
-            text-align: center;
-            color: #333;
-        }
-        .container {
-            width: 90%;
-            max-width: 600px;
-            margin: 40px auto;
-            background: rgba(255, 255, 255, 0.603);
-            padding: 25px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        select, input {
-            width: 100%;
-            padding: 10px;
-            margin: 10px 0;
-            border: 1px solid #ccc;
-            border-radius: 6px;
-        }
-        button {
-            background-color: #28a745;
-            color: rgba(255, 255, 255, 0.568);
-            border: none;
-            padding: 12px 20px;
-            border-radius: 6px;
-            cursor: pointer;
-        }
-        button:hover {
-            opacity: 0.8;
-        }
-        a {
-            display: inline-block;
-            margin-top: 15px;
-            text-decoration: none;
-            color: #007bff;
-        }
-    </style>
+    body {
+        background-image: url("{{ url_for('static', filename='images/sfondo.jpg') }}");
+        background-size: cover;
+        background-repeat: no-repeat;
+        background-attachment: fixed;
+        background-position: center;
+        color: #fff;
+        font-family: Arial, sans-serif;
+        text-align: center;
+        margin: 0;
+        padding: 0;
+    }
+
+    h2 {
+        margin-top: 25px;
+        font-size: 1.8em;
+        text-shadow: 1px 1px 4px #000;
+    }
+
+    #contenuto {
+        margin-top: 20px;
+        background-color: rgba(0, 0, 0, 0.65);
+        padding: 15px 15px;
+        border-radius: 12px;
+        width: 75%;
+        margin-left: auto;
+        margin-right: auto;
+        box-shadow: 0 0 10px rgba(0,0,0,0.5);
+    }
+
+    table {
+    margin: 0 auto;
+    border-collapse: collapse;
+    border-spacing: 0;
+    width: 80%;
+}
+
+/* 🔹 Riduce lo spazio verticale tra le righe */
+tr {
+    height: auto !important;
+}
+
+/* 🔹 Celle più compatte e centrate */
+td, th {
+    padding-top: 4px !important;
+    padding-bottom: 4px !important;
+    height: 30px !important;
+    vertical-align: middle !important;
+}
+
+/* 🔹 Evita spazi extra nei form */
+td form {
+    margin: 0;
+    padding: 0;
+}
+select,
+input[type="number"] {
+    padding: 2px 4px;
+    border-radius: 4px;
+    border: none;
+    width: 90%;
+    height: 22px; /* 🔹 Più basso */
+    font-size: 0.85em;
+    background-color: rgba(255, 255, 255, 0.9);
+}
+
+button {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 3px 8px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: 0.2s;
+    font-size: 0.85em;
+    height: 25px;
+}
+
+button:hover {
+    background-color: #0056b3;
+}
+
+    a button {
+        margin-top: 10px;
+    }
+    select {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    padding: 2px 6px;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+    height: 24px;
+    font-size: 0.8em;
+    background-color: rgba(255, 255, 255, 0.9);
+    background-image: url("data:image/svg+xml;charset=US-ASCII,<svg xmlns='http://www.w3.org/2000/svg' width='8' height='5'><path fill='gray' d='M0,0 L8,0 L4,5 Z'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 6px center;
+    background-size: 8px 5px;
+}
+/* 🔹 Colore dei nomi operatori */
+td:first-child {
+    color: #eff9f2; /* Azzurro brillante, cambia come vuoi */
+    font-weight: bold; /* Grassetto per maggiore leggibilità */
+}
+</style>
 </head>
 <body>
-    <div class="container">
-        <h1>Gestione Operatori</h1>
 
-        <form method="POST" action="{{ url_for('registra_ore') }}">
-            <label for="operatore">Seleziona Operatore:</label>
-            <select name="operatore" id="operatore" required>
-                {% for op in operatori %}
-                    <option value="{{ op['id'] }}">{{ op['nome'] }}</option>
-                {% endfor %}
-                <option value="nuovo">➕ Aggiungi nuovo operatore</option>
-            </select>
+    <h2>Gestione Operatori</h2>
 
-            <label for="commessa">Seleziona Commessa:</label>
-            <select name="commessa" id="commessa" required>
-                {% for c in commesse %}
-                    <option value="{{ c['id'] }}">{{ c['nome'] }}</option>
-                {% endfor %}
-            </select>
+    <div id="contenuto">
+        <h3>Operatori e Commesse</h3>
+        <table>
+            <tr>
+                <th>Operatore</th>
+                <th>Commessa</th>
+                <th>Ore</th>
+                <th>Azioni</th>
+            </tr>
+            {% for operatore in operatori %}
+            <tr>
+                <td>{{ operatore.nome }}</td>
+                <td>
+                    <form action="{{ url_for('registra_ore') }}" method="POST">
+                        <select name="commessa" required>
+                            <option value="">-- Seleziona commessa --</option>
+                            {% for commessa in commesse %}
+                                <option value="{{ commessa.id }}">{{ commessa.nome }}</option>
+                            {% endfor %}
+                        </select>
+                </td>
+                <td><input type="number" name="ore" min="0" step="0.5" required></td>
+                <td>
+                        <input type="hidden" name="operatore" value="{{ operatore.id }}">
+                        <button type="submit">Registra ore</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+><br>
+        <a href="{{ url_for('aggiungi_operatore') }}">
+            <button>Aggiungi nuovo operatore</button>
+        </a>
 
-            <label for="ore">Ore lavorate (max 8):</label>
-            <input type="number" name="ore" id="ore" min="1" max="8" required>
-
-            <button type="submit">Registra Ore</button>
-        </form>
-
-        <a href="{{ url_for('home') }}">⬅ Torna alla Home</a>
+        <br><br>
+        <a href="{{ url_for('home') }}">
+            <button style="background-color: #28a745;">← Torna alla Home</button>
+        </a>
     </div>
-    <script>
-document.getElementById("operatore").addEventListener("change", function() {
-    if (this.value === "nuovo") {
-        window.location.href = "/aggiungi_operatore";
-    }
-});
-</script>
 
+    <script>
+        function mostraContenuto() {
+            document.getElementById("contenuto").style.display = "block";
+        }
+    </script>
 </body>
 </html>

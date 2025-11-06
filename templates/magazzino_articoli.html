@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Articoli di Magazzino</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        body {
+            background-image: url("{{ url_for('static', filename='images/sfondo.jpg') }}");
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            background-position: center;
+            background-size: cover;
+            font-family: Arial, sans-serif;
+            color: #fff;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 1200px;
+            margin: 40px auto;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(8px);
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        h2 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: white;
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.6);
+        }
+
+        .mag-menu {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .mag-menu .btn {
+            display: inline-block;
+            padding: 10px 15px;
+            border-radius: 8px;
+            text-decoration: none;
+            color: white;
+            background-color: rgba(0, 123, 255, 0.8);
+            margin: 6px;
+            transition: 0.2s;
+            border: none;
+        }
+
+        .mag-menu .btn:hover {
+            transform: scale(1.05);
+            background-color: rgba(0, 123, 255, 1);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+        }
+
+        th {
+            background-color: rgba(0, 123, 255, 0.7);
+        }
+
+        .basso-scorta {
+            background-color: rgba(255, 0, 0, 0.25) !important;
+        }
+
+        .form-box {
+            margin-top: 30px;
+            text-align: center;
+        }
+
+        input, select {
+            padding: 8px;
+            border-radius: 6px;
+            border: none;
+            margin: 5px;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 8px 15px;
+            border-radius: 6px;
+            text-decoration: none;
+            color: white;
+            background-color: #007bff;
+            margin: 5px;
+            transition: 0.2s;
+            border: none;
+            cursor: pointer;
+        }
+
+        .btn:hover {
+            transform: scale(1.05);
+            opacity: 0.9;
+        }
+
+        #filtro {
+            display: block;
+            margin: 0 auto 15px auto;
+            width: 60%;
+            padding: 8px;
+            border-radius: 6px;
+            border: none;
+            text-align: center;
+        }
+
+        #barcodeInput {
+            display: block;
+            margin: 10px auto;
+            width: 40%;
+            padding: 8px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>📦 Articoli di Magazzino</h2>
+
+    <!-- ✅ MENU INTERNO -->
+    <div class="mag-menu">
+        <a href="{{ url_for('magazzino') }}" class="btn">🏠 Menu Magazzino</a>
+        <a href="/scarico_magazzino" class="btn">🔽 Scarico</a>
+        <a href="/carico_magazzino" class="btn">⬆ Carico</a>
+        <a href="/movimenti_magazzino" class="btn">📜 Movimenti</a>
+    </div>
+
+    <!-- 🔍 Filtro manuale -->
+    <input type="text" id="filtro" placeholder="🔍 Cerca articolo per nome, codice o fornitore..." onkeyup="filtraTabella()">
+
+    <!-- 🔎 Scansione barcode -->
+    <input type="text" id="barcodeInput" placeholder="📷 Scansiona codice a barre..." oninput="ricercaBarcode()">
+
+    <!-- 📋 Tabella articoli -->
+    <table id="tabellaMagazzino">
+        <thead>
+            <tr>
+                <th>Codice</th>
+                <th>Descrizione</th>
+                <th>Unità</th>
+                <th>Quantità</th>
+                <th>Codice a Barre</th>
+                <th>Fornitore</th>
+                <th>Scorta Minima</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for art in articoli %}
+            <tr {% if art.scorta_minima and art.quantita < art.scorta_minima %}class="basso-scorta"{% endif %}>
+                <td>{{ art.codice }}</td>
+                <td>{{ art.descrizione }}</td>
+                <td>{{ art.unita }}</td>
+                <td>{{ art.quantita }}</td>
+                <td>{{ art.codice_barre }}</td>
+                <td>{{ art.fornitore }}</td>
+                <td>{{ art.scorta_minima }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- ➕ Aggiungi articolo -->
+    <div class="form-box">
+        <h3>➕ Aggiungi Nuovo Articolo</h3>
+        <form action="{{ url_for('aggiungi_articolo') }}" method="POST">
+            <input type="text" name="codice" placeholder="Codice" required>
+            <input type="text" name="descrizione" placeholder="Descrizione" required>
+            <input type="text" name="unita" placeholder="Unità (es. pz, mt)">
+            <input type="number" step="0.01" name="quantita" placeholder="Quantità">
+            <input type="text" name="codice_barre" placeholder="Codice a Barre">
+            <input type="text" name="fornitore" placeholder="Fornitore" required>
+            <input type="number" step="0.01" name="scorta_minima" placeholder="Scorta minima">
+            <button type="submit" class="btn">💾 Salva Articolo</button>
+        </form>
+    </div>
+</div>
+
+<script>
+// 🔹 Nasconde tutte le righe all'avvio
+document.addEventListener("DOMContentLoaded", () => {
+    filtraTabella();
+    document.getElementById("barcodeInput").focus();
+});
+
+// 🔍 Ricerca manuale
+function filtraTabella() {
+    let filtro = document.getElementById("filtro").value.toLowerCase();
+    let righe = document.querySelectorAll("#tabellaMagazzino tbody tr");
+
+    for (let i = 0; i < righe.length; i++) {
+        let testo = righe[i].innerText.toLowerCase();
+        righe[i].style.display = filtro.length > 0 && testo.includes(filtro) ? "" : "none";
+    }
+}
+
+// 📷 Ricerca tramite codice a barre
+function ricercaBarcode() {
+    let codice = document.getElementById("barcodeInput").value.trim().toLowerCase();
+    let righe = document.querySelectorAll("#tabellaMagazzino tbody tr");
+
+    for (let i = 0; i < righe.length; i++) {
+        let testo = righe[i].innerText.toLowerCase();
+        righe[i].style.display = codice.length > 0 && testo.includes(codice) ? "" : "none";
+    }
+
+    // se lo scanner invia "invio" dopo la lettura, resetta automaticamente
+    if (codice.length > 3) {
+        setTimeout(() => {
+            document.getElementById("barcodeInput").value = "";
+        }, 1200);
+    }
+}
+</script>
+
+</body>
+</html>
