@@ -56,6 +56,8 @@ def init_db_online():
         print("Errore creazione tabella utenti:", e)
 
 init_db_online()
+import crea_admin_online
+crea_admin_online.crea_admin_se_manca()
 
 # ============================================================
 
@@ -1330,8 +1332,7 @@ def stampa_magazzino():
 def root():
     return redirect(url_for("login"))
 
-import crea_admin_online
-crea_admin_online.crea_admin_se_manca()
+
 # =========================================================
 # AVVIO APP
 # =========================================================
