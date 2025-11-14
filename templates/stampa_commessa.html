@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Stampa Commessa</title>
+    <style>
+        body { font-family: Arial; margin: 30px; }
+        h1 { color: #007BFF; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        td, th { border: 1px solid #000; padding: 8px; text-align: left; }
+    </style>
+</head>
+<body onload="window.print()">
+    <h1>🧾 Commessa: {{ commessa[1] }}</h1>
+    <table>
+        <tr><th>Tipo Intervento</th><td>{{ commessa[2] }}</td></tr>
+        <tr><th>Marca</th><td>{{ commessa[3] }}</td></tr>
+        <tr><th>Modello</th><td>{{ commessa[4] }}</td></tr>
+        <tr><th>Data Conferma</th><td>{{ commessa[5] }}</td></tr>
+        <tr><th>Data Consegna</th><td>{{ commessa[12] }}</td></tr>
+        <tr><th>Ore Necessarie</th><td>{{ commessa[6] }}</td></tr>
+        <tr><th>Ore Eseguite</th><td>{{ commessa[7] }}</td></tr>
+        <tr><th>Saldata</th><td>{{ commessa[13] }}</td></tr>
+    </table>
+</body>
+</html>
