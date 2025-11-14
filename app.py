@@ -36,6 +36,18 @@ def admin_required(f):
     return decorated_function
 # ========================================================================
 DB_NAME = "commesse.db"
+
+# Path assoluto del database
+BASE_DIR = os.path.dirname(os.path.abspath(_file_))
+DB_PATH = os.path.join(BASE_DIR, DB_NAME)
+
+def get_db_connection():
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+
+
 # ====== CREAZIONE AUTOMATICA TABELLA UTENTI SU RENDER ======
 def init_db_online():    
     try:
