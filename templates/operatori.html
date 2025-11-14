@@ -1,166 +1,116 @@
-<!DOCTYPE html>
-<html lang="it">
-<head>
-    <meta charset="UTF-8">
-    <title>Gestione Operatori</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <style>
-    body {
-        background-image: url("{{ url_for('static', filename='images/sfondo.jpg') }}");
-        background-size: cover;
-        background-repeat: no-repeat;
-        background-attachment: fixed;
-        background-position: center;
-        color: #fff;
-        font-family: Arial, sans-serif;
-        text-align: center;
-        margin: 0;
-        padding: 0;
-    }
+{% extends "layout.html" %}
+{% block title %}Gestione Operatori{% endblock %}
+{% block content %}
 
-    h2 {
-        margin-top: 25px;
-        font-size: 1.8em;
-        text-shadow: 1px 1px 4px #000;
-    }
+<div class="container-operatori">
+    <h1>Gestione Operatori</h1>
 
-    #contenuto {
-        margin-top: 20px;
-        background-color: rgba(0, 0, 0, 0.65);
-        padding: 15px 15px;
-        border-radius: 12px;
-        width: 75%;
-        margin-left: auto;
-        margin-right: auto;
-        box-shadow: 0 0 10px rgba(0,0,0,0.5);
-    }
+    <!-- 🔹 Costo Orario unico -->
+    <form action="{{ url_for('aggiorna_costo_orario') }}" method="POST" class="row-form">
+        <label class="label-inline">💶 Costo Orario unico:</label>
+        <input type="number" name="nuovo_costo_orario" step="0.01" placeholder="es. 47.50" required>
+        <button type="submit" class="btn btn-primary">💾 Applica</button>
+    </form>
 
-    table {
-    margin: 0 auto;
-    border-collapse: collapse;
-    border-spacing: 0;
-    width: 80%;
-}
-
-/* 🔹 Riduce lo spazio verticale tra le righe */
-tr {
-    height: auto !important;
-}
-
-/* 🔹 Celle più compatte e centrate */
-td, th {
-    padding-top: 4px !important;
-    padding-bottom: 4px !important;
-    height: 30px !important;
-    vertical-align: middle !important;
-}
-
-/* 🔹 Evita spazi extra nei form */
-td form {
-    margin: 0;
-    padding: 0;
-}
-select,
-input[type="number"] {
-    padding: 2px 4px;
-    border-radius: 4px;
-    border: none;
-    width: 90%;
-    height: 22px; /* 🔹 Più basso */
-    font-size: 0.85em;
-    background-color: rgba(255, 255, 255, 0.9);
-}
-
-button {
-    background-color: #007bff;
-    color: white;
-    border: none;
-    padding: 3px 8px;
-    border-radius: 5px;
-    cursor: pointer;
-    transition: 0.2s;
-    font-size: 0.85em;
-    height: 25px;
-}
-
-button:hover {
-    background-color: #0056b3;
-}
-
-    a button {
-        margin-top: 10px;
-    }
-    select {
-    appearance: none;
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    padding: 2px 6px;
-    border-radius: 4px;
-    border: 1px solid #ccc;
-    height: 24px;
-    font-size: 0.8em;
-    background-color: rgba(255, 255, 255, 0.9);
-    background-image: url("data:image/svg+xml;charset=US-ASCII,<svg xmlns='http://www.w3.org/2000/svg' width='8' height='5'><path fill='gray' d='M0,0 L8,0 L4,5 Z'/></svg>");
-    background-repeat: no-repeat;
-    background-position: right 6px center;
-    background-size: 8px 5px;
-}
-/* 🔹 Colore dei nomi operatori */
-td:first-child {
-    color: #eff9f2; /* Azzurro brillante, cambia come vuoi */
-    font-weight: bold; /* Grassetto per maggiore leggibilità */
-}
-</style>
-</head>
-<body>
-
-    <h2>Gestione Operatori</h2>
-
-    <div id="contenuto">
-        <h3>Operatori e Commesse</h3>
-        <table>
-            <tr>
-                <th>Operatore</th>
-                <th>Commessa</th>
-                <th>Ore</th>
-                <th>Azioni</th>
-            </tr>
-            {% for operatore in operatori %}
-            <tr>
-                <td>{{ operatore.nome }}</td>
-                <td>
-                    <form action="{{ url_for('registra_ore') }}" method="POST">
-                        <select name="commessa" required>
-                            <option value="">-- Seleziona commessa --</option>
-                            {% for commessa in commesse %}
-                                <option value="{{ commessa.id }}">{{ commessa.nome }}</option>
-                            {% endfor %}
-                        </select>
-                </td>
-                <td><input type="number" name="ore" min="0" step="0.5" required></td>
-                <td>
-                        <input type="hidden" name="operatore" value="{{ operatore.id }}">
-                        <button type="submit">Registra ore</button>
-                    </form>
-                </td>
-            </tr>
-            {% endfor %}
-        </table>
-><br>
-        <a href="{{ url_for('aggiungi_operatore') }}">
-            <button>Aggiungi nuovo operatore</button>
-        </a>
-
-        <br><br>
-        <a href="{{ url_for('home') }}">
-            <button style="background-color: #28a745;">← Torna alla Home</button>
-        </a>
+    <!-- 🔹 Aggiungi operatore -->
+    <div class="pulsante-centro">
+        <a href="{{ url_for('pagina_aggiungi_operatore') }}" class="btn btn-secondary">➕ Aggiungi Operatore</a>
     </div>
 
-    <script>
-        function mostraContenuto() {
-            document.getElementById("contenuto").style.display = "block";
-        }
-    </script>
-</body>
-</html>
+    <!-- 🔹 Registrazione Ore -->
+    <form action="{{ url_for('registrazione_ore') }}" method="POST" class="row-form">
+        <label>Operatore:</label>
+        <select name="id_operatore" required>
+            <option value="">— Seleziona operatore —</option>
+            {% for op in operatori %}
+                <option value="{{ op.id }}">{{ op.nome }}</option>
+            {% endfor %}
+        </select>
+
+        <label>Commessa:</label>
+        <select name="id_commessa" required>
+            <option value="">— Seleziona commessa —</option>
+            {% for com in commesse %}
+                <option value="{{ com.id }}">{{ com.nome }}</option>
+            {% endfor %}
+        </select>
+
+        <label>Ore lavorate:</label>
+        <input type="number" name="ore" step="0.1" placeholder="es. 3.5" required>
+
+        <label>Data:</label>
+        <input type="date" name="data_imputazione" value="{{ today }}" required>
+
+        <div class="pulsante-centro">
+            <button type="submit" class="btn btn-primary">✅ Registra Ore</button>
+        </div>
+    </form>
+</div>
+
+<style>
+.container-operatori {
+    width: 95%;
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 10px;
+    background: #2b2d3a;
+    border-radius: 12px;
+    color: #e0e0e0;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+}
+h1 {
+    text-align: center;
+    color: #00bfff;
+    font-weight: 400;
+    margin-bottom: 15px;
+}
+.row-form {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 15px;
+}
+.label-inline {
+    font-weight: 500;
+    margin-bottom: 6px;
+}
+input, select {
+    padding: 6px;
+    border-radius: 6px;
+    border: 1px solid #444;
+    background-color: #1f202a;
+    color: #fff;
+    font-size: 15px;
+}
+input:focus, select:focus {
+    outline: none;
+    border-color: #00bfff;
+    box-shadow: 0 0 5px rgba(0,191,255,0.5);
+}
+.btn {
+    padding: 6px 10px;
+    border: none;
+    border-radius: 6px;
+    font-size: 10px;
+    font-weight: 500;
+    color: #fff;
+    cursor: pointer;
+    transition: 0.2s ease;
+}
+.btn-primary {
+    background: linear-gradient(145deg, #00a6c7, #007bff);
+}
+.btn-secondary {
+    background: linear-gradient(145deg, #00b894, #009970);
+}
+.btn:hover {
+    transform: translateY(-1px);
+    opacity: 0.9;
+}
+.pulsante-centro {
+    text-align: center;
+    margin: 6px 0;
+}
+</style>
+
+{% endblock %}
