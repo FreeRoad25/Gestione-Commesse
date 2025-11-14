@@ -38,7 +38,7 @@ def admin_required(f):
 DB_NAME = "commesse.db"
 # ====== CREAZIONE AUTOMATICA TABELLA UTENTI SU RENDER ======
 def init_db_online():
-    import crea_admin_online   
+    
     try:
         conn = sqlite3.connect(DB_PATH)
         cur = conn.cursor()
@@ -57,6 +57,8 @@ def init_db_online():
         print("Errore creazione tabella utenti:", e)
 
 init_db_online()
+import crea_admin_online
+crea_admin_online.crea_admin_se_manca()
 # ============================================================
 
 # Cartella per i file allegati alle commesse
