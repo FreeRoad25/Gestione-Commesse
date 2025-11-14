@@ -2,23 +2,39 @@ import sqlite3
 import os
 from werkzeug.security import generate_password_hash
 
-# stesso percorso del DB usato da app.py
+# Path al database (stesso usato da app.py)
 DB_PATH = os.path.join(os.getcwd(), "commesse.db")
 
-conn = sqlite3.connect(DB_PATH)
-cur = conn.cursor()
+def crea_admin_se_manca():
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
 
-username = "admin"
-password = "admin"  # cambiala dopo il primo accesso
-password_hash = generate_password_hash(password)
-ruolo = "amministratore"
+    # Controlla se esiste già un admin
+    cur.execute("SELECT * FROM utenti WHERE ruolo = 'amministratore'")
+    esiste = cur.fetchone()
 
-cur.execute("""
-INSERT OR IGNORE INTO utenti (username, password_hash, ruolo)
-VALUES (?, ?, ?)
-""", (username, password_hash, ruolo))
+    if esiste:
+        print("Admin già presente, nessuna azione necessaria.")
+        conn.close()
+        return
 
-conn.commit()
-conn.close()
+    # Crea admin solo se NON esiste
+    username = "admin"
+    password = "admin"   # Cambiala dopo il primo accesso
+    password_hash = generate_password_hash(password)
+    ruolo = "amministratore"
 
-print("Utente amministratore creato: admin / admin")
+    cur.execute("""
+        INSERT INTO utenti (username, password_hash, ruolo)
+        VALUES (?, ?, ?)
+    """, (username, password_hash, ruolo))
+
+    conn.commit()
+    conn.close()
+    print("Admin creato automaticamente: admin / admin")
+
+
+# Esegui automaticamente allo start del server
+if _name_ == "_main_":
+    crea_admin_se_manca()
