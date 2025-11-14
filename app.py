@@ -1,14 +1,39 @@
-from flask import Flask, render_template, request, redirect, url_for, session, send_from_directory
+from flask import send_file
+from reportlab.lib.styles import ParagraphStyle
+from flask import Flask, render_template, request, redirect, url_for, flash, session
 import sqlite3
 import os
+PATH_DB = "C:\\Users\\fabrizio\\Documents\\GestioneCommesse\\commesse.db"
 from datetime import datetime, date
+from datetime import datetime
 from functools import wraps
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
-
+from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 app = Flask(__name__)
+# Inizializzazione LoginManager
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = "login"  # nome della route di login
 app.secret_key = "chiave_segreta_casuale"
+login_manager.session_protection = "strong"
+app.config["SESSION_PERMANENT"] = True
+app.config["PERMANENT_SESSION_LIFETIME"] = 3600  # 1 ora
+# ===================== CONTROLLO RUOLO AMMINISTRATORE =====================
 
+
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if "ruolo" not in session:
+            flash("Devi effettuare il login.")
+            return redirect(url_for("login"))
+        if session.get("ruolo") != "amministratore":
+            flash("Accesso non autorizzato.")
+            return redirect(url_for("home"))
+        return f(*args, **kwargs)
+    return decorated_function
+# ========================================================================
 DB_NAME = "commesse.db"
 
 # Cartella per i file allegati alle commesse
@@ -17,7 +42,40 @@ ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "pdf", "doc", "docx", "xls", 
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
+# =========================================
+# FUNZIONE DI CONNESSIONE AL DATABASE
+# =========================================
+def get_db_connection():
+    conn = sqlite3.connect(r"C:\Users\fabrizio\Documents\GestioneCommesse\commesse.db")
+    conn.row_factory = sqlite3.Row
+    return conn
+# --- GESTIONE LOGIN E UTENTI ---
 
+class User(UserMixin):
+    def __init__(self, username=None, ruolo=None):
+        self.id = username
+        self.username = username
+        self.ruolo = ruolo
+
+    def get_id(self):
+        return str(self.id)
+
+    @staticmethod
+    def from_row(row):
+        return User(row["username"], row["ruolo"])
+
+@login_manager.user_loader
+def load_user(user_id):
+    conn = sqlite3.connect(r"C:\Users\fabrizio\Documents\GestioneCommesse\commesse.db")
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+    c.execute("SELECT * FROM utenti WHERE username = ?", (user_id,))
+    user = c.fetchone()
+    conn.close()
+
+    if user:
+        return User(user_id, "operatore")
+    return None
 # =========================================================
 # FUNZIONI DI SUPPORTO
 # =========================================================
@@ -29,7 +87,7 @@ def allowed_file(filename: str) -> bool:
 # CREAZIONE DATABASE E TABELLE
 # =========================================================
 def crea_database():
-    conn = sqlite3.connect(DB_NAME)
+    conn = sqlite3.connect(r"C:\Users\fabrizio\Documents\GestioneCommesse\commesse.db")
     c = conn.cursor()
 
     # tabella commesse (con note_importanti)
@@ -65,7 +123,19 @@ def crea_database():
             nome TEXT NOT NULL
         )
     """)
-
+    # tabella articoli di magazzino
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS articoli (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            codice TEXT UNIQUE NOT NULL,
+            descrizione TEXT NOT NULL,
+            unita TEXT,
+            quantita REAL DEFAULT 0,
+            codice_barre TEXT,
+            fornitore TEXT,
+            scorta_minima REAL
+        )
+    """)
     # tabella ore lavorate
     c.execute("""
         CREATE TABLE IF NOT EXISTS ore_lavorate (
@@ -162,24 +232,31 @@ def crea_database():
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
-        username = request.form.get("username", "").strip()
-        password = request.form.get("password", "")
+        username = request.form.get("username")
+        password = request.form.get("password")
 
-        conn = sqlite3.connect(DB_NAME)
-        conn.row_factory = sqlite3.Row
-        c = conn.cursor()
-        c.execute("SELECT * FROM utenti WHERE username = ?", (username,))
-        user = c.fetchone()
+        print(f"Tentativo di login: {username}")
+        conn = get_db_connection()
+        user = conn.execute("SELECT * FROM utenti WHERE username = ?", (username,)).fetchone()
         conn.close()
 
         if user and check_password_hash(user["password_hash"], password):
-            session["logged_in"] = True
-            session["username"] = username
-            return redirect(url_for("home"))
+          session["username"] = user["username"]
+          session["ruolo"] = user["ruolo"]
+          session.permanent = True
+          user_obj = User(user["username"], user["ruolo"])
+          login_user(user_obj, remember=True)
+          session["logged_in"] = True
+          print("Login OK, ruolo:", user["ruolo"])
+          return redirect("/home")   # <<< cambia questa riga
         else:
-            return render_template("login.html", error="❌ Credenziali errate")
+            print("Password errata o utente inesistente")
+            flash("Credenziali errate.", "error")
+            return render_template("login.html")
 
+    # questo serve per le richieste GET (quando carichi la pagina)
     return render_template("login.html")
+   
 
 
 @app.route("/logout")
@@ -210,7 +287,7 @@ def cambia_password():
             return render_template("cambia_password.html", error="Le nuove password non coincidono")
 
         username = session.get("username")
-        conn = sqlite3.connect(DB_NAME)
+        conn = sqlite3.connect(r"C:\Users\fabrizio\Documents\GestioneCommesse\commesse.db")
         conn.row_factory = sqlite3.Row
         c = conn.cursor()
         c.execute("SELECT * FROM utenti WHERE username = ?", (username,))
@@ -235,7 +312,10 @@ def cambia_password():
 @app.route("/home")
 @login_required
 def home():
-    return render_template("index.html", current_year=datetime.now().year)
+    username = session.get("username")
+    ruolo = session.get("ruolo")
+    print("Entrato nella funzione HOME")
+    return render_template("index.html", username=username, ruolo=ruolo, current_year=datetime.now().year)
 
 
 # =========================================================
@@ -244,7 +324,7 @@ def home():
 @app.route("/lista_commesse")
 @login_required
 def lista_commesse():
-    conn = sqlite3.connect(DB_NAME)
+    conn = sqlite3.connect(r"C:\Users\fabrizio\Documents\GestioneCommesse\commesse.db")
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
     c.execute("SELECT * FROM commesse ORDER BY id DESC")
@@ -256,7 +336,7 @@ def lista_commesse():
 @app.route("/elenco_soffietti")
 @login_required
 def elenco_soffietti():
-    conn = sqlite3.connect(DB_NAME)
+    conn = sqlite3.connect(r"C:\Users\fabrizio\Documents\GestioneCommesse\commesse.db")
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
     c.execute("""
@@ -270,82 +350,94 @@ def elenco_soffietti():
     return render_template("elenco_soffietti.html", commesse=commesse)
 
 
+from werkzeug.utils import secure_filename
+import os
+import sqlite3
+from flask import request, redirect, url_for, render_template
+from flask_login import login_required
+
+# Percorso assoluto al database
+DB_PATH = r"C:\Users\fabrizio\Documents\GestioneCommesse\commesse.db"
+
 @app.route("/aggiungi_commessa", methods=["GET", "POST"])
 @login_required
 def aggiungi_commessa():
-    conn = sqlite3.connect(DB_NAME)
+    DB_PATH = r"C:\Users\fabrizio\Documents\GestioneCommesse\commesse.db"
+
+    conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
 
-    if request.method == "POST":
-        nome = request.form.get("nome")
-        tipo_intervento = request.form.get("tipo_intervento", "").strip()
-        altro_input = request.form.get("altro_input", "").strip()
-        data_arrivo_materiali = request.form.get("data_arrivo_materiali")
-        data_inizio = request.form.get("data_inizio")
-        ore_necessarie = request.form.get("ore_necessarie")
-        marca = request.form.get("marca_veicolo")
-        modello = request.form.get("modello_veicolo")
-        dimensioni = request.form.get("dimensioni")
-        data_consegna = request.form.get("data_consegna")
-        note_importanti = request.form.get("note_importanti", "").strip()
-
-        if tipo_intervento.lower() == "altro" and altro_input:
-            tipo_intervento = altro_input
-        elif tipo_intervento.lower() == "altro":
-            tipo_intervento = "Non specificato"
-
-        data_conferma = datetime.today().strftime("%Y-%m-%d")
-
-        c.execute("""
-            INSERT INTO commesse 
-              (nome, tipo_intervento, data_conferma, data_arrivo_materiali, data_inizio,
-               ore_necessarie, marca_veicolo, modello_veicolo, dimensioni, data_consegna, note_importanti)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            nome, tipo_intervento, data_conferma, data_arrivo_materiali, data_inizio,
-            ore_necessarie, marca, modello, dimensioni, data_consegna, note_importanti
-        ))
-        id_commessa = c.lastrowid
-
-        # 🔹 Salvataggio eventuali file allegati
-        files = request.files.getlist("file_commessa")
-        for f in files:
-            if f and allowed_file(f.filename):
-                original_name = f.filename
-                filename = secure_filename(f.filename)
-                ts = datetime.now().strftime("%Y%m%d%H%M%S")
-                final_name = f"{id_commessa}{ts}{filename}"
-                path = os.path.join(app.config["UPLOAD_FOLDER"], final_name)
-                f.save(path)
-                c.execute("""
-                    INSERT INTO commessa_files (id_commessa, filename, original_name, upload_date)
-                    VALUES (?, ?, ?, ?)
-                """, (id_commessa, final_name, original_name, datetime.now().isoformat(timespec="seconds")))
-
-        conn.commit()
-        conn.close()
-        return redirect(url_for("lista_commesse"))
-
-    # GET: leggo valori per tendine dinamiche
-    c.execute("SELECT DISTINCT tipo_intervento FROM commesse WHERE tipo_intervento IS NOT NULL AND tipo_intervento != ''")
-    tipi_intervento = [row["tipo_intervento"] for row in c.fetchall()]
-    c.execute("SELECT DISTINCT marca_veicolo FROM commesse WHERE marca_veicolo IS NOT NULL AND marca_veicolo != ''")
-    marche = [row["marca_veicolo"] for row in c.fetchall()]
-    c.execute("SELECT DISTINCT modello_veicolo FROM commesse WHERE modello_veicolo IS NOT NULL AND modello_veicolo != ''")
-    modelli = [row["modello_veicolo"] for row in c.fetchall()]
+    # Carica i tipi di intervento esistenti
+    c.execute("SELECT nome FROM tipi_intervento ORDER BY nome ASC")
+    tipi = [row["nome"] for row in c.fetchall()]
     conn.close()
 
-    return render_template("aggiungi_commessa.html",
-                           tipi_intervento=tipi_intervento,
-                           marche=marche,
-                           modelli=modelli)
+    if request.method == "POST":
+        nome = request.form.get("nome")
+        tipo_intervento = request.form.get("tipo_intervento")
+        nuovo_intervento = request.form.get("nuovo_intervento")
+        marca_sel = request.form.get("marca_veicolo")
+        marca_veicolo = request.form.get("nuova_marca") if marca_sel == "nuova" else marca_sel
+        modello_veicolo = request.form.get("modello_veicolo")
+        data_conferma = request.form.get("data_conferma")
+        data_arrivo_materiali = request.form.get("data_arrivo_materiali")
+        ore_necessarie = request.form.get("ore_necessarie") or 0
+        data_inizio = request.form.get("data_inizio")
+        note_importanti = request.form.get("note_importanti")
+
+        # ✅ Se l’utente ha scritto un nuovo tipo intervento, salvalo nella tabella
+        if tipo_intervento == "Altro" and nuovo_intervento.strip():
+            conn = sqlite3.connect(DB_PATH)
+            conn.execute("INSERT OR IGNORE INTO tipi_intervento (nome) VALUES (?)", (nuovo_intervento.strip(),))
+            conn.commit()
+            conn.close()
+            tipo_intervento = nuovo_intervento.strip()
+
+        # ✅ Gestione file allegato
+        allegato_path = None
+        file = request.files.get("allegato")
+        if file and file.filename:
+            filename = secure_filename(file.filename)
+            upload_dir = os.path.join("static", "uploads")
+            os.makedirs(upload_dir, exist_ok=True)
+            allegato_path = os.path.join(upload_dir, filename)
+            file.save(allegato_path)
+
+        # ✅ Salvataggio nel database
+        conn = sqlite3.connect(DB_PATH)
+        c = conn.cursor()
+        c.execute("""
+            INSERT INTO commesse (
+                nome, tipo_intervento, marca_veicolo, modello_veicolo,
+                data_conferma, data_arrivo_materiali, ore_necessarie,
+                data_inizio, note_importanti, allegato
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            nome, tipo_intervento, marca_veicolo, modello_veicolo,
+            data_conferma, data_arrivo_materiali, ore_necessarie,
+            data_inizio, note_importanti, allegato_path
+        ))
+        conn.commit()
+        conn.close()
+
+        return redirect(url_for("lista_commesse"))
+    # 🔹 Carica marche già usate nelle commesse
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+    c.execute("SELECT DISTINCT marca_veicolo FROM commesse WHERE marca_veicolo IS NOT NULL AND marca_veicolo != '' ORDER BY marca_veicolo ASC")
+    marche = [row["marca_veicolo"] for row in c.fetchall()]
+    conn.close()
+    # Se GET → mostra la pagina con i tipi di intervento
+    return render_template("aggiungi_commessa.html", tipi=tipi,marche=marche)
 
 
 @app.route("/modifica_commessa/<int:id>", methods=["GET", "POST"])
 @login_required
 def modifica_commessa(id):
-    conn = sqlite3.connect(DB_NAME)
+    conn = sqlite3.connect(r"C:\Users\fabrizio\Documents\GestioneCommesse\commesse.db")
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
 
@@ -373,12 +465,23 @@ def modifica_commessa(id):
         data_arrivo_materiali = request.form.get("data_arrivo_materiali")
         data_inizio = request.form.get("data_inizio")
         ore_necessarie = request.form.get("ore_necessarie")
-        marca = request.form.get("marca_veicolo")
+
+       # 🔹 Marca scelta o nuova marca
+        marca_sel = request.form.get("marca_veicolo")
+        marca = request.form.get("nuova_marca") if marca_sel == "nuova" else marca_sel
+
         modello = request.form.get("modello_veicolo")
         dimensioni = request.form.get("dimensioni")
         data_consegna = request.form.get("data_consegna")
         note_importanti = request.form.get("note_importanti", "").strip()
 
+        # 🔹 Gestione nuovo tipo intervento
+        if tipo_intervento.lower() == "altro" and altro_input:
+            c.execute("INSERT OR IGNORE INTO tipi_intervento (nome) VALUES (?)", (altro_input,))
+            conn.commit()
+            tipo_intervento = altro_input
+
+        # 🔹 Aggiorna la commessa
         c.execute("""
             UPDATE commesse
                SET nome=?,
@@ -398,7 +501,7 @@ def modifica_commessa(id):
             ore_necessarie, marca, modello, dimensioni, data_consegna, note_importanti, id
         ))
 
-        # Nuovi file allegati
+        # 🔹 Gestione nuovi file allegati
         files = request.files.getlist("file_commessa")
         for f in files:
             if f and allowed_file(f.filename):
@@ -417,11 +520,14 @@ def modifica_commessa(id):
         conn.close()
         return redirect(url_for("lista_commesse"))
 
-    # GET: valori unici per tendine + file allegati
+    # 🔹 GET: Caricamento dati per tendine
     c.execute("SELECT DISTINCT tipo_intervento FROM commesse WHERE tipo_intervento IS NOT NULL AND tipo_intervento != ''")
     tipi_intervento = [row["tipo_intervento"] for row in c.fetchall()]
-    c.execute("SELECT DISTINCT marca_veicolo FROM commesse WHERE marca_veicolo IS NOT NULL AND marca_veicolo != ''")
+
+    # 🔹 Marche derivate direttamente dalle commesse (nessuna tabella aggiuntiva)
+    c.execute("SELECT DISTINCT marca_veicolo FROM commesse WHERE marca_veicolo IS NOT NULL AND marca_veicolo != '' ORDER BY marca_veicolo ASC")
     marche = [row["marca_veicolo"] for row in c.fetchall()]
+
     c.execute("SELECT DISTINCT modello_veicolo FROM commesse WHERE modello_veicolo IS NOT NULL AND modello_veicolo != ''")
     modelli = [row["modello_veicolo"] for row in c.fetchall()]
 
@@ -430,17 +536,152 @@ def modifica_commessa(id):
     conn.close()
 
     return render_template("modifica_commessa.html",
+                           id_commessa=id,
                            commessa=commessa,
                            files=files,
                            tipi_intervento=tipi_intervento,
                            marche=marche,
                            modelli=modelli)
+@app.route("/stampa_commessa/<int:id>")
+@login_required
+def stampa_commessa(id):
+    import os
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+    from reportlab.lib import colors
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.styles import getSampleStyleSheet
+    import sqlite3
 
+    # --- Connessione DB ---
+    conn = sqlite3.connect(r"C:\Users\fabrizio\Documents\GestioneCommesse\commesse.db")
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+
+    # 1) CERCA NELLA TABELLA COMMESSE
+    c.execute("SELECT * FROM commesse WHERE id = ?", (id,))
+    commessa = c.fetchone()
+
+    # 2) SE NON TROVA → CERCA NELLA TABELLA COMMESSE_CONSEGNATE
+    if not commessa:
+        c.execute("SELECT * FROM commesse_consegnate WHERE id = ?", (id,))
+        commessa = c.fetchone()
+
+    if not commessa:
+        conn.close()
+        return "Commessa non trovata"
+
+    # MATERIALI
+    c.execute("""
+        SELECT a.codice, a.descrizione, cm.quantita, a.costo_netto
+        FROM commesse_materiali cm
+        JOIN articoli a ON cm.id_articolo = a.id
+        WHERE cm.id_commessa = ?
+    """, (id,))
+    materiali = c.fetchall()
+
+    # ORE LAVORATE
+    c.execute("""
+        SELECT o.nome AS operatore, ol.ore, COALESCE(o.costo_orario, 0) AS costo_orario
+        FROM ore_lavorate ol
+        LEFT JOIN operatori o ON o.id = ol.id_operatore
+        WHERE ol.id_commessa = ?
+    """, (id,))
+    ore_lavorate = c.fetchall()
+
+    conn.close()
+
+    # --- GENERAZIONE PDF ---
+    filename = f"C:\\Users\\fabrizio\\Documents\\GestioneCommesse\\commessa_{id}_tabellare.pdf"
+    pdf = SimpleDocTemplate(filename, pagesize=A4)
+    styles = getSampleStyleSheet()
+    elements = []
+
+    # INTESTAZIONE
+    elements.append(Paragraph(f"<b>🛠 Commessa #{id} – {commessa['nome']}</b>", styles["Title"]))
+    elements.append(Spacer(1, 12))
+
+    # TAB DATI COMMESSA
+    tabella_commessa = [
+        ["Tipo Intervento", commessa["tipo_intervento"]],
+        ["Marca Veicolo", f"{commessa['marca_veicolo']} {commessa['modello_veicolo']}"],
+        ["Data Conferma", commessa["data_conferma"] or "---"],
+        ["Data Arrivo Materiali", commessa["data_arrivo_materiali"] or "---"],
+        ["Data Inizio", commessa["data_inizio"] or "---"],
+        ["Data Consegna", commessa["data_consegna"] or "---"],
+        ["Ore Necessarie", commessa["ore_necessarie"] or 0],
+        ["Ore Eseguite", commessa["ore_eseguite"] or 0]
+    ]
+
+    t_info = Table(tabella_commessa, colWidths=[150, 350])
+    t_info.setStyle(TableStyle([
+        ('GRID', (0,0), (-1,-1), 0.5, colors.grey),
+        ('FONTNAME', (0,0), (-1,-1), 'Helvetica'),
+    ]))
+    elements.append(t_info)
+    elements.append(Spacer(1, 20))
+
+    # MATERIALI
+    if materiali:
+        data_materiali = [["Codice", "Descrizione", "Q.tà", "Costo", "Totale €"]]
+        for m in materiali:
+            tot = (m["quantita"] or 0) * (m["costo_netto"] or 0)
+            data_materiali.append([
+                m["codice"], m["descrizione"], m["quantita"],
+                f"{m['costo_netto']:.2f}", f"{tot:.2f}"
+            ])
+
+        t_mat = Table(data_materiali, colWidths=[70, 230, 60, 80, 80])
+        t_mat.setStyle(TableStyle([
+            ('BACKGROUND', (0,0), (-1,0), colors.lightgrey),
+            ('GRID', (0,0), (-1,-1), 0.4, colors.black),
+        ]))
+
+        elements.append(Paragraph("📦 Materiali Utilizzati", styles["Heading2"]))
+        elements.append(t_mat)
+        elements.append(Spacer(1, 12))
+
+    # ORE LAVORATE
+    if ore_lavorate:
+        data_ore = [["Operatore", "Ore", "€/h", "Totale €"]]
+        for r in ore_lavorate:
+            tot = r["ore"] * r["costo_orario"]
+            data_ore.append([r["operatore"], r["ore"], r["costo_orario"], f"{tot:.2f}"])
+
+        t_ore = Table(data_ore, colWidths=[200, 80, 80, 80])
+        t_ore.setStyle(TableStyle([
+            ('BACKGROUND', (0,0), (-1,0), colors.lightgrey),
+            ('GRID', (0,0), (-1,-1), 0.4, colors.black),
+        ]))
+
+        elements.append(Paragraph("👷 Ore Lavorate", styles["Heading2"]))
+        elements.append(t_ore)
+
+    # CREA PDF
+    pdf.build(elements)
+
+    # APRI PDF
+    os.startfile(filename)
+
+    # CHIUDI LA FINESTRA DEL BROWSER
+    return "<script>window.close();</script>"   
+@app.route("/stampa_commessa_archiviata/<int:id>")
+@login_required
+def stampa_commessa_archiviata(id):
+    conn = sqlite3.connect("C:/Users/fabrizio/Documents/GestioneCommesse/Commesse.db")
+    c = conn.cursor()
+    c.execute("SELECT * FROM commesse_consegnate WHERE id = ?", (id,))
+    com = c.fetchone()
+    conn.close()
+
+    if not com:
+        return "Commessa archiviata non trovata"
+
+    return render_template("stampa_commessa.html", commessa=com)
 
 @app.route("/elimina/<int:id>")
 @login_required
 def elimina_commessa(id):
-    conn = sqlite3.connect(DB_NAME)
+    conn = sqlite3.connect(r"C:\Users\fabrizio\Documents\GestioneCommesse\commesse.db")
     c = conn.cursor()
     c.execute("DELETE FROM commesse WHERE id = ?", (id,))
     conn.commit()
@@ -454,7 +695,7 @@ def elimina_commessa(id):
 @app.route("/commessa/<int:id>/files")
 @login_required
 def commessa_files_view(id):
-    conn = sqlite3.connect(DB_NAME)
+    conn = sqlite3.connect(r"C:\Users\fabrizio\Documents\GestioneCommesse\commesse.db")
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
     c.execute("SELECT * FROM commesse WHERE id = ?", (id,))
@@ -472,7 +713,7 @@ def commessa_files_view(id):
 @app.route("/commessa_file/<int:file_id>/download")
 @login_required
 def download_commessa_file(file_id):
-    conn = sqlite3.connect(DB_NAME)
+    conn = sqlite3.connect(r"C:\Users\fabrizio\Documents\GestioneCommesse\commesse.db")
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
     c.execute("SELECT * FROM commessa_files WHERE id = ?", (file_id,))
@@ -491,7 +732,8 @@ def download_commessa_file(file_id):
 @app.route("/operatori")
 @login_required
 def operatori():
-    conn = sqlite3.connect(DB_NAME)
+    ruolo_corrente=current_user.ruolo
+    conn = sqlite3.connect(r"C:\Users\fabrizio\Documents\GestioneCommesse\commesse.db")
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
     c.execute("SELECT * FROM operatori ORDER BY nome ASC")
@@ -499,7 +741,9 @@ def operatori():
     c.execute("SELECT id, nome FROM commesse ORDER BY id DESC")
     commesse = c.fetchall()
     conn.close()
-    return render_template("operatori.html", operatori=operatori, commesse=commesse)
+    print("DEBUG current_user =", current_user)
+    print("DEBUG current_user.ruolo =", getattr(current_user, "ruolo", "NESSUN RUOLO"))
+    return render_template("operatori.html", operatori=operatori, commesse=commesse, ruolo=ruolo_corrente)
 
 
 @app.route("/aggiungi_operatore", methods=["GET", "POST"])
@@ -508,7 +752,7 @@ def aggiungi_operatore():
     if request.method == "POST":
         nome = request.form.get("nome")
         if nome:
-            conn = sqlite3.connect(DB_NAME)
+            conn = sqlite3.connect(r"C:\Users\fabrizio\Documents\GestioneCommesse\commesse.db")
             c = conn.cursor()
             c.execute("INSERT INTO operatori (nome) VALUES (?)", (nome,))
             conn.commit()
@@ -518,36 +762,34 @@ def aggiungi_operatore():
     return render_template("aggiungi_operatore.html")
 
 
-@app.route("/registra_ore", methods=["POST"])
+@app.route("/registrazione_ore", methods=["POST"])
 @login_required
-def registra_ore():
-    id_operatore = request.form.get("operatore")
-    id_commessa = request.form.get("commessa")
-    ore = float(request.form.get("ore"))
-    data_imputazione = date.today().isoformat()
+def registrazione_ore():
+    id_operatore = request.form.get("id_operatore")
+    id_commessa = request.form.get("id_commessa")
+    ore = float(request.form.get("ore") or 0)
+    data_imputazione = request.form.get("data_imputazione") or date.today()
 
-    conn = sqlite3.connect(DB_NAME)
+    # Connessione al database
+    conn = sqlite3.connect(r"C:\Users\fabrizio\Documents\GestioneCommesse\commesse.db")
     c = conn.cursor()
 
+    # ✅ 1. Inserisci la riga in "ore_lavorate"
     c.execute("""
         INSERT INTO ore_lavorate (id_operatore, id_commessa, ore, data_imputazione)
         VALUES (?, ?, ?, ?)
     """, (id_operatore, id_commessa, ore, data_imputazione))
 
+    # ✅ 2. Aggiorna il totale delle ore nella tabella commesse
     c.execute("""
         UPDATE commesse
-           SET ore_eseguite = COALESCE(ore_eseguite, 0) + ?,
-               ore_rimanenti =
-                 CASE
-                    WHEN ore_necessarie IS NOT NULL
-                    THEN ore_necessarie - (COALESCE(ore_eseguite, 0) + ?)
-                    ELSE NULL
-                 END
-         WHERE id = ?
-    """, (ore, ore, id_commessa))
+        SET ore_eseguite = COALESCE(ore_eseguite, 0) + ?
+        WHERE id = ?
+    """, (ore, id_commessa))
 
     conn.commit()
     conn.close()
+
     return redirect(url_for("operatori"))
 
 
@@ -557,7 +799,7 @@ def registra_ore():
 @app.route("/consegna", methods=["GET", "POST"])
 @login_required
 def consegna_veicolo():
-    conn = sqlite3.connect(DB_NAME)
+    conn = sqlite3.connect(r"C:\Users\fabrizio\Documents\GestioneCommesse\commesse.db")
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
     c.execute("SELECT id, nome, tipo_intervento FROM commesse ORDER BY id DESC")
@@ -576,7 +818,7 @@ def consegna_veicolo():
 @app.route("/conferma_consegna/<int:id>", methods=["GET", "POST"])
 @login_required
 def conferma_consegna(id):
-    conn = sqlite3.connect(DB_NAME)
+    conn = sqlite3.connect(r"C:\Users\fabrizio\Documents\GestioneCommesse\commesse.db")
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
     c.execute("SELECT * FROM commesse WHERE id = ?", (id,))
@@ -624,7 +866,7 @@ def conferma_consegna(id):
 @app.route("/archivio_consegnati")
 @login_required
 def archivio_consegnati():
-    conn = sqlite3.connect(DB_NAME)
+    conn = sqlite3.connect(r"C:\Users\fabrizio\Documents\GestioneCommesse\commesse.db")
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
     c.execute("""
@@ -648,7 +890,7 @@ def aggiorna_saldato(id):
     nuova = request.form.get("saldata", "").strip().lower()
     nuova = "Si" if nuova in ("si", "sì", "yes", "y") else "No"
 
-    conn = sqlite3.connect(DB_NAME)
+    conn = sqlite3.connect(r"C:\Users\fabrizio\Documents\GestioneCommesse\commesse.db")
     c = conn.cursor()
     c.execute("UPDATE commesse_consegnate SET saldata = ? WHERE id = ?", (nuova, id))
     conn.commit()
@@ -660,18 +902,74 @@ def aggiorna_saldato(id):
 @app.route("/magazzino")
 @login_required
 def magazzino():
-    # pagina di menu del magazzino
-    return render_template("magazzino.html")
+    # Reindirizza direttamente alla pagina articoli
+    return redirect(url_for("magazzino_articoli"))
+
+@app.route("/modifica_articolo/<int:id>", methods=["GET", "POST"])
+@login_required
+def modifica_articolo(id):
+    conn = sqlite3.connect(r"C:\Users\fabrizio\Documents\GestioneCommesse\commesse.db")
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+
+    if request.method == "POST":
+        descrizione = request.form.get("descrizione")
+        unita = request.form.get("unita")
+        quantita = float(request.form.get("quantita") or 0)
+        scorta_minima = float(request.form.get("scorta_minima") or 0)
+        fornitore = request.form.get("fornitore")
+        codice_barre = request.form.get("codice_barre")
+        costo_netto = float(request.form.get("costo_netto") or 0)
+
+        # --- Controlla il prezzo precedente ---
+        c.execute("SELECT costo_netto FROM articoli WHERE id = ?", (id,))
+        row = c.fetchone()
+        prezzo_vecchio = row["costo_netto"] if row else 0
+
+        # --- Aggiorna la data solo se cambia il prezzo ---
+        if costo_netto != prezzo_vecchio:
+            c.execute("""
+                UPDATE articoli
+                SET descrizione=?, unita=?, quantita=?, scorta_minima=?, 
+                    fornitore=?, codice_barre=?, costo_netto=?, data_modifica=date('now')
+                WHERE id=?
+            """, (descrizione, unita, quantita, scorta_minima, fornitore, codice_barre, costo_netto, id))
+        else:
+            c.execute("""
+                UPDATE articoli
+                SET descrizione=?, unita=?, quantita=?, scorta_minima=?, 
+                    fornitore=?, codice_barre=?, costo_netto=?
+                WHERE id=?
+            """, (descrizione, unita, quantita, scorta_minima, fornitore, codice_barre, costo_netto, id))
+
+        conn.commit()
+        conn.close()
+        return redirect(url_for("magazzino_articoli"))
+
+    # --- Se è una richiesta GET: carica i dati ---
+    c.execute("SELECT * FROM articoli WHERE id = ?", (id,))
+    articolo = c.fetchone()
+    conn.close()
+    return render_template("modifica_articolo.html", articolo=articolo)
+
+@app.route('/pagina_aggiungi_articolo')
+@login_required
+def pagina_aggiungi_articolo():
+    return render_template('pagina_aggiungi_articolo.html')
+
 
 
 @app.route("/magazzino_articoli")
 @login_required
 def magazzino_articoli():
-    conn = sqlite3.connect(DB_NAME)
+    conn = sqlite3.connect(r"C:\Users\fabrizio\Documents\GestioneCommesse\commesse.db")
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
-    c.execute("SELECT * FROM magazzino ORDER BY descrizione ASC")
+
+    # ATTENZIONE: leggiamo dalla tabella "articoli"
+    c.execute("SELECT * FROM articoli ORDER BY descrizione ASC")
     articoli = c.fetchall()
+
     conn.close()
     return render_template("magazzino_articoli.html", articoli=articoli)
 
@@ -679,136 +977,227 @@ def magazzino_articoli():
 @app.route("/magazzino_sottoscorta")
 @login_required
 def magazzino_sottoscorta():
-    conn = sqlite3.connect(DB_NAME)
-    conn.row_factory = sqlite3.Row
-    c = conn.cursor()
-    c.execute("""
-        SELECT * 
-        FROM magazzino
-        WHERE quantita < scorta_minima
+    try:
+        conn = sqlite3.connect(r"C:\Users\fabrizio\Documents\GestioneCommesse\commesse.db")
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
+
+        # ✅ Query corretta: controlla quantità minore della scorta minima
+        c.execute("""
+        SELECT codice, descrizione, unita, quantita, scorta_minima, fornitore
+        FROM articoli
+        WHERE IFNULL(CAST(quantita AS REAL), 0) < IFNULL(CAST(scorta_minima AS REAL), 0)
         ORDER BY descrizione ASC
-    """)
-    articoli = c.fetchall()
-    conn.close()
-    return render_template("magazzino_sottoscorta.html", articoli=articoli)
+        """)
 
+        articoli_sottoscorta = c.fetchall()
+        conn.close()
 
-@app.route("/aggiungi_articolo", methods=["POST"])
-@login_required
-def aggiungi_articolo():
-    codice = request.form.get("codice")
-    descrizione = request.form.get("descrizione")
-    unita = request.form.get("unita")
-    quantita = request.form.get("quantita") or 0
-    codice_barre = request.form.get("codice_barre")
-    fornitore = request.form.get("fornitore")
-    scorta_minima = request.form.get("scorta_minima") or 0
+        print(f"🔍 Articoli sottoscorta trovati: {len(articoli_sottoscorta)}")
+        for a in articoli_sottoscorta:
+            print(dict(a))  # stampa i dettagli per verifica
 
-    conn = sqlite3.connect(DB_NAME)
+        return render_template("magazzino_sottoscorta.html", articoli=articoli_sottoscorta)
+
+    except Exception as e:
+     print(f"❌ Errore nel caricamento sottoscorta: {e}")
+    return "Errore durante il caricamento della pagina sottoscorta"
+
+# ===============================
+# 🗑 ELIMINA ARTICOLO
+# ===============================
+@app.route('/elimina_articolo/<codice>', methods=['POST'])
+def elimina_articolo(codice):
+    conn = get_db_connection()
     c = conn.cursor()
-    c.execute("""
-        INSERT INTO magazzino
-            (codice, descrizione, unita, quantita, codice_barre, fornitore, scorta_minima)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-    """, (codice, descrizione, unita, quantita, codice_barre, fornitore, scorta_minima))
+
+    # 🔹 Elimina l'articolo dal magazzino
+    c.execute("DELETE FROM magazzino WHERE codice = ?", (codice,))
     conn.commit()
     conn.close()
-    return redirect(url_for("magazzino_articoli"))
 
+    flash("Articolo eliminato con successo!", "success")
+    return redirect(url_for('magazzino_articoli'))
+
+@app.route("/aggiungi_articolo", methods=["GET", "POST"])
+@login_required
+def aggiungi_articolo():
+    if request.method == "POST":
+        codice = request.form.get("codice", "").strip()
+        descrizione = request.form.get("descrizione", "").strip()
+        unita = request.form.get("unita", "").strip()
+        quantita = request.form.get("quantita", "").strip()
+        codice_barre = request.form.get("codice_barre", "").strip()
+        fornitore = request.form.get("fornitore", "").strip()
+        scorta_minima = request.form.get("scorta_minima", "").strip()
+        costo_netto = request.form.get("costo_netto", "").strip()
+
+        # numerici sicuri
+        try:
+            quantita = float(quantita) if quantita else 0.0
+            scorta_minima = float(scorta_minima) if scorta_minima else 0.0
+            costo_netto = float(costo_netto) if costo_netto else 0.0
+        except ValueError:
+            quantita = 0.0
+            scorta_minima = 0.0
+            costo_netto = 0.0
+
+        # nuova colonna
+        data_modifica = datetime.now().strftime("%Y-%m-%d")
+
+        try:
+            conn = sqlite3.connect(r"C:\Users\fabrizio\Documents\GestioneCommesse\commesse.db")
+            c = conn.cursor()
+
+            c.execute("""
+                INSERT INTO articoli
+                    (codice, descrizione, unita, quantita, codice_barre, fornitore, scorta_minima, costo_netto, data_modifica)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (codice, descrizione, unita, quantita, codice_barre, fornitore, scorta_minima, costo_netto, data_modifica))
+
+            conn.commit()
+            conn.close()
+            return redirect(url_for("magazzino_articoli"))
+
+        except sqlite3.IntegrityError:
+            return "Errore: codice articolo già esistente."
+        except Exception as e:
+            print(f"Errore salvataggio articolo: {e}")
+            return "Errore durante il salvataggio dell'articolo."
+    else:
+        # se GET, mostra la pagina con il form
+        return render_template("aggiungi_articolo.html")
 
 @app.route("/scarico_magazzino", methods=["GET", "POST"])
 @login_required
 def scarico_magazzino():
-    conn = sqlite3.connect(DB_NAME)
+    # ID articolo selezionato dalla pagina principale
+    id_articolo = request.args.get("id_articolo")
+    print("🔴 SCARICO – ID articolo selezionato:", id_articolo)
+
+    # Connessione al database
+    conn = sqlite3.connect(r"C:\Users\fabrizio\Documents\GestioneCommesse\commesse.db")
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
-    c.execute("SELECT * FROM magazzino ORDER BY descrizione ASC")
+
+    # Elenco articoli per la tendina
+    c.execute("SELECT * FROM articoli ORDER BY descrizione ASC")
     articoli = c.fetchall()
-    c.execute("SELECT id, nome FROM commesse ORDER BY nome ASC")
+
+    # Elenco commesse per la selezione
+    c.execute("SELECT id, nome FROM commesse ORDER BY id DESC")
     commesse = c.fetchall()
 
+    # Se il form viene inviato
     if request.method == "POST":
-        id_articolo = request.form.get("id_articolo")
-        id_commessa = request.form.get("id_commessa")
-        quantita = float(request.form.get("quantita"))
+        id_articolo_form = request.form.get("id_articolo")
+        id_commessa = request.form.get("id_commessa") or None
+        quantita = float(request.form.get("quantita") or 0)
         note = request.form.get("note")
 
-        c.execute("UPDATE magazzino SET quantita = quantita - ? WHERE id = ?", (quantita, id_articolo))
-
+        # Aggiorna la quantità nel magazzino (scarico)
         c.execute("""
-            INSERT INTO movimenti_magazzino
-                (id_articolo, tipo_movimento, quantita, id_commessa, note)
-            VALUES (?, 'Scarico', ?, ?, ?)
-        """, (id_articolo, quantita, id_commessa, note))
+            UPDATE articoli
+            SET quantita = IFNULL(quantita, 0) - ?
+            WHERE codice = (
+                SELECT codice FROM articoli WHERE id = ?
+            )
+        """, (quantita, id_articolo_form))
+
+        # Registra il movimento (con commessa)
+        c.execute("""
+            INSERT INTO movimenti_magazzino (id_articolo, tipo_movimento, quantita, note, id_commessa)
+            VALUES (?, ?, ?, ?, ?)
+        """, (id_articolo_form, 'Scarico', quantita, note, id_commessa))
 
         conn.commit()
         conn.close()
-        return redirect(url_for("movimenti_magazzino"))
+        return redirect(url_for("magazzino_articoli"))
 
+    # Se GET → mostra la pagina
     conn.close()
-    return render_template("scarico_magazzino.html", articoli=articoli, commesse=commesse)
+    return render_template("scarico_magazzino.html", articoli=articoli, commesse=commesse, id_articolo=id_articolo)
 
 
 @app.route("/carico_magazzino", methods=["GET", "POST"])
 @login_required
 def carico_magazzino():
-    conn = sqlite3.connect(DB_NAME)
+    # ID articolo selezionato dalla pagina magazzino
+    id_articolo = request.args.get("id_articolo")
+    print("🟢 CARICO – ID articolo selezionato:", id_articolo)
+
+    # Connessione al database
+    conn = sqlite3.connect(r"C:\Users\fabrizio\Documents\GestioneCommesse\commesse.db")
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
-    c.execute("SELECT * FROM magazzino ORDER BY descrizione ASC")
+
+    # Elenco articoli per il menu a tendina (usato per trovare quello selezionato)
+    c.execute("SELECT * FROM articoli ORDER BY descrizione ASC")
     articoli = c.fetchall()
 
+    # Trova l'articolo selezionato
+    articolo = None
+    for a in articoli:
+        if str(a["id"]) == str(id_articolo):
+            articolo = a
+            break
+
+    # Se il form è stato inviato
     if request.method == "POST":
-        id_articolo = request.form.get("id_articolo")
-        quantita = float(request.form.get("quantita"))
+        id_articolo_form = request.form.get("id_articolo")
+        quantita = float(request.form.get("quantita") or 0)
         note = request.form.get("note")
 
-        c.execute("UPDATE magazzino SET quantita = quantita + ? WHERE id = ?", (quantita, id_articolo))
+        # ✅ Aggiorna la quantità nel magazzino in base al codice articolo
+        c.execute("""
+            UPDATE articoli
+            SET quantita = IFNULL(quantita, 0) + ?
+            WHERE codice = (
+                SELECT codice FROM articoli WHERE id = ?
+            )
+        """, (quantita, id_articolo_form))
+
+        # ✅ Registra il movimento nel registro
         c.execute("""
             INSERT INTO movimenti_magazzino (id_articolo, tipo_movimento, quantita, note)
-            VALUES (?, 'Carico', ?, ?)
-        """, (id_articolo, quantita, note))
+            VALUES (?, ?, ?, ?)
+        """, (id_articolo_form, 'Carico', quantita, note))
 
         conn.commit()
         conn.close()
-        # Resta sulla stessa pagina dopo il salvataggio
-        return redirect(url_for("carico_magazzino"))
+        return redirect(url_for("magazzino_articoli"))
 
+    # Se GET → mostra la pagina
     conn.close()
-    return render_template("carico_magazzino.html", articoli=articoli)
+    return render_template("carico_magazzino.html", articolo=articolo, articoli=articoli, id_articolo=id_articolo)
 
 
-@app.route("/movimenti_magazzino", methods=["GET"])
-@login_required
+@app.route("/movimenti_magazzino")
 def movimenti_magazzino():
-    conn = sqlite3.connect(DB_NAME)
-    conn.row_factory = sqlite3.Row
-    c = conn.cursor()
+    conn = get_db_connection()
+    cursor = conn.cursor()
 
-    # Parametri di ricerca
-    ricerca = request.args.get("ricerca", "").strip()
-    id_commessa = request.args.get("id_commessa", "")
+    q = request.args.get("q", "")
     tipo = request.args.get("tipo", "")
 
     query = """
-        SELECT m.*, 
-               a.descrizione AS articolo, 
-               a.codice_barre, 
-               c.nome AS commessa
+        SELECT 
+            m.id,
+            a.codice,
+            a.descrizione,
+            m.tipo_movimento,
+            m.quantita,
+            m.data_movimento
         FROM movimenti_magazzino m
-        JOIN magazzino a ON m.id_articolo = a.id
-        LEFT JOIN commesse c ON m.id_commessa = c.id
+        LEFT JOIN articoli a ON m.id_articolo = a.id
         WHERE 1=1
     """
+
     params = []
 
-    if ricerca:
-        query += " AND (a.descrizione LIKE ? OR a.codice_barre LIKE ?)"
-        params.extend([f"%{ricerca}%", f"%{ricerca}%"])
-
-    if id_commessa:
-        query += " AND m.id_commessa = ?"
-        params.append(id_commessa)
+    if q:
+        query += " AND (a.codice LIKE ? OR a.descrizione LIKE ?)"
+        params.extend([f"%{q}%", f"%{q}%"])
 
     if tipo:
         query += " AND m.tipo_movimento = ?"
@@ -816,24 +1205,101 @@ def movimenti_magazzino():
 
     query += " ORDER BY m.data_movimento DESC"
 
-    movimenti = []
-    if ricerca or id_commessa or tipo:
-        c.execute(query, params)
-        movimenti = c.fetchall()
-
-    c.execute("SELECT id, nome FROM commesse ORDER BY nome ASC")
-    commesse = c.fetchall()
-
+    cursor.execute(query, params)
+    movimenti = cursor.fetchall()
     conn.close()
 
-    return render_template(
-        "movimenti_magazzino.html",
-        movimenti=movimenti,
-        commesse=commesse,
-        filtro_commessa=request.args.get("id_commessa")
-    )
+    return render_template("movimenti_magazzino.html", movimenti=movimenti)
 
 
+@app.route("/aggiungi_operatore", methods=["GET", "POST"])
+@login_required
+def pagina_aggiungi_operatore():
+    if request.method == "POST":
+        nome = request.form.get("nome")
+        costo_orario = float(request.form.get("costo_orario") or 0)
+        conn = sqlite3.connect("commesse.db")
+        c = conn.cursor()
+        c.execute("INSERT INTO operatori (nome, costo_orario) VALUES (?, ?)", (nome, costo_orario))
+        conn.commit()
+        conn.close()
+        return redirect(url_for("operatori"))
+    return render_template("aggiungi_operatore.html")
+
+@app.route("/aggiorna_costo_orario", methods=["POST"])
+@login_required
+def aggiorna_costo_orario():
+    nuovo_costo = request.form.get("nuovo_costo_orario")
+    if nuovo_costo:
+        conn = sqlite3.connect(PATH_DB)
+        c = conn.cursor()
+        c.execute("UPDATE operatori SET costo_orario = ?", (nuovo_costo,))
+        conn.commit()
+        conn.close()
+    return redirect(url_for("operatori"))
+
+@app.route("/stampa_magazzino")
+@login_required
+def stampa_magazzino():
+    from reportlab.lib.pagesizes import landscape,A4
+    from reportlab.lib import colors
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+    from reportlab.lib.styles import getSampleStyleSheet
+    import tempfile
+
+    conn = sqlite3.connect(r"C:\Users\fabrizio\Documents\GestioneCommesse\commesse.db")
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+    c.execute("SELECT * FROM articoli ORDER BY descrizione")
+    articoli = c.fetchall()
+    conn.close()
+
+    # Percorso temporaneo PDF
+    tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
+    filename = tmp.name
+
+    pdf = SimpleDocTemplate(filename, pagesize= landscape(A4))
+    styles = getSampleStyleSheet()
+    elements = []
+
+    elements.append(Paragraph("📦 INVENTARIO MAGAZZINO", styles["Title"]))
+    elements.append(Spacer(1, 12))
+
+    # Tabella dati
+    data = [["Codice", "Descrizione", "Unità", "Q.tà", "Scorta Min.", "Fornitore", "Costo Netto €", "Valore Totale €"]]
+
+    totale_generale = 0
+    for art in articoli:
+        valore = (art["quantita"] or 0) * (art["costo_netto"] or 0)
+        totale_generale += valore
+        data.append([
+            art["codice"], 
+            art["descrizione"], 
+            art["unita"], 
+            f"{art['quantita']:.2f}",
+            f"{art['scorta_minima']:.2f}",
+            art["fornitore"],
+            f"{art['costo_netto']:.2f}",
+            f"{valore:.2f}"
+        ])
+
+    # Riga totale
+    data.append(["", "", "", "", "", "", "Totale", f"{totale_generale:.2f} €"])
+
+    t = Table(data, repeatRows=1)
+    t.setStyle(TableStyle([
+        ("BACKGROUND", (0,0), (-1,0), colors.lightgrey),
+        ("GRID", (0,0), (-1,-1), 0.5, colors.black),
+        ("ALIGN", (3,1), (-1,-1), "CENTER"),
+        ("FONTNAME", (0,0), (-1,0), "Helvetica-Bold"),
+        ("BACKGROUND", (-2,-1), (-1,-1), colors.beige),
+    ]))
+
+    elements.append(t)
+    pdf.build(elements)
+
+    from flask import send_file
+    return send_file(filename, as_attachment=False, mimetype="application/pdf")
 # ROOT
 # =========================================================
 @app.route("/")
