@@ -378,12 +378,12 @@ from flask import request, redirect, url_for, render_template
 from flask_login import login_required
 
 # Percorso assoluto al database
-DB_PATH = r"C:\Users\fabrizio\Documents\GestioneCommesse\commesse.db"
+DB_PATH = r"commesse.db"
 
 @app.route("/aggiungi_commessa", methods=["GET", "POST"])
 @login_required
 def aggiungi_commessa():
-    DB_PATH = r"C:\Users\fabrizio\Documents\GestioneCommesse\commesse.db"
+    DB_PATH = r"commesse.db"
 
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
