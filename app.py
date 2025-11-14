@@ -3,7 +3,8 @@ from reportlab.lib.styles import ParagraphStyle
 from flask import Flask, render_template, request, redirect, url_for, flash, session
 import sqlite3
 import os
-PATH_DB = "C:\\Users\\fabrizio\\Documents\\GestioneCommesse\\commesse.db"
+import os
+DB_PATH = os.path.join(os.getcwd(), "commesse.db")
 from datetime import datetime, date
 from datetime import datetime
 from functools import wraps
@@ -38,7 +39,7 @@ DB_NAME = "commesse.db"
 # ====== CREAZIONE AUTOMATICA TABELLA UTENTI SU RENDER ======
 def init_db_online():
     try:
-        conn = sqlite3.connect("commesse.db")
+        conn = sqlite3.connect(DB_PATH)
         cur = conn.cursor()
         cur.execute("""
             CREATE TABLE IF NOT EXISTS utenti (
@@ -67,7 +68,7 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 # FUNZIONE DI CONNESSIONE AL DATABASE
 # =========================================
 def get_db_connection():
-    conn = sqlite3.connect(r"C:\Users\fabrizio\Documents\GestioneCommesse\commesse.db")
+    conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
 # --- GESTIONE LOGIN E UTENTI ---
@@ -87,7 +88,7 @@ class User(UserMixin):
 
 @login_manager.user_loader
 def load_user(user_id):
-    conn = sqlite3.connect(r"C:\Users\fabrizio\Documents\GestioneCommesse\commesse.db")
+    conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
     c.execute("SELECT * FROM utenti WHERE username = ?", (user_id,))
@@ -108,7 +109,7 @@ def allowed_file(filename: str) -> bool:
 # CREAZIONE DATABASE E TABELLE
 # =========================================================
 def crea_database():
-    conn = sqlite3.connect(r"C:\Users\fabrizio\Documents\GestioneCommesse\commesse.db")
+    conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
 
     # tabella commesse (con note_importanti)
@@ -308,7 +309,7 @@ def cambia_password():
             return render_template("cambia_password.html", error="Le nuove password non coincidono")
 
         username = session.get("username")
-        conn = sqlite3.connect(r"C:\Users\fabrizio\Documents\GestioneCommesse\commesse.db")
+        conn = sqlite3.connect(DB_PATH)
         conn.row_factory = sqlite3.Row
         c = conn.cursor()
         c.execute("SELECT * FROM utenti WHERE username = ?", (username,))
@@ -345,7 +346,7 @@ def home():
 @app.route("/lista_commesse")
 @login_required
 def lista_commesse():
-    conn = sqlite3.connect(r"C:\Users\fabrizio\Documents\GestioneCommesse\commesse.db")
+    conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
     c.execute("SELECT * FROM commesse ORDER BY id DESC")
@@ -357,7 +358,7 @@ def lista_commesse():
 @app.route("/elenco_soffietti")
 @login_required
 def elenco_soffietti():
-    conn = sqlite3.connect(r"C:\Users\fabrizio\Documents\GestioneCommesse\commesse.db")
+    conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
     c.execute("""
@@ -458,7 +459,7 @@ def aggiungi_commessa():
 @app.route("/modifica_commessa/<int:id>", methods=["GET", "POST"])
 @login_required
 def modifica_commessa(id):
-    conn = sqlite3.connect(r"C:\Users\fabrizio\Documents\GestioneCommesse\commesse.db")
+    conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
 
@@ -574,7 +575,7 @@ def stampa_commessa(id):
     import sqlite3
 
     # --- Connessione DB ---
-    conn = sqlite3.connect(r"C:\Users\fabrizio\Documents\GestioneCommesse\commesse.db")
+    conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
 
@@ -688,7 +689,7 @@ def stampa_commessa(id):
 @app.route("/stampa_commessa_archiviata/<int:id>")
 @login_required
 def stampa_commessa_archiviata(id):
-    conn = sqlite3.connect("C:/Users/fabrizio/Documents/GestioneCommesse/Commesse.db")
+    conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute("SELECT * FROM commesse_consegnate WHERE id = ?", (id,))
     com = c.fetchone()
@@ -702,7 +703,7 @@ def stampa_commessa_archiviata(id):
 @app.route("/elimina/<int:id>")
 @login_required
 def elimina_commessa(id):
-    conn = sqlite3.connect(r"C:\Users\fabrizio\Documents\GestioneCommesse\commesse.db")
+    conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute("DELETE FROM commesse WHERE id = ?", (id,))
     conn.commit()
@@ -716,7 +717,7 @@ def elimina_commessa(id):
 @app.route("/commessa/<int:id>/files")
 @login_required
 def commessa_files_view(id):
-    conn = sqlite3.connect(r"C:\Users\fabrizio\Documents\GestioneCommesse\commesse.db")
+    conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
     c.execute("SELECT * FROM commesse WHERE id = ?", (id,))
@@ -734,7 +735,7 @@ def commessa_files_view(id):
 @app.route("/commessa_file/<int:file_id>/download")
 @login_required
 def download_commessa_file(file_id):
-    conn = sqlite3.connect(r"C:\Users\fabrizio\Documents\GestioneCommesse\commesse.db")
+    conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
     c.execute("SELECT * FROM commessa_files WHERE id = ?", (file_id,))
@@ -754,7 +755,7 @@ def download_commessa_file(file_id):
 @login_required
 def operatori():
     ruolo_corrente=current_user.ruolo
-    conn = sqlite3.connect(r"C:\Users\fabrizio\Documents\GestioneCommesse\commesse.db")
+    conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
     c.execute("SELECT * FROM operatori ORDER BY nome ASC")
@@ -773,7 +774,7 @@ def aggiungi_operatore():
     if request.method == "POST":
         nome = request.form.get("nome")
         if nome:
-            conn = sqlite3.connect(r"C:\Users\fabrizio\Documents\GestioneCommesse\commesse.db")
+            conn = sqlite3.connect(DB_PATH)
             c = conn.cursor()
             c.execute("INSERT INTO operatori (nome) VALUES (?)", (nome,))
             conn.commit()
@@ -792,7 +793,7 @@ def registrazione_ore():
     data_imputazione = request.form.get("data_imputazione") or date.today()
 
     # Connessione al database
-    conn = sqlite3.connect(r"C:\Users\fabrizio\Documents\GestioneCommesse\commesse.db")
+    conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
 
     # ✅ 1. Inserisci la riga in "ore_lavorate"
@@ -820,7 +821,7 @@ def registrazione_ore():
 @app.route("/consegna", methods=["GET", "POST"])
 @login_required
 def consegna_veicolo():
-    conn = sqlite3.connect(r"C:\Users\fabrizio\Documents\GestioneCommesse\commesse.db")
+    conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
     c.execute("SELECT id, nome, tipo_intervento FROM commesse ORDER BY id DESC")
@@ -839,7 +840,7 @@ def consegna_veicolo():
 @app.route("/conferma_consegna/<int:id>", methods=["GET", "POST"])
 @login_required
 def conferma_consegna(id):
-    conn = sqlite3.connect(r"C:\Users\fabrizio\Documents\GestioneCommesse\commesse.db")
+    conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
     c.execute("SELECT * FROM commesse WHERE id = ?", (id,))
@@ -887,7 +888,7 @@ def conferma_consegna(id):
 @app.route("/archivio_consegnati")
 @login_required
 def archivio_consegnati():
-    conn = sqlite3.connect(r"C:\Users\fabrizio\Documents\GestioneCommesse\commesse.db")
+    conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
     c.execute("""
@@ -911,7 +912,7 @@ def aggiorna_saldato(id):
     nuova = request.form.get("saldata", "").strip().lower()
     nuova = "Si" if nuova in ("si", "sì", "yes", "y") else "No"
 
-    conn = sqlite3.connect(r"C:\Users\fabrizio\Documents\GestioneCommesse\commesse.db")
+    conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute("UPDATE commesse_consegnate SET saldata = ? WHERE id = ?", (nuova, id))
     conn.commit()
@@ -929,7 +930,7 @@ def magazzino():
 @app.route("/modifica_articolo/<int:id>", methods=["GET", "POST"])
 @login_required
 def modifica_articolo(id):
-    conn = sqlite3.connect(r"C:\Users\fabrizio\Documents\GestioneCommesse\commesse.db")
+    conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
 
@@ -983,7 +984,7 @@ def pagina_aggiungi_articolo():
 @app.route("/magazzino_articoli")
 @login_required
 def magazzino_articoli():
-    conn = sqlite3.connect(r"C:\Users\fabrizio\Documents\GestioneCommesse\commesse.db")
+    conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
 
@@ -999,7 +1000,7 @@ def magazzino_articoli():
 @login_required
 def magazzino_sottoscorta():
     try:
-        conn = sqlite3.connect(r"C:\Users\fabrizio\Documents\GestioneCommesse\commesse.db")
+        conn = sqlite3.connect(DB_PATH)
         conn.row_factory = sqlite3.Row
         c = conn.cursor()
 
@@ -1067,7 +1068,7 @@ def aggiungi_articolo():
         data_modifica = datetime.now().strftime("%Y-%m-%d")
 
         try:
-            conn = sqlite3.connect(r"C:\Users\fabrizio\Documents\GestioneCommesse\commesse.db")
+            conn = sqlite3.connect(DB_PATH)
             c = conn.cursor()
 
             c.execute("""
@@ -1097,7 +1098,7 @@ def scarico_magazzino():
     print("🔴 SCARICO – ID articolo selezionato:", id_articolo)
 
     # Connessione al database
-    conn = sqlite3.connect(r"C:\Users\fabrizio\Documents\GestioneCommesse\commesse.db")
+    conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
 
@@ -1148,7 +1149,7 @@ def carico_magazzino():
     print("🟢 CARICO – ID articolo selezionato:", id_articolo)
 
     # Connessione al database
-    conn = sqlite3.connect(r"C:\Users\fabrizio\Documents\GestioneCommesse\commesse.db")
+    conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
 
@@ -1268,7 +1269,7 @@ def stampa_magazzino():
     from reportlab.lib.styles import getSampleStyleSheet
     import tempfile
 
-    conn = sqlite3.connect(r"C:\Users\fabrizio\Documents\GestioneCommesse\commesse.db")
+    conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
     c.execute("SELECT * FROM articoli ORDER BY descrizione")
