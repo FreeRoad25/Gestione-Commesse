@@ -92,11 +92,12 @@ def load_user(user_id):
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
     c.execute("SELECT * FROM utenti WHERE username = ?", (user_id,))
-    user = c.fetchone()
+    row = c.fetchone()
     conn.close()
 
-    if user:
-        return User(user_id, "operatore")
+    if row:
+        user = User(row["username"], row["ruolo"])
+        return user
     return None
 # =========================================================
 # FUNZIONI DI SUPPORTO
