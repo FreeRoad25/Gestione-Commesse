@@ -1,180 +1,220 @@
-<!DOCTYPE html>
-<html lang="it">
-<head>
-    <meta charset="UTF-8">
-    <title>Aggiungi Nuova Commessa</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f4f9;
-            color: #333;
-            margin: 0;
-            padding: 0;
-        }
+{% extends "layout.html" %}
+{% block title %}Nuova Commessa{% endblock %}
 
-        .container {
-            width: 90%;
-            max-width: 700px;
-            margin: 40px auto;
-            background: white;
-            padding: 25px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
+{% block content %}
+<div class="container">
+    <h1>➕ Nuova Commessa</h1>
 
-        h1 {
-            text-align: center;
-            color: #007bff;
-            margin-bottom: 25px;
-        }
+    <div class="form-box">
+        <!-- Aggiunto enctype per abilitare upload file -->
+        <form action="{{ url_for('aggiungi_commessa') }}" method="POST" enctype="multipart/form-data">
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Nome Cliente</label>
+                    <input type="text" name="nome" placeholder="Inserisci il nome del cliente" required>
+                </div>
 
-        form {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
+                <div class="form-group">
+                    <label>Tipo Intervento</label>
+                    <select name="tipo_intervento" id="tipo_intervento" onchange="gestisciAltroIntervento()" required>
+                        <option value="">-- Seleziona --</option>
+                        {% for t in tipi %}
+                            <option value="{{ t }}">{{ t }}</option>
+                        {% endfor %}
+                        <option value="Altro">+ Altro...</option>
+                    </select>
 
-        label {
-            font-weight: bold;
-        }
-
-        input, select, textarea {
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 6px;
-            font-size: 14px;
-        }
-
-        textarea {
-            resize: vertical;
-            min-height: 70px;
-        }
-
-        button {
-            background-color: #28a745;
-            color: white;
-            border: none;
-            padding: 12px;
-            border-radius: 6px;
-            font-size: 16px;
-            cursor: pointer;
-        }
-
-        button:hover {
-            background-color: #218838;
-        }
-
-        .back {
-            display: block;
-            text-align: center;
-            margin-top: 20px;
-            color: #007bff;
-            text-decoration: none;
-        }
-
-        .back:hover {
-            text-decoration: underline;
-        }
-
-        .file-upload {
-            background: #f8f9fa;
-            border: 1px dashed #ccc;
-            padding: 15px;
-            border-radius: 6px;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>➕ Aggiungi Nuova Commessa</h1>
-
-        <form method="POST" action="{{ url_for('aggiungi_commessa') }}" enctype="multipart/form-data">
-
-            <label for="nome">Nome Commessa:</label>
-            <input type="text" id="nome" name="nome" required>
-
-            <label for="tipo_intervento">Tipo Intervento:</label>
-            <select id="tipo_intervento" name="tipo_intervento" onchange="mostraAltro()" required>
-                <option value="">-- Seleziona --</option>
-
-                <!-- Tipi base -->
-                <option value="Carrozzeria">Carrozzeria</option>
-                <option value="Allestimento">Allestimento</option>
-                <option value="Riparazione">Riparazione</option>
-                <option value="Tetto a Soffietto">Tetto a Soffietto</option>
-
-                <!-- Tipi personalizzati dal database -->
-                {% for tipo in tipi_intervento %}
-                    {% if tipo not in ['Carrozzeria', 'Allestimento', 'Riparazione', 'Tetto a Soffietto'] %}
-                        <option value="{{ tipo }}">{{ tipo }}</option>
-                    {% endif %}
-                {% endfor %}
-
-                <option value="Altro">➕ Altro...</option>
-            </select>
-
-            <div id="altro_container" style="display:none; margin-top:10px;">
-                <label for="altro_input">Specifica nuovo tipo:</label>
-                <input type="text" id="altro_input" name="altro_input" placeholder="Inserisci nuovo tipo...">
+                    <input type="text" name="nuovo_intervento" id="nuovo_intervento" placeholder="Inserisci nuovo tipo..." style="display:none;">
+                </div>
             </div>
 
-            <script>
-            function mostraAltro() {
-                const select = document.getElementById('tipo_intervento');
-                const divAltro = document.getElementById('altro_container');
-                divAltro.style.display = (select.value === 'Altro') ? 'block' : 'none';
-                if (select.value !== 'Altro') document.getElementById('altro_input').value = '';
-            }
-            </script>
+            <div class="form-row">
+                <div class="form-group">
+    <label>Marca Veicolo</label>
+    <select name="marca_veicolo" id="marca_veicolo" onchange="gestisciNuovaMarca()" required>
+        <option value="">-- Seleziona Marca --</option>
+        {% for m in marche %}
+            <option value="{{ m }}">{{ m }}</option>
+        {% endfor %}
+        <option value="nuova">+ Aggiungi nuova marca...</option>
+    </select>
 
-            <label for="data_arrivo_materiali">Data Arrivo Materiali:</label>
-            <input type="date" id="data_arrivo_materiali" name="data_arrivo_materiali">
+    <input type="text" name="nuova_marca" id="nuova_marca"
+           placeholder="Inserisci nuova marca"
+           style="display:none; margin-top:5px;">
+</div>
 
-            <label for="data_inizio">Data Inizio:</label>
-            <input type="date" id="data_inizio" name="data_inizio">
-
-            <label for="ore_necessarie">Ore Necessarie:</label>
-            <input type="number" id="ore_necessarie" name="ore_necessarie" min="1" step="0.5" required>
-
-            <!-- 🔹 Marca e Modello dinamici -->
-            <label for="marca_veicolo">Marca Veicolo:</label>
-            <input list="marche_list" id="marca_veicolo" name="marca_veicolo" placeholder="es. Volkswagen">
-            <datalist id="marche_list">
-                {% for m in marche %}
-                    <option value="{{ m }}">
-                {% endfor %}
-            </datalist>
-
-            <label for="modello_veicolo">Modello Veicolo:</label>
-            <input list="modelli_list" id="modello_veicolo" name="modello_veicolo" placeholder="es. Crafter">
-            <datalist id="modelli_list">
-                {% for mod in modelli %}
-                    <option value="{{ mod }}">
-                {% endfor %}
-            </datalist>
-
-            <label for="dimensioni">Dimensioni:</label>
-            <input type="text" id="dimensioni" name="dimensioni" placeholder="es. 4.5m x 1.8m x 1.6m">
-
-            <label for="data_consegna">Data Consegna (provvisoria):</label>
-            <input type="date" id="data_consegna" name="data_consegna">
-
-            <!-- 📝 Note Importanti -->
-            <label for="note_importanti">📝 Note Importanti:</label>
-            <textarea id="note_importanti" name="note_importanti" placeholder="Inserisci eventuali note o dettagli importanti..."></textarea>
-
-            <!-- Upload file -->
-            <div class="file-upload">
-                <label for="file_commessa">📎 Allegati (foto, PDF, documenti...)</label><br>
-                <input type="file" id="file_commessa" name="file_commessa" multiple>
-                <p style="font-size:12px; color:#666;">Puoi selezionare più file contemporaneamente.</p>
+                <div class="form-group">
+                    <label>Modello Veicolo</label>
+                    <input type="text" name="modello_veicolo" placeholder="Es. Crafter L3H3" required>
+                </div>
             </div>
-
-            <button type="submit">💾 Salva Commessa</button>
-        </form>
-
-        <a href="{{ url_for('lista_commesse') }}" class="back">⬅ Torna all'elenco commesse</a>
+            <!-- Dimensioni veicolo -->
+<div class="form-row">
+    <div class="form-group" style="width:100%;">
+        <label>Dimensioni Veicolo</label>
+        <input type="text" name="dimensioni" placeholder="Es. L3H3, passo lungo, tetto alto...">
     </div>
-</body>
-</html>
+</div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Data Conferma</label>
+                    <input type="date" name="data_conferma">
+                </div>
+
+                <div class="form-group">
+                    <label>Data Arrivo Materiali</label>
+                    <input type="date" name="data_arrivo_materiali">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Ore Necessarie</label>
+                    <input type="number" name="ore_necessarie" min="0" step="0.5" placeholder="Es. 120">
+                </div>
+
+                <div class="form-group">
+                    <label>Data Inizio Lavoro</label>
+                    <input type="date" name="data_inizio">
+                </div>
+            </div>
+
+            <!-- 🔹 Note Importanti -->
+            <div class="form-row">
+                <div class="form-group" style="width:100%;">
+                    <label>Note Importanti</label>
+                    <textarea name="note_importanti" rows="4" placeholder="Annota dettagli importanti o richieste speciali..."></textarea>
+                </div>
+            </div>
+
+            <!-- 🔹 Upload File -->
+            <div class="form-row">
+                <div class="form-group" style="width:100%;">
+                    <label>Allegati (foto o PDF)</label>
+                    <input type="file" name="allegato" accept=".jpg,.jpeg,.png,.pdf">
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-save">💾 Salva Commessa</button>
+                <button type="reset" class="btn btn-reset">🔄 Reset</button>
+                <a href="{{ url_for('lista_commesse') }}" class="btn btn-back">⬅ Torna all’elenco</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+.container {
+    width: 95%;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 20px;
+    color: #f5f5f5;
+}
+
+h1 {
+    text-align: center;
+    color: #00b4ff;
+    margin-bottom: 25px;
+    font-weight: 600;
+}
+
+.form-box {
+    background: #1a1c27;
+    padding: 25px 30px;
+    border-radius: 10px;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.4);
+}
+
+.form-row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    margin-bottom: 15px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    width: 48%;
+}
+
+label {
+    font-weight: 500;
+    margin-bottom: 5px;
+    color: #00b4ff;
+}
+
+input, select, textarea {
+    background-color: #2b2f3c;
+    border: 1px solid #555;
+    border-radius: 6px;
+    padding: 10px;
+    color: #fff;
+    font-size: 14px;
+}
+
+input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: #00b4ff;
+    box-shadow: 0 0 5px #00b4ff;
+}
+
+/* Pulsanti coerenti */
+.form-actions {
+    text-align: center;
+    margin-top: 20px;
+}
+
+.btn {
+    padding: 10px 16px;
+    margin: 5px;
+    border-radius: 8px;
+    font-size: 14px;
+    border: none;
+    cursor: pointer;
+    transition: 0.2s;
+    color: #fff;
+    text-decoration: none;
+}
+
+.btn-save { background-color: #007bff; }
+.btn-reset { background-color: #ffc107; color: black; }
+.btn-back { background-color: #6c757d; }
+
+.btn:hover {
+    transform: scale(1.05);
+    opacity: 0.9;
+}
+</style>
+
+<script>
+function gestisciAltroIntervento() {
+    const select = document.getElementById('tipo_intervento');
+    const inputAltro = document.getElementById('nuovo_intervento');
+    if (select.value === 'Altro') {
+        inputAltro.style.display = 'block';
+        inputAltro.required = true;
+    } else {
+        inputAltro.style.display = 'none';
+        inputAltro.required = false;
+    }
+}
+</script>
+<script>
+function gestisciNuovaMarca() {
+    const select = document.getElementById('marca_veicolo');
+    const input = document.getElementById('nuova_marca');
+    if (select.value === 'nuova') {
+        input.style.display = 'block';
+        input.required = true;
+    } else {
+        input.style.display = 'none';
+        input.required = false;
+    }
+}
+</script>
+{% endblock %}
