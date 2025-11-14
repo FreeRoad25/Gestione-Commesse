@@ -38,7 +38,7 @@ def admin_required(f):
 DB_NAME = "commesse.db"
 
 # Path assoluto del database
-BASE_DIR = os.path.dirname(os.path.abspath(_file_))
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(BASE_DIR, DB_NAME)
 
 def get_db_connection():
