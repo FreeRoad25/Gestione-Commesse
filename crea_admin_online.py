@@ -26,7 +26,7 @@ def crea_admin_se_manca():
     ruolo = "amministratore"
 
     cur.execute("""
-        INSERT INTO utenti (username, password_hash, ruolo)
+        INSERT OR IGNORE INTO utenti (username, password_hash, ruolo)
         VALUES (?, ?, ?)
     """, (username, password_hash, ruolo))
 
