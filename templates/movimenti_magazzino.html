@@ -147,11 +147,11 @@ function filtraTabella() {
     const articolo = document.getElementById("searchArticolo").value;
     const tipo = document.getElementById("searchTipo").value;
 
-    // Ricarica la pagina con i parametri GET
     const params = new URLSearchParams();
     if (articolo) params.append("q", articolo);
     if (tipo) params.append("tipo", tipo);
-    window.location.href = /movimenti_magazzino?${params.toString()};
+
+    window.location.href = '/movimenti_magazzino?${params.toString()}';
 }
 
 function resetFiltri() {
