@@ -36,5 +36,5 @@ def crea_admin_se_manca():
 
 
 # Esegui automaticamente allo start del server
-if _name_ == "_main_":
+if __name__ == "__main__":
     crea_admin_se_manca()
