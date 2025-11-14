@@ -35,10 +35,10 @@ def admin_required(f):
         return f(*args, **kwargs)
     return decorated_function
 # ========================================================================
-DB_NAME = "commesse.db"
+import os
 
-# Path assoluto del database
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DB_NAME = "commesse.db"
 DB_PATH = os.path.join(BASE_DIR, DB_NAME)
 
 def get_db_connection():
