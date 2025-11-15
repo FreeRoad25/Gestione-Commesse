@@ -275,11 +275,12 @@ def login():
 
         print(f"Tentativo di login: {username}")
         print("DB PATH UTILIZZATO:", DB_PATH)
-        print("Utente nel DB:", user)
+        
 
         conn = get_db_connection()
         user = conn.execute("SELECT * FROM utenti WHERE username = ?", (username,)).fetchone()
         conn.close()
+        print("Utente nel DB:", user)
 
         if user and check_password_hash(user["password_hash"], password):
           session["username"] = user["username"]
