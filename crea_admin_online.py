@@ -4,6 +4,7 @@ from werkzeug.security import generate_password_hash
 
 # Path al database (stesso usato da app.py)
 DB_PATH = os.path.join(os.getcwd(), "commesse.db")
+print("CREA ADMIN DB_PATH:", DB_PATH)
 
 def crea_admin_se_manca():
     conn = sqlite3.connect(DB_PATH)
