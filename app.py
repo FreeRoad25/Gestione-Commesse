@@ -1023,34 +1023,7 @@ def magazzino_articoli():
     return render_template("magazzino_articoli.html", articoli=articoli)
 
 
-@app.route("/magazzino_sottoscorta")
-@login_required
-def magazzino_sottoscorta():
-    try:
-        conn = sqlite3.connect(DB_PATH)
-        conn.row_factory = sqlite3.Row
-        c = conn.cursor()
 
-        # ✅ Query corretta: controlla quantità minore della scorta minima
-        c.execute("""
-        SELECT codice, descrizione, unita, quantita, scorta_minima, fornitore
-        FROM articoli
-        WHERE IFNULL(CAST(quantita AS REAL), 0) < IFNULL(CAST(scorta_minima AS REAL), 0)
-        ORDER BY descrizione ASC
-        """)
-
-        articoli_sottoscorta = c.fetchall()
-        conn.close()
-
-        print(f"🔍 Articoli sottoscorta trovati: {len(articoli_sottoscorta)}")
-        for a in articoli_sottoscorta:
-            print(dict(a))  # stampa i dettagli per verifica
-
-        return render_template("magazzino_sottoscorta.html", articoli=articoli_sottoscorta)
-
-    except Exception as e:
-     print(f"❌ Errore nel caricamento sottoscorta: {e}")
-    return "Errore durante il caricamento della pagina sottoscorta"
 
 # ===============================
 # 🗑 ELIMINA ARTICOLO
