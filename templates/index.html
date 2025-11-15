@@ -1,0 +1,18 @@
+{% extends "layout.html" %}
+{% block title %}Home{% endblock %}
+
+{% block content %}
+{% if username %}
+<div style="text-align:center; margin-top:20px;">
+    <h2>Benvenuto {{ username }}</h2>
+    <p>Ruolo: <strong>{{ ruolo }}</strong></p>
+</div>
+{% endif %}
+<div class="container text-center mt-5">
+    <h1 class="text-info mb-4">⚙ Pannello Principale</h1>
+    <p class="text-light">
+        Benvenuto nel gestionale officina.<br>
+        Utilizza il menu laterale per navigare tra le sezioni.
+    </p>
+</div>
+{% endblock %}

@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Dettaglio Commessa</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            width: 85%;
+            max-width: 900px;
+            margin: 40px auto;
+            background: rgba(255, 255, 255, 0.203);
+            padding: 25px 35px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 25px;
+        }
+
+        .field {
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 1px solid #eeeeee8b;
+            padding-bottom: 5px;
+        }
+
+        .field strong {
+            width: 40%;
+            color: #555;
+        }
+
+        .value {
+            width: 60%;
+            text-align: right;
+            color: #222;
+        }
+
+        .actions {
+            text-align: center;
+            margin-top: 30px;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 10px 18px;
+            border-radius: 6px;
+            color: rgba(255, 255, 255, 0.573);
+            text-decoration: none;
+            font-weight: bold;
+            margin: 0 10px;
+        }
+
+        .btn-primary { background-color: #007bff; }
+        .btn-warning { background-color: #ffc107; color: #000; }
+        .btn-danger { background-color: #dc3545; }
+        .btn-secondary { background-color: #6c757d; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📄 Dettaglio Commessa</h1>
+
+        <div class="field">
+            <strong>ID Commessa:</strong>
+            <div class="value">{{ commessa['id'] }}</div>
+        </div>
+
+        <div class="field">
+            <strong>Nome Commessa:</strong>
+            <div class="value">{{ commessa['nome'] }}</div>
+        </div>
+
+        <div class="field">
+            <strong>Tipo Intervento:</strong>
+            <div class="value">{{ commessa['tipo_intervento'] }}</div>
+        </div>
+
+        <div class="field">
+            <strong>Data Conferma:</strong>
+            <div class="value">{{ commessa['data_conferma'] }}</div>
+        </div>
+
+        <div class="field">
+            <strong>Data Arrivo Materiali:</strong>
+            <div class="value">{{ commessa['data_arrivo_materiali'] or '-' }}</div>
+        </div>
+
+        <div class="field">
+            <strong>Data Inizio:</strong>
+            <div class="value">{{ commessa['data_inizio'] or '-' }}</div>
+        </div>
+
+        <div class="field">
+            <strong>Ore Necessarie:</strong>
+            <div class="value">{{ commessa['ore_necessarie'] or '-' }}</div>
+        </div>
+
+        <div class="field">
+            <strong>Marca Veicolo:</strong>
+            <div class="value">{{ commessa['marca_veicolo'] or '-' }}</div>
+        </div>
+
+        <div class="field">
+            <strong>Modello Veicolo:</strong>
+            <div class="value">{{ commessa['modello_veicolo'] or '-' }}</div>
+        </div>
+
+        <div class="field">
+            <strong>Dimensioni:</strong>
+            <div class="value">{{ commessa['dimensioni'] or '-' }}</div>
+        </div>
+
+        <div class="field">
+            <strong>Data Consegna:</strong>
+            <div class="value">{{ commessa['data_consegna'] or '-' }}</div>
+        </div>
+
+        <div class="actions">
+            <a href="{{ url_for('modifica_commessa', id=commessa['id']) }}" class="btn btn-warning">✏️ Modifica</a>
+            <a href="{{ url_for('lista_commesse') }}" class="btn btn-secondary">⬅ Torna alla lista</a>
+        </div>
+    </div>
+</body>
+</html>

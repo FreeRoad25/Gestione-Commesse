@@ -1,0 +1,287 @@
+{% extends "layout.html" %}
+{% block title %}Modifica Commessa{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1>✏ Modifica Commessa</h1>
+    <div class="form-box">
+        <form action="{{ url_for('modifica_commessa', id=commessa['id']) }}" method="POST" enctype="multipart/form-data">
+
+     <div class="form-row">
+    <div class="form-group">
+        <label>Nome Cliente</label>
+        <input type="text" name="nome" value="{{ commessa['nome'] }}" placeholder="Inserisci il nome del cliente" required>
+    </div>
+
+    <div class="form-group">
+        <label>Tipo Intervento</label>
+        <select name="tipo_intervento" id="tipo_intervento" onchange="gestisciAltroIntervento()" required>
+            <option value="">-- Seleziona --</option>
+            {% for t in tipi_intervento %}
+                <option value="{{ t }}" {% if commessa['tipo_intervento'] == t %}selected{% endif %}>{{ t }}</option>
+            {% endfor %}
+            <option value="Altro" {% if commessa['tipo_intervento'] not in tipi_intervento %}selected{% endif %}>+ Altro...</option>
+        </select>
+
+        <input type="text" name="nuovo_intervento" id="nuovo_intervento"
+               placeholder="Inserisci nuovo tipo..."
+               value="{% if commessa['tipo_intervento'] not in tipi_intervento %}{{ commessa['tipo_intervento'] }}{% endif %}"
+               style="display:none;">
+    </div>
+</div>
+
+<div class="form-row">
+    <div class="form-group">
+        <label>Marca Veicolo</label>
+        <select name="marca_veicolo" id="marca_veicolo" onchange="gestisciNuovaMarca()" required>
+            <option value="">-- Seleziona Marca --</option>
+            {% for m in marche %}
+                <option value="{{ m }}" {% if commessa['marca_veicolo'] == m %}selected{% endif %}>{{ m }}</option>
+            {% endfor %}
+            <option value="nuova">+ Aggiungi nuova marca...</option>
+        </select>
+
+        <input type="text" name="nuova_marca" id="nuova_marca"
+               placeholder="Inserisci nuova marca"
+               style="display:none; margin-top:5px;">
+    </div>
+
+    <div class="form-group">
+        <label>Modello Veicolo</label>
+        <input type="text" name="modello_veicolo" value="{{ commessa['modello_veicolo'] }}" placeholder="Es. Crafter L3H3" required>
+    </div>
+</div>
+
+<!-- Dimensioni Veicolo -->
+<div class="form-row">
+    <div class="form-group" style="width:100%;">
+        <label>Dimensioni Veicolo</label>
+        <input type="text" name="dimensioni" value="{{ commessa['dimensioni'] or '' }}" placeholder="Es. L3H3, passo lungo, tetto alto...">
+    </div>
+</div>
+
+<div class="form-row">
+    <div class="form-group">
+        <label>Data Conferma</label>
+        <input type="date" name="data_conferma" value="{{ commessa['data_conferma'] }}">
+    </div>
+
+    <div class="form-group">
+        <label>Data Arrivo Materiali</label>
+        <input type="date" name="data_arrivo_materiali" value="{{ commessa['data_arrivo_materiali'] }}">
+    </div>
+</div>
+
+<div class="form-row">
+    <div class="form-group">
+        <label>Ore Necessarie</label>
+        <input type="number" name="ore_necessarie" value="{{ commessa['ore_necessarie'] }}" min="0" step="0.5" placeholder="Es. 120">
+    </div>
+
+    <div class="form-group">
+        <label>Data Inizio Lavoro</label>
+        <input type="date" name="data_inizio" value="{{ commessa['data_inizio'] }}">
+    </div>
+</div>
+
+<div class="form-row">
+    <div class="form-group">
+        <label>Data Consegna</label>
+        <input type="date" name="data_consegna" value="{{ commessa['data_consegna'] }}">
+    </div>
+</div>
+
+<!-- 🔹 Note Importanti -->
+<div class="form-row">
+    <div class="form-group" style="width:100%;">
+        <label>Note Importanti</label>
+        <textarea name="note_importanti" rows="4" placeholder="Annota dettagli importanti o richieste speciali...">{{ commessa['note_importanti'] or '' }}</textarea>
+    </div>
+</div>
+
+<!-- 🔹 Upload File -->
+<div class="form-row">
+    <div class="form-group" style="width:100%;">
+        <label>Allegati (foto o PDF)</label>
+        <input type="file" name="file_commessa" multiple accept=".jpg,.jpeg,.png,.pdf">
+    </div>
+</div>
+
+{% if files and files|length > 0 %}
+<div class="form-row">
+    <div class="form-group" style="width:100%;">
+        <label>📂 File già allegati</label>
+        <ul class="file-list">
+            {% for f in files %}
+                <li>
+                    <a href="{{ url_for('download_commessa_file', file_id=f.id) }}" target="_blank">
+                        📄 {{ f.original_name or f.filename }}
+                    </a>
+                    <small>({{ f.upload_date[:10].replace('-', '/') }})</small>
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+{% endif %}
+
+<a href="{{ url_for('stampa_commessa', id=id_commessa) }}" 
+   target="_blank" 
+   class="btn btn-print" 
+   style="background-color: #28a745; color: white;">
+   🖨 Stampa Commessa
+</a>
+<script>
+function gestisciAltroIntervento() {
+    const select = document.getElementById('tipo_intervento');
+    const inputAltro = document.getElementById('nuovo_intervento');
+    if (select.value === 'Altro') {
+        inputAltro.style.display = 'block';
+        inputAltro.required = true;
+    } else {
+        inputAltro.style.display = 'none';
+        inputAltro.required = false;
+    }
+}
+
+function gestisciNuovaMarca() {
+    const select = document.getElementById('marca_veicolo');
+    const input = document.getElementById('nuova_marca');
+    if (select.value === 'nuova') {
+        input.style.display = 'block';
+        input.required = true;
+    } else {
+        input.style.display = 'none';
+        input.required = false;
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    gestisciAltroIntervento();
+    gestisciNuovaMarca();
+});
+</script>
+</form>      
+    </div>
+</div>
+
+<style>
+.container {
+    width: 95%;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 20px;
+    color: #f5f5f5;
+}
+
+h1 {
+    text-align: center;
+    color: #00b4ff;
+    margin-bottom: 25px;
+    font-weight: 600;
+}
+
+.form-box {
+    background: #1a1c27;
+    padding: 25px 30px;
+    border-radius: 10px;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.4);
+}
+
+.form-row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    margin-bottom: 15px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    width: 48%;
+}
+
+label {
+    font-weight: 500;
+    margin-bottom: 5px;
+    color: #00b4ff;
+}
+
+input, select, textarea {
+    background-color: #2b2f3c;
+    border: 1px solid #555;
+    border-radius: 6px;
+    padding: 10px;
+    color: #fff;
+    font-size: 14px;
+}
+
+input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: #00b4ff;
+    box-shadow: 0 0 5px #00b4ff;
+}
+
+.file-list {
+    list-style: none;
+    padding-left: 0;
+}
+
+.file-list li {
+    margin-bottom: 6px;
+}
+
+/* Pulsanti coerenti */
+.form-actions {
+    text-align: center;
+    margin-top: 20px;
+}
+
+.btn {
+    padding: 10px 16px;
+    margin: 5px;
+    border-radius: 8px;
+    font-size: 14px;
+    border: none;
+    cursor: pointer;
+    transition: 0.2s;
+    color: #fff;
+    text-decoration: none;
+}
+
+.btn-save { background-color: #007bff; }
+.btn-back { background-color: #6c757d; }
+
+.btn:hover {
+    transform: scale(1.05);
+    opacity: 0.9;
+}
+</style>
+
+<script>
+function mostraAltro() {
+    const select = document.getElementById('tipo_intervento');
+    const divAltro = document.getElementById('altro_container');
+    if (select.value === 'Altro') {
+        divAltro.style.display = 'block';
+    } else {
+        divAltro.style.display = 'none';
+    }
+}
+document.addEventListener('DOMContentLoaded', mostraAltro);
+
+function gestisciNuovaMarca() {
+    const select = document.getElementById('marca_veicolo');
+    const input = document.getElementById('nuova_marca');
+    if (select.value === 'nuova') {
+        input.style.display = 'block';
+        input.required = true;
+    } else {
+        input.style.display = 'none';
+        input.required = false;
+    }
+}
+</script>
+<div>
+</div>
+{% endblock %}

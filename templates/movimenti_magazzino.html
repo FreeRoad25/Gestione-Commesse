@@ -1,0 +1,161 @@
+{% extends "layout.html" %}
+{% block title %}Movimenti Magazzino{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1>📦 Movimenti Magazzino</h1>
+
+    <!-- 🔍 Barra di ricerca -->
+    <div class="search-panel">
+        <input type="text" id="searchArticolo" placeholder="🔍 Cerca per codice o descrizione..." onkeyup="filtraTabella()">
+        <select id="searchTipo" onchange="filtraTabella()">
+            <option value="">-- Tutti i movimenti --</option>
+            <option value="Carico">Carico</option>
+            <option value="Scarico">Scarico</option>
+        </select>
+        <button class="btn btn-reset" onclick="resetFiltri()">🔄 Reset</button>
+    </div>
+
+    <!-- 📋 Tabella Movimenti -->
+    <div class="table-container">
+        <table id="tabellaMovimenti">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Codice</th>
+                    <th>Descrizione</th>
+                    <th>Tipo Movimento</th>
+                    <th>Quantità</th>
+                    <th>Data</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for mov in movimenti %}
+                <tr>
+                    <td>{{ mov.id }}</td>
+                    <td>{{ mov.codice or '-' }}</td>
+                    <td>{{ mov.descrizione or '-' }}</td>
+                    <td>{{ mov.tipo_movimento }}</td>
+                    <td>{{ mov.quantita }}</td>
+                    <td>{% if mov.data_movimento %}{{ mov.data_movimento[:10] }}{% else %}-{% endif %}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<style>
+/* === STRUTTURA === */
+.container {
+    width: 95%;
+    max-width: 1300px;
+    margin: auto;
+    padding: 20px;
+}
+
+h1 {
+    color: #00c6ff;
+    text-align: center;
+    margin-bottom: 20px;
+    font-size: 26px;
+}
+
+/* === BARRA RICERCA === */
+.search-panel {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.search-panel input,
+.search-panel select {
+    padding: 8px 12px;
+    font-size: 14px;
+    border-radius: 6px;
+    border: 1px solid #555;
+    background-color: #2b2d3a;
+    color: #fff;
+    width: 250px;
+}
+
+.search-panel input:focus,
+.search-panel select:focus {
+    outline: 2px solid #00bfff;
+}
+
+/* === PULSANTI === */
+.btn {
+    padding: 8px 14px;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    color: #fff;
+    cursor: pointer;
+    transition: 0.2s;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+}
+
+.btn-reset {
+    background-color: #ff9800;
+}
+
+.btn-reset:hover {
+    background-color: #e68900;
+    transform: scale(1.05);
+}
+
+/* === TABELLA === */
+.table-container {
+    overflow-x: auto;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: #2b2d3a;
+    border-radius: 10px;
+    overflow: hidden;
+    font-size: 14px;
+}
+
+th, td {
+    border: 1px solid #444;
+    padding: 8px;
+    text-align: center;
+    color: #fff;
+}
+
+th {
+    background-color: #00a6c7;
+    font-weight: 600;
+}
+
+tr:nth-child(even) {
+    background-color: #34374a;
+}
+
+tr:hover {
+    background-color: #00bfff33;
+}
+</style>
+
+<script>
+function filtraTabella() {
+    const articolo = document.getElementById("searchArticolo").value;
+    const tipo = document.getElementById("searchTipo").value;
+
+    const params = new URLSearchParams();
+    if (articolo) params.append("q", articolo);
+    if (tipo) params.append("tipo", tipo);
+
+    window.location.href = '/movimenti_magazzino?${params.toString()}';
+}
+
+function resetFiltri() {
+    window.location.href = "/movimenti_magazzino";
+}
+</script>
+{% endblock %}

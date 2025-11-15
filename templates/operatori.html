@@ -1,0 +1,116 @@
+{% extends "layout.html" %}
+{% block title %}Gestione Operatori{% endblock %}
+{% block content %}
+
+<div class="container-operatori">
+    <h1>Gestione Operatori</h1>
+
+    <!-- 🔹 Costo Orario unico -->
+    <form action="{{ url_for('aggiorna_costo_orario') }}" method="POST" class="row-form">
+        <label class="label-inline">💶 Costo Orario unico:</label>
+        <input type="number" name="nuovo_costo_orario" step="0.01" placeholder="es. 47.50" required>
+        <button type="submit" class="btn btn-primary">💾 Applica</button>
+    </form>
+
+    <!-- 🔹 Aggiungi operatore -->
+    <div class="pulsante-centro">
+        <a href="{{ url_for('pagina_aggiungi_operatore') }}" class="btn btn-secondary">➕ Aggiungi Operatore</a>
+    </div>
+
+    <!-- 🔹 Registrazione Ore -->
+    <form action="{{ url_for('registrazione_ore') }}" method="POST" class="row-form">
+        <label>Operatore:</label>
+        <select name="id_operatore" required>
+            <option value="">— Seleziona operatore —</option>
+            {% for op in operatori %}
+                <option value="{{ op.id }}">{{ op.nome }}</option>
+            {% endfor %}
+        </select>
+
+        <label>Commessa:</label>
+        <select name="id_commessa" required>
+            <option value="">— Seleziona commessa —</option>
+            {% for com in commesse %}
+                <option value="{{ com.id }}">{{ com.nome }}</option>
+            {% endfor %}
+        </select>
+
+        <label>Ore lavorate:</label>
+        <input type="number" name="ore" step="0.1" placeholder="es. 3.5" required>
+
+        <label>Data:</label>
+        <input type="date" name="data_imputazione" value="{{ today }}" required>
+
+        <div class="pulsante-centro">
+            <button type="submit" class="btn btn-primary">✅ Registra Ore</button>
+        </div>
+    </form>
+</div>
+
+<style>
+.container-operatori {
+    width: 95%;
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 10px;
+    background: #2b2d3a;
+    border-radius: 12px;
+    color: #e0e0e0;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+}
+h1 {
+    text-align: center;
+    color: #00bfff;
+    font-weight: 400;
+    margin-bottom: 15px;
+}
+.row-form {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 15px;
+}
+.label-inline {
+    font-weight: 500;
+    margin-bottom: 6px;
+}
+input, select {
+    padding: 6px;
+    border-radius: 6px;
+    border: 1px solid #444;
+    background-color: #1f202a;
+    color: #fff;
+    font-size: 15px;
+}
+input:focus, select:focus {
+    outline: none;
+    border-color: #00bfff;
+    box-shadow: 0 0 5px rgba(0,191,255,0.5);
+}
+.btn {
+    padding: 6px 10px;
+    border: none;
+    border-radius: 6px;
+    font-size: 10px;
+    font-weight: 500;
+    color: #fff;
+    cursor: pointer;
+    transition: 0.2s ease;
+}
+.btn-primary {
+    background: linear-gradient(145deg, #00a6c7, #007bff);
+}
+.btn-secondary {
+    background: linear-gradient(145deg, #00b894, #009970);
+}
+.btn:hover {
+    transform: translateY(-1px);
+    opacity: 0.9;
+}
+.pulsante-centro {
+    text-align: center;
+    margin: 6px 0;
+}
+</style>
+
+{% endblock %}

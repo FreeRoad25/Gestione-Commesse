@@ -1,0 +1,61 @@
+{% extends "layout.html" %}
+{% block title %}Aggiungi Articolo{% endblock %}
+
+{% block content %}
+<div class="container" style="margin-top:140px,">
+    <h1 style="margin-bottom: 40px;">➕ Aggiungi Nuovo Articolo</h1>
+    <div style="margin-top:120px;"></div>
+
+    <form action="{{ url_for('aggiungi_articolo') }}" method="POST" class="form-box">
+        <input type="text" name="codice" placeholder="Codice" required>
+        <input type="text" name="descrizione" placeholder="Descrizione" required>
+        <input type="text" name="unita" placeholder="Unità (es. pz, mt, lt)">
+        <input type="number" step="0.01" name="quantita" placeholder="Quantità iniziale">
+        <input type="text" name="codice_barre" placeholder="Codice a barre">
+        <input type="text" name="fornitore" placeholder="Fornitore">
+        <input type="number" step="0.01" name="scorta_minima" placeholder="Scorta minima">
+        <input type="number" step="0.01" name="costo_netto" placeholder="Costo Netto (€)" required>
+        <button type="submit" class="btn btn-success">💾 Salva Articolo</button>
+    </form>
+</div>
+
+<style>
+.container {
+    width: 80%;
+    max-width: 800px;
+    margin: 40px auto;
+    text-align: center;
+    color: #fff;
+}
+h1 {
+    color: #00b4ff;
+    margin-bottom: 20px;
+}
+.form-box {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    background: #111;
+    padding: 25px;
+    border-radius: 10px;
+}
+.form-box input {
+    padding: 10px;
+    border: 1px solid #333;
+    border-radius: 6px;
+    background: #222;
+    color: #fff;
+}
+.btn-success {
+    background-color: #28a745;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 10px;
+    cursor: pointer;
+}
+.btn-success:hover {
+    background-color: #218838;
+}
+</style>
+{% endblock %}
