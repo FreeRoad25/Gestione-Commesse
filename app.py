@@ -4,7 +4,7 @@ from flask import Flask, render_template, request, redirect, url_for, flash, ses
 import sqlite3
 import os
 import os
-DB_PATH = os.path.join(os.getcwd(), "commesse.db")
+DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "commesse.db")
 from datetime import datetime, date
 from datetime import datetime
 from functools import wraps
