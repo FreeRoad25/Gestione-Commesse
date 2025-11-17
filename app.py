@@ -924,17 +924,17 @@ def archivio_consegnati():
         SELECT 
             id,
             nome,
-           tipo_intervento,
-           data_conferma,
+            tipo_intervento,
+            data_conferma,
             data_arrivo_materiali,
             data_consegna,
             ore_previste,
             ore_lavorate,
-           saldata
+            saldata
        FROM commesse_consegnate
-        ORDER BY 
-            CASE WHEN saldata IN ('No', 'NO', 'no') THEN 0 ELSE 1 END,
-            id DESC
+        ORDER BY
+       CASE WHEN saldata IN ('No', 'NO', 'no') THEN 0 ELSE 1 END ASC,
+        id DESC
     """)
 
         commesse = c.fetchall()
