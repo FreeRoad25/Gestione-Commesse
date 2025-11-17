@@ -915,23 +915,36 @@ def conferma_consegna(id):
 @app.route("/archivio_consegnati")
 @login_required
 def archivio_consegnati():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    c = conn.cursor()
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
 
-    c.execute("""
-        SELECT id, nome, tipo_intervento, data_conferma, data_consegna,
-               ore_necessarie, ore_lavorate, saldata
-        FROM commesse_consegnate
-        ORDER BY 
-            CASE WHEN saldata IN ('No','NO','no') THEN 0 ELSE 1 END,
-            date(data_consegna) DESC
-    """)
+        c.execute("""
+            SELECT 
+                id,
+                nome,
+                tipo_intervento,
+                data_conferma,
+                data_arrivo_materiali,
+                data_consegna,
+                ore_previste,
+                ore_lavorate,
+                saldata
+            FROM commesse_consegnate
+            ORDER BY 
+                CASE WHEN saldata IN ('No', 'NO', 'no') THEN 0 ELSE 1 END,
+                date(data_consegna) DESC
+        """)
 
-    commesse = c.fetchall()
-    conn.close()
+        commesse = c.fetchall()
+        conn.close()
 
-    return render_template("archivio_consegnati.html", commesse=commesse)
+        return render_template("archivio_consegnati.html", commesse=commesse)
+
+    except Exception as e:
+        print("ERRORE ARCHIVIO CONSEGNATI:", e)
+        return "Errore nell'archivio consegnati", 500
 
 
 @app.route("/toggle_salata/<int:idc>", methods=["POST"])
