@@ -1,19 +1,49 @@
 {% extends "layout.html" %}
 
 <style>
-    .table-archivio tr {
-        height: 38px !important;
-    }
-    .table-archivio td,
-    .table-archivio th {
-        padding: 4px 6px !important;
-        line-height: 1.2 !important;
-    }
-    .riga-non-saldata {
-        background-color: #7a1f1f !important;
-    }
-</style>
+/* === FIX DEFINITIVO RIGHE TROPPO ALTE ARCHIVIO CONSEGNATI === */
 
+/* forza la tabella a usare solo le nostre regole */
+.table-archivio {
+    width: 100%;
+    border-collapse: collapse !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+/* celle compatte */
+.table-archivio th,
+.table-archivio td {
+    padding: 3px 6px !important;
+    height: 22px !important;
+    line-height: 14px !important;
+    font-size: 13px !important;
+    color: #e0e0e0;
+    background: rgba(0, 0, 0, 0.25) !important;
+    vertical-align: middle !important;
+}
+
+/* altezza riga */
+.table-archivio tr {
+    height: 22px !important;
+}
+
+/* righe alternate */
+.table-archivio tr:nth-child(even) {
+    background-color: #26283a !important;
+}
+
+/* righe non saldate evidenziate */
+.riga-non-saldata {
+    background-color: #7a1f1f !important;
+}
+
+/* header blu */
+.table-archivio th {
+    background-color: #00bfff !important;
+    color: #ffffff !important;
+}
+</style>
 
 {% block title %}Archivio Commesse Consegnate{% endblock %}
 
