@@ -54,18 +54,8 @@
         /* === CONTENUTO CENTRALE === */
         .main-content {
             flex: 1;
-            padding: 5px 25px 25px 25px; /* ridotto margine superiore */
+            padding: 5px 25px 25px 25px;
             overflow-y: auto;
-        }
-
-        .container {
-            width: 95%;
-            max-width: 1450px;
-            margin: auto;
-            background: #2b2d3a;
-            padding: 20px 25px;
-            border-radius: 10px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
         }
 
         h1 {
@@ -75,133 +65,52 @@
             font-size: 24px;
         }
 
-        /* === CAMPI INPUT E SELECT UNIFORMATI === */
-        input[type="text"], input[type="number"], input[type="date"], select, textarea {
+        /* === STILE TABELLA ARCHIVIO CONSOLIDATO === */
+        .table-archivio {
             width: 100%;
-            padding: 8px 10px;
-            border-radius: 6px;
-            border: 1px solid #555;
-            background-color: #1e1f29;
-            color: #e0e0e0;
-            font-size: 14px;
-            box-shadow: inset 0 1px 2px rgba(0,0,0,0.4);
-            transition: all 0.2s ease-in-out;
-        }
-
-        input:focus, select:focus, textarea:focus {
-            outline: none;
-            border-color: #00bfff;
-            box-shadow: 0 0 6px rgba(0,191,255,0.5);
-        }
-
-        option {
+            border-collapse: collapse !important;
             background-color: #2b2d3a;
-            color: #e0e0e0;
         }
 
-        /* === PULSANTI COERENTI === */
-        button, .btn {
-            border: none;
-            border-radius: 6px;
-            padding: 7px 12px;
-            cursor: pointer;
-            transition: 0.2s ease-in-out;
+        .table-archivio th {
+            background-color: #00bfff;
+            color: #fff;
+            padding: 4px 6px !important;
             font-size: 13px;
+            height: 24px !important;
+            text-align: left;
         }
 
-        .btn:hover, button:hover {
-            opacity: 0.9;
-            transform: translateY(-2px);
+        .table-archivio td {
+            padding: 4px 6px !important;
+            font-size: 13px;
+            color: #e0e0e0;
+            vertical-align: middle !important;
+            height: 22px !important;
         }
 
-        /* Scrollbar elegante */
-        ::-webkit-scrollbar { width: 10px; }
-        ::-webkit-scrollbar-track { background: #1e1f29; }
-        ::-webkit-scrollbar-thumb { background: #00bfff; border-radius: 5px; }
-        ::-webkit-scrollbar-thumb:hover { background: #00a4e0; }
-
-        /* Correzione margine verticale container */
-        .main-content .container {
-            margin-top: 0 !important;
-            padding-top: 0 !important;
+        .table-archivio tr {
+            height: 26px !important;
         }
 
-        /* === STILE TABELLE ARCHIVIO CONSEGNATI (CORRETTO) === */
-     /* --- FIX DEFINITIVO RIGHE TROPPO ALTE --- */
+        .table-archivio tr:nth-child(even) {
+            background-color: #26283a;
+        }
 
-/* forza la tabella a non ereditare padding extra */
-.table-archivio {
-    border-collapse: collapse !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    width: 100%;
-}
-
-/* forza altezza reale */
-.table-archivio tr {
-    height: 32px !important;     /* più sottile */
-}
-
-/* forza celle strette */
-.table-archivio td, 
-.table-archivio th {
-    padding: 4px 6px !important;
-    line-height: 14px !important;
-    font-size: 13px !important;
-    height: 32px !important;
-    background-color: rgba(0,0,0,0.3) !important; /* EVITA sfondo enorme */
-}
-
-/* colore per righe non saldate */
-.riga-non-saldata {
-    background-color: #7a1a1a !important;
-}   
-.table-archivio {
-    width: 100%;
-    border-collapse: collapse;
-    background-color: #2b2d3a;
-}
-
-.table-archivio th {
-    background-color: #00bfff;
-    color: #fff;
-    padding: 4px 6px !important;
-    font-size: 13px;
-    text-align: left;
-    height: 24px !important;
-}
-
-.table-archivio td {
-    padding: 4px 6px !important;
-    font-size: 13px;
-    color: #e0e0e0;
-    vertical-align: middle !important;
-    height: 24px !important;
-}
-
-.table-archivio tr {
-    height: 26px !important;
-}
-
-.table-archivio tr:nth-child(even) {
-    background-color: #26283a;
-}
-
-        /* Righe NON saldate evidenziate */
+        /* Righe NON saldate */
         .riga-non-saldata {
             background-color: #4b1f1f !important;
         }
-        .table-archivio {
-    width: 100%;
-    border-collapse: collapse;
-}
 
-
+        /* Fix altezza generale wrapper */
+        .content-wrapper {
+            height: auto !important;
+            min-height: auto !important;
+        }
     </style>
 </head>
 
 <body>
-    <!-- MENU LATERALE -->
     <div class="sidebar">
         <h2>⚙ Officina</h2>
         <a href="{{ url_for('home') }}">🏠 Home</a>
@@ -212,7 +121,6 @@
         <a href="{{ url_for('logout') }}">🚪 Logout</a>
     </div>
 
-    <!-- CONTENUTO DINAMICO -->
     <div class="main-content">
         {% block content %}
         {% endblock %}
