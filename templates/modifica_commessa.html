@@ -2,15 +2,17 @@
 {% block title %}Modifica Commessa{% endblock %}
 
 {% block content %}
-<div class="container">
-    <h1>→ Modifica Commessa</h1>
+<div class="container" style="margin-top:140px;">
+
+    <h1 style="color:#00b4ff; text-align:center; margin-bottom:35px;">→ Modifica Commessa</h1>
 
     <div class="form-box">
 
-        <!-- FORM APERTO -->
+        <!-- FORM -->
         <form action="{{ url_for('modifica_commessa', id=commessa['id']) }}" 
               method="POST" enctype="multipart/form-data">
 
+            <!-- ROW 1 -->
             <div class="form-row">
                 <div class="form-group">
                     <label>Nome Cliente</label>
@@ -26,13 +28,17 @@
                         {% endfor %}
                         <option value="Altro" {% if commessa['tipo_intervento'] not in tipi_intervento %}selected{% endif %}>+ Altro...</option>
                     </select>
-                    <input type="text" name="nuovo_intervento" id="nuovo_intervento"
-                        value="{% if commessa['tipo_intervento'] not in tipi_intervento %}{{ commessa['tipo_intervento'] }}{% endif %}"
-                        placeholder="Inserisci nuovo tipo" 
-                        style="display:none;">
+
+                    <input type="text" 
+                           name="nuovo_intervento" 
+                           id="nuovo_intervento"
+                           value="{% if commessa['tipo_intervento'] not in tipi_intervento %}{{ commessa['tipo_intervento'] }}{% endif %}"
+                           placeholder="Inserisci nuovo tipo intervento"
+                           style="display:none;">
                 </div>
             </div>
 
+            <!-- ROW 2 -->
             <div class="form-row">
                 <div class="form-group">
                     <label>Marca Veicolo</label>
@@ -43,8 +49,11 @@
                         {% endfor %}
                         <option value="nuova">+ Aggiungi nuova marca</option>
                     </select>
-                    <input type="text" name="nuova_marca" id="nuova_marca" 
-                           placeholder="Inserisci nuova marca" 
+
+                    <input type="text" 
+                           name="nuova_marca" 
+                           id="nuova_marca"
+                           placeholder="Inserisci nuova marca"
                            style="display:none; margin-top:5px;">
                 </div>
 
@@ -54,6 +63,7 @@
                 </div>
             </div>
 
+            <!-- ROW 3 -->
             <div class="form-row">
                 <div class="form-group" style="width:100%;">
                     <label>Dimensioni Veicolo</label>
@@ -61,6 +71,7 @@
                 </div>
             </div>
 
+            <!-- ROW 4 -->
             <div class="form-row">
                 <div class="form-group">
                     <label>Data Conferma</label>
@@ -73,6 +84,7 @@
                 </div>
             </div>
 
+            <!-- ROW 5 -->
             <div class="form-row">
                 <div class="form-group">
                     <label>Ore Necessarie</label>
@@ -85,6 +97,7 @@
                 </div>
             </div>
 
+            <!-- ROW 6 -->
             <div class="form-row">
                 <div class="form-group">
                     <label>Data Consegna</label>
@@ -92,6 +105,7 @@
                 </div>
             </div>
 
+            <!-- NOTE -->
             <div class="form-row">
                 <div class="form-group" style="width:100%;">
                     <label>Note Importanti</label>
@@ -99,6 +113,7 @@
                 </div>
             </div>
 
+            <!-- FILE -->
             <div class="form-row">
                 <div class="form-group" style="width:100%;">
                     <label>Allegati (foto o PDF)</label>
@@ -106,6 +121,7 @@
                 </div>
             </div>
 
+            <!-- FILE GIA PRESENTI -->
             {% if files and files|length > 0 %}
             <div class="form-row">
                 <div class="form-group" style="width:100%;">
@@ -124,21 +140,77 @@
             </div>
             {% endif %}
 
-            <!-- BOTTONI FINALi -->
-            <div style="margin-top:20px; text-align:center;">
-                <button type="submit" class="btn btn-primary" style="background:#00AFFF; padding:10px 20px;">💾 SALVA</button>
+            <!-- BOTTONI -->
+            <div style="margin-top:25px; text-align:center;">
+                <button type="submit" class="btn btn-primary" 
+                        style="background:#00AFFF; padding:10px 25px; border-radius:8px;">
+                    💾 SALVA
+                </button>
 
-                <a href="{{ url_for('lista_commesse') }}" class="btn btn-secondary" style="margin-left:10px;">← Torna indietro</a>
+                <a href="{{ url_for('lista_commesse') }}" 
+                   class="btn btn-secondary" 
+                   style="margin-left:10px; padding:10px 25px; border-radius:8px;">
+                    ← Torna indietro
+                </a>
 
-                <a href="{{ url_for('stampa_commessa', id=id_commessa) }}" target="_blank" 
-                   class="btn btn-success" style="margin-left:10px;">🖨 Stampa Commessa</a>
+                <a href="{{ url_for('stampa_commessa', id=id_commessa) }}" 
+                   target="_blank"
+                   class="btn btn-success" 
+                   style="margin-left:10px; padding:10px 25px; border-radius:8px;">
+                    🖨 Stampa Commessa
+                </a>
             </div>
 
         </form>
-        <!-- FORM CHIUSO -->
-
     </div>
 </div>
+
+<style>
+.form-box {
+    background: #1a1c27;
+    padding: 25px 30px;
+    border-radius: 12px;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.4);
+}
+
+.form-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+}
+
+.form-group {
+    width: 48%;
+    display: flex;
+    flex-direction: column;
+}
+
+label {
+    margin-bottom: 5px;
+    font-weight: 600;
+    color: #00b4ff;
+}
+
+input, select, textarea {
+    background: #2b2f3c;
+    border: 1px solid #555;
+    padding: 10px;
+    color: #fff;
+    border-radius: 6px;
+}
+
+input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: #00b4ff;
+    box-shadow: 0 0 4px #00b4ff;
+}
+
+.file-list {
+    list-style: none;
+    padding: 0;
+}
+</style>
 
 <script>
 function gestisciAltroIntervento() {
@@ -152,6 +224,7 @@ function gestisciNuovaMarca() {
     const input = document.getElementById("nuova_marca");
     input.style.display = (sel.value === "nuova") ? "block" : "none";
 }
+
 document.addEventListener("DOMContentLoaded", () => {
     gestisciAltroIntervento();
     gestisciNuovaMarca();
