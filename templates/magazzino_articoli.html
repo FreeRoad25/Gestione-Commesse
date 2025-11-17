@@ -6,11 +6,11 @@
     <h1>📦 Articoli di Magazzino</h1>
 
     <div class="toolbar">
-        <a href="{{ url_for('magazzino_sottoscorta') }}" class="btn btn-warning">⚠ Sottoscorta</a>
-        <a href="{{ url_for('movimenti_magazzino') }}" class="btn btn-info">📜 Movimenti</a>
-        <a href="{{ url_for('pagina_aggiungi_articolo') }}" class="btn btn-success">➕ Aggiungi Articolo</a>
-        <a href="{{ url_for('stampa_magazzino') }}" class="btn btn-primary">🖨 Stampa Magazzino</a>
-    </div>
+    <a href="{{ url_for('magazzino_sottoscorta') }}" class="btn btn-warning">⚠ Sottoscorta</a>
+    <a href="{{ url_for('movimenti_magazzino') }}" class="btn btn-info">📦 Movimenti Magazzino</a>
+    <a href="{{ url_for('aggiungi_articolo') }}" class="btn btn-success">➕ Aggiungi Articolo</a>
+    <a href="{{ url_for('stampa_magazzino') }}" class="btn btn-primary">🖨 Stampa Magazzino</a>
+</div>
 
     <div class="search-section">
         <input type="text" id="filtro" placeholder="🔍 Cerca per nome, codice o fornitore..." onkeyup="filtraTabella()">

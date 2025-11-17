@@ -940,17 +940,23 @@ def archivio_consegnati():
         return f"Errore nell'archivio consegnati: {e}", 500
 
 
-@app.route("/aggiorna_saldato/<int:id>", methods=["POST"])
+@app.route("/toggle_saldata/<int:id>", methods=["POST"])
 @login_required
-def aggiorna_saldato(id):
-    nuova = request.form.get("saldata", "").strip().lower()
-    nuova = "Si" if nuova in ("si", "sì", "yes", "y") else "No"
-
+def toggle_saldata(id):
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
-    c.execute("UPDATE commesse_consegnate SET saldata = ? WHERE id = ?", (nuova, id))
+
+    # Legge stato attuale
+    c.execute("SELECT saldata FROM commesse_consegnate WHERE id=?", (id,))
+    stato = c.fetchone()[0]
+
+    # Cambia lo stato
+    nuovo = "No" if stato == "Si" else "Si"
+
+    c.execute("UPDATE commesse_consegnate SET saldata=? WHERE id=?", (nuovo, id))
     conn.commit()
     conn.close()
+
     return redirect(url_for("archivio_consegnati"))
 # =========================================================
 # MAGAZZINO
