@@ -71,6 +71,37 @@ init_db_online()
 import crea_admin_online
 crea_admin_online.crea_admin_se_manca()
 
+# Creazione tabella tipi_intervento se non esiste
+conn = sqlite3.connect(DB_PATH)
+c = conn.cursor()
+
+c.execute("""
+CREATE TABLE IF NOT EXISTS tipi_intervento (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    nome TEXT NOT NULL UNIQUE
+)
+""")
+
+# Inserimento valori di default se la tabella è vuota
+c.execute("SELECT COUNT(*) FROM tipi_intervento")
+count = c.fetchone()[0]
+
+if count == 0:
+    c.executemany("INSERT INTO tipi_intervento (nome) VALUES (?)", [
+        ("Montaggio Riscaldatore",),
+        ("Tetto a Soffietto",),
+        ("Coibentazione",),
+        ("Allestimento Interno",),
+        ("Impianto Elettrico",),
+        ("Impianto Acqua",),
+        ("Installazione Accessori",),
+        ("Tagliando Camper",),
+        ("Altro",)
+    ])
+    print("Tabella 'tipi_intervento' creata e popolata.")
+
+conn.commit()
+conn.close()
 # ============================================================
 
 # Cartella per i file allegati alle commesse
