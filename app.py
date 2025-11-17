@@ -1022,6 +1022,29 @@ def magazzino_articoli():
     conn.close()
     return render_template("magazzino_articoli.html", articoli=articoli)
 
+@app.route("/magazzino_sottoscorta")
+@login_required
+def magazzino_sottoscorta():
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
+
+        c.execute("""
+            SELECT codice, descrizione, unita, quantita, scorta_minima, fornitore
+            FROM articoli
+            WHERE IFNULL(CAST(quantita AS REAL), 0) < IFNULL(CAST(scorta_minima AS REAL), 0)
+            ORDER BY descrizione ASC
+        """)
+
+        articoli_sottoscorta = c.fetchall()
+        conn.close()
+
+        return render_template("magazzino_sottoscorta.html", articoli=articoli_sottoscorta)
+
+    except Exception as e:
+        return f"Errore nel caricamento sottoscorta: {e}"
+
 
 
 
