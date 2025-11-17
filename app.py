@@ -921,21 +921,21 @@ def archivio_consegnati():
         c = conn.cursor()
 
         c.execute("""
-            SELECT 
-                id,
-                nome,
-                tipo_intervento,
-                data_conferma,
-                data_arrivo_materiali,
-                data_consegna,
-                ore_previste,
-                ore_lavorate,
-                saldata
-            FROM commesse_consegnate
-            ORDER BY 
-                CASE WHEN saldata IN ('No', 'NO', 'no') THEN 0 ELSE 1 END,
-                date(data_consegna) DESC
-        """)
+        SELECT 
+            id,
+            nome,
+           tipo_intervento,
+           data_conferma,
+            data_arrivo_materiali,
+            data_consegna,
+            ore_previste,
+            ore_lavorate,
+           saldata
+       FROM commesse_consegnate
+        ORDER BY 
+            CASE WHEN saldata IN ('No', 'NO', 'no') THEN 0 ELSE 1 END,
+            id DESC
+    """)
 
         commesse = c.fetchall()
         conn.close()
