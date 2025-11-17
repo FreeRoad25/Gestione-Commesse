@@ -411,76 +411,39 @@ DB_PATH = r"commesse.db"
 @app.route("/aggiungi_commessa", methods=["GET", "POST"])
 @login_required
 def aggiungi_commessa():
-    DB_PATH = r"commesse.db"
-
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
 
     # Carica i tipi di intervento esistenti
-    c.execute("SELECT nome FROM tipi_intervento ORDER BY nome ASC")
-    tipi = [row["nome"] for row in c.fetchall()]
+    tipi = [row["nome"] for row in c.execute("SELECT nome FROM tipi_intervento ORDER BY nome ASC").fetchall()]
     conn.close()
 
     if request.method == "POST":
         nome = request.form.get("nome")
-        tipo_intervento = request.form.get("tipo_intervento")
-        nuovo_intervento = request.form.get("nuovo_intervento")
-        marca_sel = request.form.get("marca_veicolo")
-        marca_veicolo = request.form.get("nuova_marca") if marca_sel == "nuova" else marca_sel
-        modello_veicolo = request.form.get("modello_veicolo")
+        tipo_intervento = request.form.get("tipo_intervento") or request.form.get("nuovo_intervento")
         data_conferma = request.form.get("data_conferma")
         data_arrivo_materiali = request.form.get("data_arrivo_materiali")
         ore_necessarie = request.form.get("ore_necessarie") or 0
+        marca_veicolo = request.form.get("marca_veicolo")
+        modello_veicolo = request.form.get("modello_veicolo")
         data_inizio = request.form.get("data_inizio")
-        note_importanti = request.form.get("note_importanti")
 
-        # ✅ Se l’utente ha scritto un nuovo tipo intervento, salvalo nella tabella
-        if tipo_intervento == "Altro" and nuovo_intervento.strip():
-            conn = sqlite3.connect(DB_PATH)
-            conn.execute("INSERT OR IGNORE INTO tipi_intervento (nome) VALUES (?)", (nuovo_intervento.strip(),))
-            conn.commit()
-            conn.close()
-            tipo_intervento = nuovo_intervento.strip()
-
-        # ✅ Gestione file allegato
-        allegato_path = None
-        file = request.files.get("allegato")
-        if file and file.filename:
-            filename = secure_filename(file.filename)
-            upload_dir = os.path.join("static", "uploads")
-            os.makedirs(upload_dir, exist_ok=True)
-            allegato_path = os.path.join(upload_dir, filename)
-            file.save(allegato_path)
-
-        # ✅ Salvataggio nel database
         conn = sqlite3.connect(DB_PATH)
         c = conn.cursor()
+
         c.execute("""
-            INSERT INTO commesse (
-                nome, tipo_intervento, marca_veicolo, modello_veicolo,
-                data_conferma, data_arrivo_materiali, ore_necessarie,
-                data_inizio, note_importanti, allegato
-            )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            nome, tipo_intervento, marca_veicolo, modello_veicolo,
-            data_conferma, data_arrivo_materiali, ore_necessarie,
-            data_inizio, note_importanti, allegato_path
-        ))
+            INSERT INTO commesse 
+            (nome, tipo_intervento, data_conferma, data_arrivo_materiali, ore_necessarie, marca_veicolo, modello_veicolo, data_inizio)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """, (nome, tipo_intervento, data_conferma, data_arrivo_materiali, ore_necessarie, marca_veicolo, modello_veicolo, data_inizio))
+
         conn.commit()
         conn.close()
 
         return redirect(url_for("lista_commesse"))
-    # 🔹 Carica marche già usate nelle commesse
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    c = conn.cursor()
-    c.execute("SELECT DISTINCT marca_veicolo FROM commesse WHERE marca_veicolo IS NOT NULL AND marca_veicolo != '' ORDER BY marca_veicolo ASC")
-    marche = [row["marca_veicolo"] for row in c.fetchall()]
-    conn.close()
-    # Se GET → mostra la pagina con i tipi di intervento
-    return render_template("aggiungi_commessa.html", tipi=tipi,marche=marche)
+
+    return render_template("aggiungi_commessa.html", tipi=tipi)
 
 
 @app.route("/modifica_commessa/<int:id>", methods=["GET", "POST"])
