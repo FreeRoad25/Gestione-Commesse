@@ -6,12 +6,13 @@
 <div class="content-wrapper">
     <h1>📁 Archivio Commesse Consegnate</h1>
 
-    <table class="table table-striped">
+    <table class="table table-striped table-hover">
         <thead>
             <tr>
                 <th>Nome</th>
                 <th>Tipo Intervento</th>
                 <th>Data Conferma</th>
+                <th>Data Arrivo Materiali</th>
                 <th>Data Consegna</th>
                 <th>Ore Previste</th>
                 <th>Ore Lavorate</th>
@@ -19,25 +20,22 @@
                 <th>Azione</th>
             </tr>
         </thead>
+
         <tbody>
             {% for c in commesse %}
-            <tr style="background-color: {% if c.saldata in ['No', 'NO', 'no'] %}#ffcccc{% else %}#ffffff{% endif %};">
+            <tr style="background-color: {% if c.saldata == 'No' %}#ffcccc{% else %}#ffffff{% endif %};">
                 <td>{{ c.nome }}</td>
                 <td>{{ c.tipo_intervento }}</td>
                 <td>{{ c.data_conferma }}</td>
+                <td>{{ c.data_arrivo_materiali }}</td>
                 <td>{{ c.data_consegna }}</td>
                 <td>{{ c.ore_previste }}</td>
                 <td>{{ c.ore_lavorate }}</td>
                 <td>{{ c.saldata }}</td>
+
                 <td>
-                    <form action="{{ url_for('aggiorna_saldato', id=c.id) }}" method="POST">
-                        <button type="submit" class="btn btn-sm btn-primary">
-                            {% if c.saldata in ['No', 'NO', 'no'] %}
-                                Segna come saldata
-                            {% else %}
-                                Segna come NON saldata
-                            {% endif %}
-                        </button>
+                    <form action="{{ url_for('toggle_saldata', id=c.id) }}" method="POST">
+                        <button class="btn btn-sm btn-primary">Cambia</button>
                     </form>
                 </td>
             </tr>
