@@ -42,12 +42,11 @@
             <div class="form-row">
                 <div class="form-group">
                     <label>Marca Veicolo</label>
-                    <select name="marca_veicolo" id="marca_veicolo" onchange="gestisciNuovaMarca()">
-                        <option value="">-- Seleziona Marca --</option>
-                        {% for m in marche %}
-                            <option value="{{ m }}" {% if commessa['marca_veicolo'] == m %}selected{% endif %}>{{ m }}</option>
+                    <select name="marca_veicolo" id="marca_veicolo" required>
+                      <option value="">-- Seleziona Marca --</option>
+                         {% for m in marche %}
+                          <option value="{{ m }}" {% if commessa['marca_veicolo'] == m %}selected{% endif %}>{{ m }}</option>
                         {% endfor %}
-                        <option value="nuova">+ Aggiungi nuova marca</option>
                     </select>
 
                     <input type="text" 
