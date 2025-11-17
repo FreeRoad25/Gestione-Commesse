@@ -1,1 +1,36 @@
-git{% endblock %}
+{% extends "layout.html" %}
+
+{% block title %}Archivio Commesse Consegnate{% endblock %}
+
+{% block content %}
+<div class="content-wrapper">
+    <h1>📁 Archivio Commesse Consegnate</h1>
+
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Nome</th>
+                <th>Tipo Intervento</th>
+                <th>Data Conferma</th>
+                <th>Data Arrivo Materiali</th>
+                <th>Data Consegna</th>
+                <th>Ore Lavorate</th>
+                <th>Saldata</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for c in commesse %}
+            <tr>
+                <td>{{ c.nome }}</td>
+                <td>{{ c.tipo_intervento }}</td>
+                <td>{{ c.data_conferma }}</td>
+                <td>{{ c.data_arrivo_materiali }}</td>
+                <td>{{ c.data_consegna }}</td>
+                <td>{{ c.ore_lavorate }}</td>
+                <td>{{ c.saldata }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
