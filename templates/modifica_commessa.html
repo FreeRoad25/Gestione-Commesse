@@ -7,56 +7,155 @@
 
     <div class="form-box">
 
-        <!-- ⚠ FORM APERTO QUI -->
+        <!-- FORM APERTO -->
         <form action="{{ url_for('modifica_commessa', id=commessa['id']) }}" 
               method="POST" enctype="multipart/form-data">
 
-            <!-- TUTTO IL TUO CONTENUTO QUI SOTTO È IDENTICO AL TUO FILE -->
-            {{ super() }}
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Nome Cliente</label>
+                    <input type="text" name="nome" value="{{ commessa['nome'] }}" required>
+                </div>
 
-            <!-- 🔵 BOTTONI FINALI (AGGIUNTI SENZA TOCCARE NULLA DEL TUO FILE) -->
+                <div class="form-group">
+                    <label>Tipo Intervento</label>
+                    <select name="tipo_intervento" id="tipo_intervento" onchange="gestisciAltroIntervento()" required>
+                        <option value="">-- Seleziona --</option>
+                        {% for t in tipi_intervento %}
+                            <option value="{{ t }}" {% if commessa['tipo_intervento'] == t %}selected{% endif %}>{{ t }}</option>
+                        {% endfor %}
+                        <option value="Altro" {% if commessa['tipo_intervento'] not in tipi_intervento %}selected{% endif %}>+ Altro...</option>
+                    </select>
+                    <input type="text" name="nuovo_intervento" id="nuovo_intervento"
+                        value="{% if commessa['tipo_intervento'] not in tipi_intervento %}{{ commessa['tipo_intervento'] }}{% endif %}"
+                        placeholder="Inserisci nuovo tipo" 
+                        style="display:none;">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Marca Veicolo</label>
+                    <select name="marca_veicolo" id="marca_veicolo" onchange="gestisciNuovaMarca()">
+                        <option value="">-- Seleziona Marca --</option>
+                        {% for m in marche %}
+                            <option value="{{ m }}" {% if commessa['marca_veicolo'] == m %}selected{% endif %}>{{ m }}</option>
+                        {% endfor %}
+                        <option value="nuova">+ Aggiungi nuova marca</option>
+                    </select>
+                    <input type="text" name="nuova_marca" id="nuova_marca" 
+                           placeholder="Inserisci nuova marca" 
+                           style="display:none; margin-top:5px;">
+                </div>
+
+                <div class="form-group">
+                    <label>Modello Veicolo</label>
+                    <input type="text" name="modello_veicolo" value="{{ commessa['modello_veicolo'] }}" required>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group" style="width:100%;">
+                    <label>Dimensioni Veicolo</label>
+                    <input type="text" name="dimensioni" value="{{ commessa['dimensioni'] or '' }}">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Data Conferma</label>
+                    <input type="date" name="data_conferma" value="{{ commessa['data_conferma'] }}">
+                </div>
+
+                <div class="form-group">
+                    <label>Data Arrivo Materiali</label>
+                    <input type="date" name="data_arrivo_materiali" value="{{ commessa['data_arrivo_materiali'] }}">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Ore Necessarie</label>
+                    <input type="number" name="ore_necessarie" value="{{ commessa['ore_necessarie'] }}" step="0.5">
+                </div>
+
+                <div class="form-group">
+                    <label>Data Inizio Lavoro</label>
+                    <input type="date" name="data_inizio" value="{{ commessa['data_inizio'] }}">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Data Consegna</label>
+                    <input type="date" name="data_consegna" value="{{ commessa['data_consegna'] }}">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group" style="width:100%;">
+                    <label>Note Importanti</label>
+                    <textarea name="note_importanti" rows="4">{{ commessa['note_importanti'] or '' }}</textarea>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group" style="width:100%;">
+                    <label>Allegati (foto o PDF)</label>
+                    <input type="file" name="file_commessa" multiple accept=".jpg,.jpeg,.png,.pdf">
+                </div>
+            </div>
+
+            {% if files and files|length > 0 %}
+            <div class="form-row">
+                <div class="form-group" style="width:100%;">
+                    <label>📂 File già allegati</label>
+                    <ul class="file-list">
+                        {% for f in files %}
+                        <li>
+                            <a href="{{ url_for('download_commessa_file', file_id=f.id) }}" target="_blank">
+                                📄 {{ f.original_name or f.filename }}
+                            </a>
+                            <small>({{ f.upload_date[:10].replace('-', '/') }})</small>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- BOTTONI FINALi -->
             <div style="margin-top:20px; text-align:center;">
-                <button type="submit" class="btn btn-primary" 
-                        style="background:#0096ff; padding:10px 20px; border-radius:8px; border:none;">
-                    💾 SALVA
-                </button>
+                <button type="submit" class="btn btn-primary" style="background:#00AFFF; padding:10px 20px;">💾 SALVA</button>
 
-                <a href="{{ url_for('lista_commesse') }}" 
-                   class="btn btn-secondary" 
-                   style="background:#6c757d; padding:10px 20px; border-radius:8px; margin-left:10px;">
-                    ← Torna indietro
-                </a>
+                <a href="{{ url_for('lista_commesse') }}" class="btn btn-secondary" style="margin-left:10px;">← Torna indietro</a>
 
-                <a href="{{ url_for('stampa_commessa', id=id_commessa) }}" 
-                   target="_blank"
-                   class="btn btn-success"
-                   style="background:#28a745; padding:10px 20px; border-radius:8px; margin-left:10px;">
-                    🖨 Stampa Commessa
-                </a>
+                <a href="{{ url_for('stampa_commessa', id=id_commessa) }}" target="_blank" 
+                   class="btn btn-success" style="margin-left:10px;">🖨 Stampa Commessa</a>
             </div>
 
         </form>
-        <!-- ⚠ FORM CHIUSO QUI -->
+        <!-- FORM CHIUSO -->
 
     </div>
 </div>
 
 <script>
 function gestisciAltroIntervento() {
-    const select = document.getElementById('tipo_intervento');
-    const inputAltro = document.getElementById('nuovo_intervento');
-    inputAltro.style.display = (select.value === 'Altro') ? 'block' : 'none';
+    const sel = document.getElementById("tipo_intervento");
+    const input = document.getElementById("nuovo_intervento");
+    input.style.display = (sel.value === "Altro") ? "block" : "none";
 }
 
 function gestisciNuovaMarca() {
-    const select = document.getElementById('marca_veicolo');
-    const input = document.getElementById('nuova_marca');
-    input.style.display = (select.value === 'nuova') ? 'block' : 'none';
+    const sel = document.getElementById("marca_veicolo");
+    const input = document.getElementById("nuova_marca");
+    input.style.display = (sel.value === "nuova") ? "block" : "none";
 }
-
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener("DOMContentLoaded", () => {
     gestisciAltroIntervento();
     gestisciNuovaMarca();
 });
 </script>
+
 {% endblock %}
