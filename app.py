@@ -1139,7 +1139,7 @@ def aggiungi_articolo():
             return "Errore durante il salvataggio dell'articolo."
     else:
         # se GET, mostra la pagina con il form
-        return render_template("aggiungi_articolo.html")
+        return render_template("pagina_aggiungi_articolo.html")
 
 @app.route("/scarico_magazzino", methods=["GET", "POST"])
 @login_required
