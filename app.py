@@ -915,45 +915,34 @@ def conferma_consegna(id):
 @app.route("/archivio_consegnati")
 @login_required
 def archivio_consegnati():
-    try:
-        conn = sqlite3.connect(DB_PATH)
-        conn.row_factory = sqlite3.Row
-        c = conn.cursor()
-
-        # Query semplice che funziona anche se mancano alcune colonne
-        c.execute("""
-            SELECT *
-            FROM commesse_consegnate
-            ORDER BY id DESC
-        """)
-
-        commesse = c.fetchall()
-        conn.close()
-
-        print(f"[ARCHIVIO] Righe trovate: {len(commesse)}")
-
-        return render_template("archivio_consegnati.html", commesse=commesse)
-
-    except Exception as e:
-        # Qui vediamo esattamente l'errore reale
-        print(f"[ARCHIVIO] ERRORE: {e}")
-        return f"Errore nell'archivio consegnati: {e}", 500
-
-
-@app.route("/toggle_saldata/<int:id>", methods=["POST"])
-@login_required
-def toggle_saldata(id):
     conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
     c = conn.cursor()
 
-    # Legge stato attuale
-    c.execute("SELECT saldata FROM commesse_consegnate WHERE id=?", (id,))
-    stato = c.fetchone()[0]
+    c.execute("""
+        SELECT id, nome, tipo_intervento, data_conferma, data_consegna,
+               ore_necessarie, ore_lavorate, saldata
+        FROM commesse_consegnate
+        ORDER BY 
+            CASE WHEN saldata IN ('No','NO','no') THEN 0 ELSE 1 END,
+            date(data_consegna) DESC
+    """)
 
-    # Cambia lo stato
-    nuovo = "No" if stato == "Si" else "Si"
+    commesse = c.fetchall()
+    conn.close()
 
-    c.execute("UPDATE commesse_consegnate SET saldata=? WHERE id=?", (nuovo, id))
+    return render_template("archivio_consegnati.html", commesse=commesse)
+
+
+@app.route("/toggle_salata/<int:idc>", methods=["POST"])
+@login_required
+def toggle_saldata(idc):
+    nuova = request.form.get("saldata")
+    nuova = "Si" if nuova.lower() in ("yes", "si", "s") else "No"
+
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute("UPDATE commesse_consegnate SET saldata = ? WHERE id = ?", (nuova, idc))
     conn.commit()
     conn.close()
 
