@@ -1339,20 +1339,23 @@ def stampa_magazzino():
     elements.append(Spacer(1, 12))
 
     # Tabella dati
-    data = [["Codice", "Descrizione", "Unità", "Q.tà", "Scorta Min.", "Fornitore", "Costo Netto €", "Valore Totale €"]]
+    data = [["Codice", "Descrizione", "Unità", "Q.tà", "Scorta Min.", "Fornitore", "Prezzo Netto €", "Valore Totale €"]]
 
     totale_generale = 0
     for art in articoli:
-        valore = (art["quantita"] or 0) * (art["costo_netto"] or 0)
+        prezzo = art["prezzo"] or 0
+        qta = art["quantita"] or 0
+        valore = qta * prezzo
         totale_generale += valore
+
         data.append([
-            art["codice"], 
-            art["descrizione"], 
-            art["unita"], 
-            f"{art['quantita']:.2f}",
+            art["codice"],
+            art["descrizione"],
+            art["unita"],
+            f"{qta:.2f}",
             f"{art['scorta_minima']:.2f}",
             art["fornitore"],
-            f"{art['costo_netto']:.2f}",
+            f"{prezzo:.2f}",
             f"{valore:.2f}"
         ])
 
