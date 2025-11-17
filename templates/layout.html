@@ -53,10 +53,10 @@
 
         /* === CONTENUTO CENTRALE === */
         .main-content {
-    flex: 1;
-    padding: 5px 25px 25px 25px; /* ridotto margine superiore */
-    overflow-y: auto;
-}
+            flex: 1;
+            padding: 5px 25px 25px 25px; /* ridotto margine superiore */
+            overflow-y: auto;
+        }
 
         .container {
             width: 95%;
@@ -119,14 +119,52 @@
         ::-webkit-scrollbar-track { background: #1e1f29; }
         ::-webkit-scrollbar-thumb { background: #00bfff; border-radius: 5px; }
         ::-webkit-scrollbar-thumb:hover { background: #00a4e0; }
+
         /* Correzione margine verticale container */
-    .main-content .container {
-        margin-top: 0 !important;
-        padding-top: 0 !important;
-    }
-</style>
+        .main-content .container {
+            margin-top: 0 !important;
+            padding-top: 0 !important;
+        }
+
+        /* === STILE TABELLE ARCHIVIO CONSEGNATI === */
+        .table-archivio {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: #2b2d3a;
+        }
+
+        .table-archivio th {
+            background-color: #00bfff;
+            color: #fff;
+            padding: 8px;
+            font-size: 14px;
+            text-align: left;
+        }
+
+        .table-archivio td {
+            padding: 6px 10px !important;
+            font-size: 13px;
+            color: #e0e0e0;
+            vertical-align: middle !important;
+        }
+
+        .table-archivio tr {
+            height: 38px;
+        }
+
+        .table-archivio tr:nth-child(even) {
+            background-color: #26283a;
+        }
+
+        .table-archivio tr:hover {
+            background-color: #33364a;
+        }
+
+        /* Righe NON saldate evidenziate */
+        .riga-non-saldata {
+            background-color: #4b1f1f !important;
+        }
     </style>
-    
 </head>
 
 <body>

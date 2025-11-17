@@ -6,7 +6,7 @@
 <div class="content-wrapper">
     <h1>📁 Archivio Commesse Consegnate</h1>
 
-    <table class="table table-striped table-hover">
+    <table class="table-archivio">
         <thead>
             <tr>
                 <th>Nome</th>
@@ -23,7 +23,7 @@
 
         <tbody>
             {% for c in commesse %}
-            <tr style="background-color: {% if c.saldata == 'No' %}#ffcccc{% else %}#ffffff{% endif %};">
+            <tr class="{% if c.saldata == 'No' %}riga-non-saldata{% endif %}">
                 <td>{{ c.nome }}</td>
                 <td>{{ c.tipo_intervento }}</td>
                 <td>{{ c.data_conferma }}</td>
