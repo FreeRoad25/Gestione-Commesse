@@ -921,20 +921,20 @@ def archivio_consegnati():
         c = conn.cursor()
 
         c.execute("""
-    SELECT
-        id,
-        nome,
-        tipo_intervento,
-        data_conferma,
-        data_arrivo_materiali,
-        data_consegna,
-        ore_necessarie AS ore_previste,
-        ore_eseguite AS ore_lavorate,
-        saldata
-    FROM commesse_consegnate
-    ORDER BY
-        CASE WHEN saldata IN ('No', 'NO', 'no') THEN 0 ELSE 1 END,
-        id DESC
+        SELECT
+            id,
+           nome,
+           tipo_intervento,
+           data_conferma,
+           data_arrivo_materiali,
+           data_consegna,
+           ore_necessarie AS ore_previste,
+           ore_eseguite AS ore_lavorate,
+           saldata
+         FROM commesse_consegnate
+         ORDER BY
+            CASE WHEN saldata IN ('No', 'NO', 'no') THEN 0 ELSE 1 END,
+          id DESC
     """)
 
         commesse = c.fetchall()
@@ -947,19 +947,38 @@ def archivio_consegnati():
         return "Errore nell'archivio consegnati", 500
 
 
-@app.route("/toggle_salata/<int:idc>", methods=["POST"])
+@app.route("/toggle_saldata/<int:id>", methods=["POST"])
 @login_required
-def toggle_saldata(idc):
-    nuova = request.form.get("saldata")
-    nuova = "Si" if nuova.lower() in ("yes", "si", "s") else "No"
+def toggle_saldata(id):
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
 
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    c.execute("UPDATE commesse_consegnate SET saldata = ? WHERE id = ?", (nuova, idc))
-    conn.commit()
-    conn.close()
+        # Leggo il valore attuale
+        c.execute("SELECT saldata FROM commesse_consegnate WHERE id = ?", (id,))
+        row = c.fetchone()
 
-    return redirect(url_for("archivio_consegnati"))
+        if not row:
+            conn.close()
+            print(f"ERRORE TOGGLE SALDATA: Nessuna commessa trovata con id {id}")
+            return "Errore: commessa non trovata", 404
+
+        attuale = row["saldata"]
+
+        # Calcolo il nuovo valore
+        nuovo = "Si" if attuale.lower() in ("no", "n", "0") else "No"
+
+        # Aggiorno
+        c.execute("UPDATE commesse_consegnate SET saldata = ? WHERE id = ?", (nuovo, id))
+        conn.commit()
+        conn.close()
+
+        return redirect(url_for('archivio_consegnati'))
+
+    except Exception as e:
+        print("ERRORE TOGGLE SALDATA:", e)
+        return "Errore durante aggiornamento stato pagamento", 500
 # =========================================================
 # MAGAZZINO
 # =========================================================
