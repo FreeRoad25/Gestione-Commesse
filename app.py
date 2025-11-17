@@ -915,22 +915,29 @@ def conferma_consegna(id):
 @app.route("/archivio_consegnati")
 @login_required
 def archivio_consegnati():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    c = conn.cursor()
-    c.execute("""
-        SELECT *
-        FROM commesse_consegnate
-        ORDER BY
-            CASE
-                WHEN saldata IN ('No','NO','no') THEN 0
-                ELSE 1
-            END,
-            date(data_consegna) DESC
-    """)
-    commesse = c.fetchall()
-    conn.close()
-    return render_template("archivio_consegnati.html", commesse=commesse)
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
+
+        # Query semplice che funziona anche se mancano alcune colonne
+        c.execute("""
+            SELECT *
+            FROM commesse_consegnate
+            ORDER BY id DESC
+        """)
+
+        commesse = c.fetchall()
+        conn.close()
+
+        print(f"[ARCHIVIO] Righe trovate: {len(commesse)}")
+
+        return render_template("archivio_consegnati.html", commesse=commesse)
+
+    except Exception as e:
+        # Qui vediamo esattamente l'errore reale
+        print(f"[ARCHIVIO] ERRORE: {e}")
+        return f"Errore nell'archivio consegnati: {e}", 500
 
 
 @app.route("/aggiorna_saldato/<int:id>", methods=["POST"])
