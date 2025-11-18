@@ -23,7 +23,7 @@ app = Flask(__name__)
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = "login"  # nome della route di login
-app.secret_key = "chiave_segreta_casuale"
+app.secret_key = os.environ.get("SECRET_KEY", "fallback123")
 login_manager.session_protection = "strong"
 app.config["SESSION_PERMANENT"] = True
 app.config["PERMANENT_SESSION_LIFETIME"] = 3600  # 1 ora
