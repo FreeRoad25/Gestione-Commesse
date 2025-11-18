@@ -19,6 +19,11 @@ from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 app = Flask(__name__)
+# BYPASS LOGIN
+from flask import session
+@app.before_request
+def bypass_login():
+    session["ruolo"] = "amministratore"
 # Inizializzazione LoginManager
 login_manager = LoginManager()
 # Login automatico di sicurezza
@@ -315,42 +320,8 @@ def crea_database():
 # =========================================================
 @app.route("/login", methods=["GET", "POST"])
 def login():
-    if request.method == "POST":
-        username = request.form.get("username")
-        password = request.form.get("password")
-
-        print(f"Tentativo di login: {username}")
-        print("DB PATH UTILIZZATO:", DB_PATH)
-
-        conn = get_db_connection()
-        user = conn.execute("SELECT * FROM utenti WHERE username = ?", (username,)).fetchone()
-        conn.close()
-
-        # --- DEBUG SICURO SENZA ERRORI ---
-        if user:
-            print("Utente trovato nel DB:", dict(user))
-        else:
-            print("Utente NON trovato nel DB")
-
-        # --- LOGIN ---
-        if user and check_password_hash(user["password_hash"], password):
-            session["username"] = user["username"]
-            session["ruolo"] = user["ruolo"]
-            session.permanent = True
-
-            user_obj = User(user["username"], user["ruolo"])
-            login_user(user_obj, remember=True)
-            session["logged_in"] = True
-
-            print("Login OK, ruolo:", user["ruolo"])
-            return redirect("/home")
-        else:
-            print("Password errata o utente inesistente")
-            flash("Credenziali errate.", "error")
-            return render_template("login.html")
-
-    # Richiesta GET
-    return render_template("login.html")
+    session["ruolo"] = "amministratore"
+    return redirect(url_for("home"))
    
 
 
