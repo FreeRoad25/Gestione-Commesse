@@ -3,8 +3,6 @@ from reportlab.lib.styles import ParagraphStyle
 from flask import Flask, render_template, request, redirect, url_for, flash, session
 import sqlite3
 import os
-import os
-DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "commesse.db")
 from datetime import datetime, date
 from datetime import datetime
 from functools import wraps
