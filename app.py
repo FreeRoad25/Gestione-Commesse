@@ -426,45 +426,54 @@ from flask_login import login_required
 DB_PATH = r"commesse.db"
 
 @app.route("/aggiungi_commessa", methods=["GET", "POST"])
-#@login_required
 def aggiungi_commessa():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
 
-    # Carica i tipi di intervento
-    tipi = [row["nome"] for row in c.execute("SELECT nome FROM tipi_intervento ORDER BY nome ASC").fetchall()]
-
-    # Carica le marche dal DB
-    marche = [row["nome"] for row in c.execute("SELECT nome FROM marche ORDER BY nome ASC").fetchall()]
-
-    conn.close()
-
     if request.method == "POST":
         nome = request.form.get("nome")
-        tipo_intervento = request.form.get("tipo_intervento") or request.form.get("nuovo_intervento")
+        tipo_intervento = request.form.get("tipo_intervento")
+        nuovo_intervento = request.form.get("nuovo_intervento")
+        marca_veicolo = request.form.get("marca_veicolo")
+        modello_veicolo = request.form.get("modello_veicolo")
         data_conferma = request.form.get("data_conferma")
         data_arrivo_materiali = request.form.get("data_arrivo_materiali")
         ore_necessarie = request.form.get("ore_necessarie") or 0
-        marca_veicolo = request.form.get("marca_veicolo")
-        modello_veicolo = request.form.get("modello_veicolo")
-        data_inizio = request.form.get("data_inizio")
+        data_inizio_prevista = request.form.get("data_inizio_prevista")
+        note = request.form.get("note")
 
-        conn = sqlite3.connect(DB_PATH)
-        c = conn.cursor()
+        if tipo_intervento == "altro" and nuovo_intervento:
+            tipo_intervento = nuovo_intervento
 
         c.execute("""
             INSERT INTO commesse 
-            (nome, tipo_intervento, data_conferma, data_arrivo_materiali, ore_necessarie, marca_veicolo, modello_veicolo, data_inizio)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        """, (nome, tipo_intervento, data_conferma, data_arrivo_materiali, ore_necessarie, marca_veicolo, modello_veicolo, data_inizio))
+            (nome, tipo_intervento, marca_veicolo, modello_veicolo, data_conferma,
+             data_arrivo_materiali, ore_necessarie, data_inizio_prevista, note)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            nome, tipo_intervento, marca_veicolo, modello_veicolo, data_conferma,
+            data_arrivo_materiali, ore_necessarie, data_inizio_prevista, note
+        ))
 
         conn.commit()
         conn.close()
+        return redirect(url_for("home"))
 
-        return redirect(url_for("lista_commesse"))
+    # GET → preparo la pagina
+    c.execute("SELECT DISTINCT tipo_intervento FROM commesse")
+    tipi_intervento = c.fetchall()
 
-    return render_template("aggiungi_commessa.html", tipi=tipi, marche=marche)
+    c.execute("SELECT DISTINCT marca_veicolo FROM commesse")
+    marche = c.fetchall()
+
+    conn.close()
+
+    return render_template(
+        "aggiungi_commessa.html",
+        tipi_intervento=tipi_intervento,
+        marche=marche
+    )
 
 
 @app.route("/modifica_commessa/<int:id>", methods=["GET", "POST"])
