@@ -446,8 +446,12 @@ def aggiungi_commessa():
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
 
-    # Carica i tipi di intervento esistenti
+    # Carica i tipi di intervento
     tipi = [row["nome"] for row in c.execute("SELECT nome FROM tipi_intervento ORDER BY nome ASC").fetchall()]
+
+    # Carica le marche dal DB
+    marche = [row["nome"] for row in c.execute("SELECT nome FROM marche ORDER BY nome ASC").fetchall()]
+
     conn.close()
 
     if request.method == "POST":
@@ -474,7 +478,7 @@ def aggiungi_commessa():
 
         return redirect(url_for("lista_commesse"))
 
-    return render_template("aggiungi_commessa.html", tipi=tipi)
+    return render_template("aggiungi_commessa.html", tipi=tipi, marche=marche)
 
 
 @app.route("/modifica_commessa/<int:id>", methods=["GET", "POST"])
