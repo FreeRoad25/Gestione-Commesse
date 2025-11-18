@@ -763,20 +763,26 @@ def download_commessa_file(file_id):
 # OPERATORI
 # =========================================================
 @app.route("/operatori")
-#@login_required
 def operatori():
-    ruolo_corrente=current_user.ruolo
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
+
+    # Prende la lista operatori
     c.execute("SELECT * FROM operatori ORDER BY nome ASC")
     operatori = c.fetchall()
+
+    # Prende le commesse
     c.execute("SELECT id, nome FROM commesse ORDER BY id DESC")
     commesse = c.fetchall()
+
     conn.close()
-    print("DEBUG current_user =", current_user)
-    print("DEBUG current_user.ruolo =", getattr(current_user, "ruolo", "NESSUN RUOLO"))
-    return render_template("operatori.html", operatori=operatori, commesse=commesse, ruolo=ruolo_corrente)
+
+    return render_template(
+        "operatori.html",
+        operatori=operatori,
+        commesse=commesse
+    )
 
 
 @app.route("/aggiungi_operatore", methods=["GET", "POST"])
