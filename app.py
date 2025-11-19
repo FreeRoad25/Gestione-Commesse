@@ -795,7 +795,23 @@ def elimina_commessa(id):
     conn.commit()
     conn.close()
     return redirect(url_for("lista_commesse"))
+@app.route("/test_db")
+def test_db():
+    import psycopg2
+    import os
 
+    try:
+        conn = psycopg2.connect(
+            host=os.getenv("DB_HOST"),
+            port=os.getenv("DB_PORT"),
+            database=os.getenv("DB_NAME"),
+            user=os.getenv("DB_USER"),
+            password=os.getenv("DB_PASSWORD")
+        )
+        conn.close()
+        return "Connessione PostgreSQL OK!"
+    except Exception as e:
+        return f"ERRORE: {e}"
 
 # =========================================================
 # FILE ALLEGATI COMMESSE
