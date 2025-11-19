@@ -1386,7 +1386,35 @@ def stampa_magazzino():
 @app.route("/")
 def root():
     return redirect(url_for("login"))
+# ===================== IMPORTA DATABASE DAL BROWSER =====================
+@app.route("/importa_db", methods=["GET", "POST"])
+@login_required
+def importa_db():
+    if session.get("ruolo") != "amministratore":
+        flash("Accesso riservato solo agli amministratori.")
+        return redirect(url_for("home"))
 
+    if request.method == "POST":
+        if "file" not in request.files:
+            flash("Nessun file selezionato.")
+            return redirect(request.url)
+
+        file = request.files["file"]
+
+        if file.filename == "":
+            flash("Nessun file selezionato.")
+            return redirect(request.url)
+
+        # Percorso del database principale
+        db_path = DB_PATH  
+
+        # Salva il file caricato al posto del database attuale
+        file.save(db_path)
+
+        flash("Database sostituito correttamente!")
+        return redirect(url_for("home"))
+
+    return render_template("importa_db.html")
 
 # =========================================================
 # AVVIO APP
