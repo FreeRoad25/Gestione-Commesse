@@ -1,59 +1,61 @@
 {% extends "layout.html" %}
-
 {% block title %}Archivio Commesse Consegnate{% endblock %}
 
 <style>
-/* ============================
-   FIX TABELLA ARCHIVIO STRETTA
-   ============================ */
+/* === FIX DEFINITIVO ALTEZZA RIGHE TABELLA ARCHIVIO === */
 
-/* Contenitore scrollabile orizzontale */
-.archivio-wrapper {
-    width: 100%;
-    overflow-x: auto;
-    margin-top: 20px;
-}
-
-/* Tabella compatta */
 .table-archivio {
-    width: 100%;
-    min-width: 950px; /* evita allargamenti pazzi */
+    display: table !important;
+    width: 100% !important;
     border-collapse: collapse !important;
+    margin: 0 !important;
+    padding: 0 !important;
 }
 
-/* Celle */
+/* righe */
+.table-archivio tr {
+    display: table-row !important;
+    height: 26px !important;
+}
+
+/* celle */
 .table-archivio th,
 .table-archivio td {
-    padding: 5px 8px !important;
-    font-size: 13px !important;
+    display: table-cell !important;
+    padding: 3px 6px !important;
+    margin: 0 !important;
     height: 26px !important;
+    max-height: 26px !important;
     line-height: 16px !important;
-    color: #e0e0e0;
+    font-size: 13px !important;
+    color: #e0e0e0 !important;
+    background: rgba(0, 0, 0, 0.25) !important;
     vertical-align: middle !important;
-    white-space: nowrap; /* impedisce righe alte */
+    border: none !important;
+    overflow: hidden !important;
 }
 
-/* Header */
+/* header */
 .table-archivio th {
     background-color: #00bfff !important;
-    color: #fff !important;
-    font-weight: 600;
+    color: #ffffff !important;
 }
 
-/* Righe alternate */
+/* righe alternate */
 .table-archivio tr:nth-child(even) {
     background-color: #26283a !important;
 }
 
-/* Righe non saldate */
+/* evidenzia NON saldate */
 .riga-non-saldata {
     background-color: #7a1f1f !important;
 }
 
-/* Pulsante "Cambia" */
-.table-archivio button {
-    padding: 4px 10px;
-    font-size: 12px;
+/* reset min-height da stili globali */
+.table-archivio td *,
+.table-archivio th * {
+    min-height: 0 !important;
+    height: auto !important;
 }
 </style>
 
@@ -61,43 +63,41 @@
 <div class="content-wrapper">
     <h1>📁 Archivio Commesse Consegnate</h1>
 
-    <div class="archivio-wrapper">
-        <table class="table-archivio">
-            <thead>
-                <tr>
-                    <th>Nome</th>
-                    <th>Tipo Intervento</th>
-                    <th>Data Conferma</th>
-                    <th>Data Arrivo Materiali</th>
-                    <th>Data Consegna</th>
-                    <th>Ore Previste</th>
-                    <th>Ore Lavorate</th>
-                    <th>Saldata</th>
-                    <th>Azione</th>
-                </tr>
-            </thead>
+    <table class="table-archivio">
+        <thead>
+            <tr>
+                <th>Nome</th>
+                <th>Tipo Intervento</th>
+                <th>Data Conferma</th>
+                <th>Data Arrivo Materiali</th>
+                <th>Data Consegna</th>
+                <th>Ore Previste</th>
+                <th>Ore Lavorate</th>
+                <th>Saldata</th>
+                <th>Azione</th>
+            </tr>
+        </thead>
 
-            <tbody>
-                {% for c in commesse %}
-                <tr class="{% if c.saldata == 'No' %}riga-non-saldata{% endif %}">
-                    <td>{{ c.nome }}</td>
-                    <td>{{ c.tipo_intervento }}</td>
-                    <td>{{ c.data_conferma }}</td>
-                    <td>{{ c.data_arrivo_materiali }}</td>
-                    <td>{{ c.data_consegna }}</td>
-                    <td>{{ c.ore_previste }}</td>
-                    <td>{{ c.ore_lavorate }}</td>
-                    <td>{{ c.saldata }}</td>
+        <tbody>
+            {% for c in commesse %}
+            <tr class="{% if c.saldata == 'No' %}riga-non-saldata{% endif %}">
+                <td>{{ c.nome }}</td>
+                <td>{{ c.tipo_intervento }}</td>
+                <td>{{ c.data_conferma }}</td>
+                <td>{{ c.data_arrivo_materiali }}</td>
+                <td>{{ c.data_consegna }}</td>
+                <td>{{ c.ore_previste }}</td>
+                <td>{{ c.ore_lavorate }}</td>
+                <td>{{ c.saldata }}</td>
 
-                    <td>
-                        <form action="{{ url_for('toggle_saldata', id=c.id) }}" method="POST">
-                            <button class="btn btn-sm btn-primary">Cambia</button>
-                        </form>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
+                <td>
+                    <form action="{{ url_for('toggle_saldata', id=c.id) }}" method="POST">
+                        <button class="btn btn-sm btn-primary">Cambia</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
 </div>
 {% endblock %}
