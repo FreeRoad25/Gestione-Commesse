@@ -464,8 +464,9 @@ def aggiungi_commessa():
     c.execute("SELECT DISTINCT tipo_intervento FROM commesse")
     tipi_intervento = c.fetchall()
 
-    c.execute("SELECT DISTINCT marca_veicolo FROM commesse")
+    c.execute("SELECT id, nome FROM marche ORDER BY nome ASC")
     marche = c.fetchall()
+   
 
     conn.close()
 
@@ -567,8 +568,8 @@ def modifica_commessa(id):
     tipi_intervento = [row["tipo_intervento"] for row in c.fetchall()]
 
     # 🔹 Marche derivate direttamente dalle commesse (nessuna tabella aggiuntiva)
-    c.execute("SELECT DISTINCT marca_veicolo FROM commesse WHERE marca_veicolo IS NOT NULL AND marca_veicolo != '' ORDER BY marca_veicolo ASC")
-    marche = [row["marca_veicolo"] for row in c.fetchall()]
+    c.execute("SELECT id, nome FROM marche ORDER BY nome ASC")
+    marche = c.fetchall()
 
     c.execute("SELECT DISTINCT modello_veicolo FROM commesse WHERE modello_veicolo IS NOT NULL AND modello_veicolo != ''")
     modelli = [row["modello_veicolo"] for row in c.fetchall()]
@@ -768,6 +769,7 @@ def download_commessa_file(file_id):
     filename = file_row["filename"]
     original_name = file_row["original_name"] or filename
     return send_from_directory(app.config["UPLOAD_FOLDER"], filename, as_attachment=True, download_name=original_name)
+
 @app.route("/test_marche")
 def test_marche():
     conn = sqlite3.connect(DB_PATH)

@@ -45,7 +45,10 @@
                     <select name="marca_veicolo" id="marca_veicolo" required>
                       <option value="">-- Seleziona Marca --</option>
                          {% for m in marche %}
-                          <option value="{{ m }}" {% if commessa['marca_veicolo'] == m %}selected{% endif %}>{{ m }}</option>
+                          <option value="{{ m['nome'] }}"
+                    {% if commessa['marca_veicolo'] == m['nome'] %}selected{% endif %}>
+                    {{ m['nome'] }}
+                    </option>
                         {% endfor %}
                     </select>
 
