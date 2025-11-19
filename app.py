@@ -768,6 +768,15 @@ def download_commessa_file(file_id):
     filename = file_row["filename"]
     original_name = file_row["original_name"] or filename
     return send_from_directory(app.config["UPLOAD_FOLDER"], filename, as_attachment=True, download_name=original_name)
+@app.route("/test_marche")
+def test_marche():
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+    c.execute("SELECT id, nome FROM marche ORDER BY nome ASC")
+    marche = c.fetchall()
+    conn.close()
+    return {"marche_rilevate": [dict(row) for row in marche]}
 # =========================================================
 # OPERATORI
 # =========================================================
