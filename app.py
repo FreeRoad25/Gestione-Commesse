@@ -461,6 +461,14 @@ def aggiungi_commessa():
 
         # Altri campi
         marca_veicolo = request.form.get("marca_veicolo")
+        # Gestione nuova marca
+        nuova_marca = request.form.get("nuova_marca", "").strip()
+
+        if marca_veicolo == "nuova" and nuova_marca:
+        # Salva la nuova marca nella tabella marche
+         c.execute("INSERT OR IGNORE INTO marche (nome) VALUES (?)", (nuova_marca,))
+        conn.commit()
+        marca_veicolo = nuova_marca  # salva la marca corretta nella commessa
         modello_veicolo = request.form.get("modello_veicolo")
         dimensioni = request.form.get("dimensioni")
         data_conferma = request.form.get("data_conferma")
@@ -504,7 +512,6 @@ def aggiungi_commessa():
 
 
 @app.route("/modifica_commessa/<int:id>", methods=["GET", "POST"])
-#@login_required
 def modifica_commessa(id):
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
@@ -519,38 +526,62 @@ def modifica_commessa(id):
         return "Commessa non trovata", 404
 
     if request.method == "POST":
-        nome = request.form.get("nome")
-        tipo_intervento = request.form.get("tipo_intervento", "").strip()
-        altro_input = request.form.get("altro_input", "").strip()
 
-        if tipo_intervento.lower() == "altro" and altro_input:
-            tipo_intervento = altro_input
-        elif tipo_intervento.lower() == "altro":
-            tipo_intervento = "Non specificato"
+        # --- NOME ---
+        nome = request.form.get("nome")
+
+        # --- TIPO INTERVENTO ---
+        tipo_intervento = request.form.get("tipo_intervento", "").strip()
+        nuovo_intervento = request.form.get("nuovo_intervento", "").strip()
+
+        # Se selezioni "Altro" e scrivi qualcosa → salva in tabella e usa quel valore
+        if tipo_intervento == "Altro" and nuovo_intervento:
+            c.execute(
+                "INSERT OR IGNORE INTO tipi_intervento (nome) VALUES (?)",
+                (nuovo_intervento,)
+            )
+            conn.commit()
+            tipo_intervento = nuovo_intervento
+
+        # Se la select è vuota ma hai scritto un nuovo intervento
+        elif not tipo_intervento and nuovo_intervento:
+            c.execute(
+                "INSERT OR IGNORE INTO tipi_intervento (nome) VALUES (?)",
+                (nuovo_intervento,)
+            )
+            conn.commit()
+            tipo_intervento = nuovo_intervento
+
+        # Se non cambi nulla → mantieni valore precedente
         elif not tipo_intervento:
             tipo_intervento = commessa["tipo_intervento"]
 
+        # --- MARCA ---
+        marca_sel = request.form.get("marca_veicolo")
+        nuova_marca = request.form.get("nuova_marca", "").strip()
+
+        if marca_sel == "nuova" and nuova_marca:
+            # salva nel DB solo se non esiste
+            c.execute(
+                "INSERT OR IGNORE INTO marche (nome) VALUES (?)",
+                (nuova_marca,)
+            )
+            conn.commit()
+            marca = nuova_marca
+        else:
+            marca = marca_sel
+
+        # --- ALTRI CAMPI ---
+        modello = request.form.get("modello_veicolo")
+        dimensioni = request.form.get("dimensioni")
         data_conferma = request.form.get("data_conferma")
         data_arrivo_materiali = request.form.get("data_arrivo_materiali")
         data_inizio = request.form.get("data_inizio")
-        ore_necessarie = request.form.get("ore_necessarie")
-
-       # 🔹 Marca scelta o nuova marca
-        marca_sel = request.form.get("marca_veicolo")
-        marca = request.form.get("nuova_marca") if marca_sel == "nuova" else marca_sel
-
-        modello = request.form.get("modello_veicolo")
-        dimensioni = request.form.get("dimensioni")
         data_consegna = request.form.get("data_consegna")
+        ore_necessarie = request.form.get("ore_necessarie") or 0
         note_importanti = request.form.get("note_importanti", "").strip()
 
-        # 🔹 Gestione nuovo tipo intervento
-        if tipo_intervento.lower() == "altro" and altro_input:
-            c.execute("INSERT OR IGNORE INTO tipi_intervento (nome) VALUES (?)", (altro_input,))
-            conn.commit()
-            tipo_intervento = altro_input
-
-        # 🔹 Aggiorna la commessa
+        # --- UPDATE COMMESSA ---
         c.execute("""
             UPDATE commesse
                SET nome=?,
@@ -570,7 +601,7 @@ def modifica_commessa(id):
             ore_necessarie, marca, modello, dimensioni, data_consegna, note_importanti, id
         ))
 
-        # 🔹 Gestione nuovi file allegati
+        # --- FILE ALLEGATI ---
         files = request.files.getlist("file_commessa")
         for f in files:
             if f and allowed_file(f.filename):
@@ -580,6 +611,7 @@ def modifica_commessa(id):
                 final_name = f"{id}{ts}{filename}"
                 path = os.path.join(app.config["UPLOAD_FOLDER"], final_name)
                 f.save(path)
+
                 c.execute("""
                     INSERT INTO commessa_files (id_commessa, filename, original_name, upload_date)
                     VALUES (?, ?, ?, ?)
@@ -589,28 +621,35 @@ def modifica_commessa(id):
         conn.close()
         return redirect(url_for("lista_commesse"))
 
-    # 🔹 GET: Caricamento dati per tendine
-    c.execute("SELECT DISTINCT tipo_intervento FROM commesse WHERE tipo_intervento IS NOT NULL AND tipo_intervento != ''")
-    tipi_intervento = [row["tipo_intervento"] for row in c.fetchall()]
+    # --- GET: CARICO LE TENDINE ---
 
-    # 🔹 Marche derivate direttamente dalle commesse (nessuna tabella aggiuntiva)
+    # Tipi intervento dalla tabella (corretto!)
+    c.execute("SELECT nome FROM tipi_intervento ORDER BY nome ASC")
+    tipi_intervento = [row["nome"] for row in c.fetchall()]
+
+    # Marche dalla tabella
     c.execute("SELECT id, nome FROM marche ORDER BY nome ASC")
     marche = c.fetchall()
 
+    # Modelli (come prima)
     c.execute("SELECT DISTINCT modello_veicolo FROM commesse WHERE modello_veicolo IS NOT NULL AND modello_veicolo != ''")
     modelli = [row["modello_veicolo"] for row in c.fetchall()]
 
+    # File allegati
     c.execute("SELECT * FROM commessa_files WHERE id_commessa = ? ORDER BY upload_date DESC", (id,))
     files = c.fetchall()
+
     conn.close()
 
-    return render_template("modifica_commessa.html",
-                           id_commessa=id,
-                           commessa=commessa,
-                           files=files,
-                           tipi_intervento=tipi_intervento,
-                           marche=marche,
-                           modelli=modelli)
+    return render_template(
+        "modifica_commessa.html",
+        id_commessa=id,
+        commessa=commessa,
+        files=files,
+        tipi_intervento=tipi_intervento,
+        marche=marche,
+        modelli=modelli
+    )
 @app.route("/stampa_commessa/<int:id>")
 #@login_required
 def stampa_commessa(id):

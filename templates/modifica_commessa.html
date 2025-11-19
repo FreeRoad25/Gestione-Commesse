@@ -21,20 +21,31 @@
 
                 <div class="form-group">
                     <label>Tipo Intervento</label>
+
                     <select name="tipo_intervento" id="tipo_intervento" onchange="gestisciAltroIntervento()" required>
                         <option value="">-- Seleziona --</option>
+
                         {% for t in tipi_intervento %}
-                            <option value="{{ t }}" {% if commessa['tipo_intervento'] == t %}selected{% endif %}>{{ t }}</option>
+                            <option value="{{ t }}" 
+                                {% if commessa['tipo_intervento'] == t %}selected{% endif %}>
+                                {{ t }}
+                            </option>
                         {% endfor %}
-                        <option value="Altro" {% if commessa['tipo_intervento'] not in tipi_intervento %}selected{% endif %}>+ Altro...</option>
+
+                        <!-- SE IL TIPO NON È NELLA LISTA → seleziona ALTRO -->
+                        <option value="Altro"
+                            {% if commessa['tipo_intervento'] not in tipi_intervento %}selected{% endif %}>
+                            + Altro...
+                        </option>
                     </select>
 
-                    <input type="text" 
-                           name="nuovo_intervento" 
+                    <!-- INPUT VISIBILE SOLO SE TIPO NON È IN LISTA -->
+                    <input type="text"
+                           name="nuovo_intervento"
                            id="nuovo_intervento"
                            value="{% if commessa['tipo_intervento'] not in tipi_intervento %}{{ commessa['tipo_intervento'] }}{% endif %}"
                            placeholder="Inserisci nuovo tipo intervento"
-                           style="display:none;">
+                           style="display:none; margin-top:5px;">
                 </div>
             </div>
 
@@ -42,19 +53,28 @@
             <div class="form-row">
                 <div class="form-group">
                     <label>Marca Veicolo</label>
-                    <select name="marca_veicolo" id="marca_veicolo" required>
-                      <option value="">-- Seleziona Marca --</option>
-                         {% for m in marche %}
-                          <option value="{{ m['nome'] }}"
-                    {% if commessa['marca_veicolo'] == m['nome'] %}selected{% endif %}>
-                    {{ m['nome'] }}
-                    </option>
+
+                    <select name="marca_veicolo" id="marca_veicolo" onchange="gestisciNuovaMarca()" required>
+                        <option value="">-- Seleziona Marca --</option>
+
+                        {% for m in marche %}
+                            <option value="{{ m['nome'] }}"
+                                {% if commessa['marca_veicolo'] == m['nome'] %}selected{% endif %}>
+                                {{ m['nome'] }}
+                            </option>
                         {% endfor %}
+
+                        <!-- OPZIONE NUOVA MARCA -->
+                        <option value="nuova"
+                            {% if commessa['marca_veicolo'] not in marche|map(attribute='nome') %}selected{% endif %}>
+                            + Aggiungi nuova marca...
+                        </option>
                     </select>
 
-                    <input type="text" 
-                           name="nuova_marca" 
+                    <input type="text"
+                           name="nuova_marca"
                            id="nuova_marca"
+                           value="{% if commessa['marca_veicolo'] not in marche|map(attribute='nome') %}{{ commessa['marca_veicolo'] }}{% endif %}"
                            placeholder="Inserisci nuova marca"
                            style="display:none; margin-top:5px;">
                 </div>
@@ -168,63 +188,27 @@
 </div>
 
 <style>
-.form-box {
-    background: #1a1c27;
-    padding: 25px 30px;
-    border-radius: 12px;
-    box-shadow: 0 3px 10px rgba(0,0,0,0.4);
-}
-
-.form-row {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 15px;
-    flex-wrap: wrap;
-}
-
-.form-group {
-    width: 48%;
-    display: flex;
-    flex-direction: column;
-}
-
-label {
-    margin-bottom: 5px;
-    font-weight: 600;
-    color: #00b4ff;
-}
-
-input, select, textarea {
-    background: #2b2f3c;
-    border: 1px solid #555;
-    padding: 10px;
-    color: #fff;
-    border-radius: 6px;
-}
-
-input:focus, select:focus, textarea:focus {
-    outline: none;
-    border-color: #00b4ff;
-    box-shadow: 0 0 4px #00b4ff;
-}
-
-.file-list {
-    list-style: none;
-    padding: 0;
-}
+/* TUTTO IL TUO CSS IDENTICO */
+.form-box { background: #1a1c27; padding: 25px 30px; border-radius: 12px; box-shadow: 0 3px 10px rgba(0,0,0,0.4); }
+.form-row { display: flex; justify-content: space-between; margin-bottom: 15px; flex-wrap: wrap; }
+.form-group { width: 48%; display: flex; flex-direction: column; }
+label { margin-bottom: 5px; font-weight: 600; color: #00b4ff; }
+input, select, textarea { background: #2b2f3c; border: 1px solid #555; padding: 10px; color: #fff; border-radius: 6px; }
+input:focus, select:focus, textarea:focus { outline: none; border-color: #00b4ff; box-shadow: 0 0 4px #00b4ff; }
+.file-list { list-style: none; padding: 0; }
 </style>
 
 <script>
 function gestisciAltroIntervento() {
-    const sel = document.getElementById("tipo_intervento");
+    const select = document.getElementById("tipo_intervento");
     const input = document.getElementById("nuovo_intervento");
-    input.style.display = (sel.value === "Altro") ? "block" : "none";
+    input.style.display = (select.value === "Altro") ? "block" : "none";
 }
 
 function gestisciNuovaMarca() {
-    const sel = document.getElementById("marca_veicolo");
+    const select = document.getElementById("marca_veicolo");
     const input = document.getElementById("nuova_marca");
-    input.style.display = (sel.value === "nuova") ? "block" : "none";
+    input.style.display = (select.value === "nuova") ? "block" : "none";
 }
 
 document.addEventListener("DOMContentLoaded", () => {
