@@ -6,3 +6,4 @@ click==8.1.7
 Werkzeug==3.0.4
 reportlab
 flask-login
+psycopg2-binary
