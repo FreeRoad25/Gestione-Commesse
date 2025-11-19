@@ -433,40 +433,66 @@ def aggiungi_commessa():
 
     if request.method == "POST":
         nome = request.form.get("nome")
-        tipo_intervento = request.form.get("tipo_intervento")
-        nuovo_intervento = request.form.get("nuovo_intervento")
+
+        # Tipo intervento (scelta + eventuale nuovo)
+        tipo_intervento = request.form.get("tipo_intervento") or ""
+        nuovo_intervento = request.form.get("nuovo_intervento") or ""
+
+        tipo_intervento = tipo_intervento.strip()
+        nuovo_intervento = nuovo_intervento.strip()
+
+        # Se selezioni "Altro" → salva il nuovo tipo
+        if tipo_intervento == "Altro" and nuovo_intervento:
+            c.execute(
+                "INSERT OR IGNORE INTO tipi_intervento (nome) VALUES (?)",
+                (nuovo_intervento,)
+            )
+            conn.commit()
+            tipo_intervento = nuovo_intervento
+
+        # Se nessuna selezione ma campo nuovo compilato
+        elif not tipo_intervento and nuovo_intervento:
+            c.execute(
+                "INSERT OR IGNORE INTO tipi_intervento (nome) VALUES (?)",
+                (nuovo_intervento,)
+            )
+            conn.commit()
+            tipo_intervento = nuovo_intervento
+
+        # Altri campi
         marca_veicolo = request.form.get("marca_veicolo")
         modello_veicolo = request.form.get("modello_veicolo")
+        dimensioni = request.form.get("dimensioni")
         data_conferma = request.form.get("data_conferma")
         data_arrivo_materiali = request.form.get("data_arrivo_materiali")
         ore_necessarie = request.form.get("ore_necessarie") or 0
-        data_inizio_prevista = request.form.get("data_inizio_prevista")
-        note = request.form.get("note")
+        data_inizio = request.form.get("data_inizio")
+        note_importanti = request.form.get("note_importanti")
 
-        if tipo_intervento == "altro" and nuovo_intervento:
-            tipo_intervento = nuovo_intervento
-
+        # Salvataggio commessa
         c.execute("""
             INSERT INTO commesse 
-            (nome, tipo_intervento, marca_veicolo, modello_veicolo, data_conferma,
-             data_arrivo_materiali, ore_necessarie, data_inizio_prevista, note)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (nome, tipo_intervento, marca_veicolo, modello_veicolo, dimensioni,
+             data_conferma, data_arrivo_materiali, ore_necessarie, data_inizio, note_importanti)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
-            nome, tipo_intervento, marca_veicolo, modello_veicolo, data_conferma,
-            data_arrivo_materiali, ore_necessarie, data_inizio_prevista, note
+            nome, tipo_intervento, marca_veicolo, modello_veicolo, dimensioni,
+            data_conferma, data_arrivo_materiali, ore_necessarie, data_inizio, note_importanti
         ))
 
         conn.commit()
         conn.close()
-        return redirect(url_for("home"))
+        return redirect(url_for("lista_commesse"))
 
-    # GET → preparo la pagina
-    c.execute("SELECT DISTINCT tipo_intervento FROM commesse")
-    tipi_intervento = c.fetchall()
+    # -------- GET: Popolo le liste --------
 
+    # Tipi intervento
+    c.execute("SELECT nome FROM tipi_intervento ORDER BY nome ASC")
+    tipi_intervento = [row["nome"] for row in c.fetchall()]
+
+    # Marche
     c.execute("SELECT id, nome FROM marche ORDER BY nome ASC")
     marche = c.fetchall()
-   
 
     conn.close()
 

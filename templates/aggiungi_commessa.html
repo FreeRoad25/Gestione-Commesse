@@ -6,61 +6,78 @@
     <h1>➕ Nuova Commessa</h1>
 
     <div class="form-box">
-        <!-- Aggiunto enctype per abilitare upload file -->
         <form action="{{ url_for('aggiungi_commessa') }}" method="POST" enctype="multipart/form-data">
             
+            <!-- NOME CLIENTE -->
             <div class="form-row">
                 <div class="form-group">
                     <label>Nome Cliente</label>
                     <input type="text" name="nome" placeholder="Inserisci il nome del cliente" required>
                 </div>
 
+                <!-- TIPO INTERVENTO -->
                 <div class="form-group">
-                    <label>Tipo Intervento</label>
-                    <select name="tipo_intervento" id="tipo_intervento" onchange="gestisciAltroIntervento()" required>
-                        <option value="">-- Seleziona --</option>
-                        {% for t in tipi %}
-                            <option value="{{ t }}">{{ t }}</option>
-                        {% endfor %}
-                        <option value="Altro">+ Altro...</option>
-                    </select>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Tipo Intervento</label>
 
-                    <input type="text" name="nuovo_intervento" id="nuovo_intervento" placeholder="Inserisci nuovo tipo..." style="display:none;">
+                            <select name="tipo_intervento" id="tipo_intervento" onchange="gestisciAltroIntervento()" required>
+                                <option value="">-- Seleziona --</option>
+
+                                {% for t in tipi_intervento %}
+                                    <option value="{{ t }}">{{ t }}</option>
+                                {% endfor %}
+
+                                <option value="Altro">+ Altro...</option>
+                            </select>
+                        </div>
+
+                        <input type="text"
+                               name="nuovo_intervento"
+                               id="nuovo_intervento"
+                               placeholder="Inserisci nuovo tipo intervento"
+                               style="display:none; margin-top:5px;">
+                    </div>
                 </div>
             </div>
 
+            <!-- MARCA + MODELLO -->
             <div class="form-row">
                 <div class="form-group">
-    <label>Marca Veicolo</label>
-<select name="marca_veicolo" id="marca_veicolo" required>
-    <option value="">-- Seleziona Marca --</option>
+                    <label>Marca Veicolo</label>
 
-    {% for m in marche %}
-        <option value="{{ m['nome'] }}">
-            {{ m['nome'] }}
-        </option>
-    {% endfor %}
-</select>
+                    <select name="marca_veicolo" id="marca_veicolo" onchange="gestisciNuovaMarca()" required>
+                        <option value="">-- Seleziona Marca --</option>
 
-<input type="text" 
-       name="nuova_marca" 
-       id="nuova_marca"
-       placeholder="Inserisci nuova marca"
-       style="display:none; margin-top:5px;">
-</div>
+                        {% for m in marche %}
+                            <option value="{{ m['nome'] }}">{{ m['nome'] }}</option>
+                        {% endfor %}
+
+                        <option value="nuova">+ Aggiungi nuova marca...</option>
+                    </select>
+
+                    <input type="text"
+                           name="nuova_marca"
+                           id="nuova_marca"
+                           placeholder="Inserisci nuova marca"
+                           style="display:none; margin-top:5px;">
+                </div>
 
                 <div class="form-group">
                     <label>Modello Veicolo</label>
                     <input type="text" name="modello_veicolo" placeholder="Es. Crafter L3H3" required>
                 </div>
             </div>
-            <!-- Dimensioni veicolo -->
-<div class="form-row">
-    <div class="form-group" style="width:100%;">
-        <label>Dimensioni Veicolo</label>
-        <input type="text" name="dimensioni" placeholder="Es. L3H3, passo lungo, tetto alto...">
-    </div>
-</div>
+
+            <!-- DIMENSIONI -->
+            <div class="form-row">
+                <div class="form-group" style="width:100%;">
+                    <label>Dimensioni Veicolo</label>
+                    <input type="text" name="dimensioni" placeholder="Es. L3H3, passo lungo, tetto alto...">
+                </div>
+            </div>
+
+            <!-- DATE -->
             <div class="form-row">
                 <div class="form-group">
                     <label>Data Conferma</label>
@@ -85,7 +102,7 @@
                 </div>
             </div>
 
-            <!-- 🔹 Note Importanti -->
+            <!-- NOTE -->
             <div class="form-row">
                 <div class="form-group" style="width:100%;">
                     <label>Note Importanti</label>
@@ -93,7 +110,7 @@
                 </div>
             </div>
 
-            <!-- 🔹 Upload File -->
+            <!-- ALLEGATI -->
             <div class="form-row">
                 <div class="form-group" style="width:100%;">
                     <label>Allegati (foto o PDF)</label>
@@ -101,6 +118,7 @@
                 </div>
             </div>
 
+            <!-- BOTTONI -->
             <div class="form-actions">
                 <button type="submit" class="btn btn-save">💾 Salva Commessa</button>
                 <button type="reset" class="btn btn-reset">🔄 Reset</button>
@@ -110,91 +128,26 @@
     </div>
 </div>
 
+<!-- STYLE (identico al tuo) -->
 <style>
-.container {
-    width: 95%;
-    max-width: 900px;
-    margin: 0 auto;
-    padding: 20px;
-    color: #f5f5f5;
-}
-
-h1 {
-    text-align: center;
-    color: #00b4ff;
-    margin-bottom: 25px;
-    font-weight: 600;
-}
-
-.form-box {
-    background: #1a1c27;
-    padding: 25px 30px;
-    border-radius: 10px;
-    box-shadow: 0 3px 10px rgba(0,0,0,0.4);
-}
-
-.form-row {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: space-between;
-    margin-bottom: 15px;
-}
-
-.form-group {
-    display: flex;
-    flex-direction: column;
-    width: 48%;
-}
-
-label {
-    font-weight: 500;
-    margin-bottom: 5px;
-    color: #00b4ff;
-}
-
-input, select, textarea {
-    background-color: #2b2f3c;
-    border: 1px solid #555;
-    border-radius: 6px;
-    padding: 10px;
-    color: #fff;
-    font-size: 14px;
-}
-
-input:focus, select:focus, textarea:focus {
-    outline: none;
-    border-color: #00b4ff;
-    box-shadow: 0 0 5px #00b4ff;
-}
-
-/* Pulsanti coerenti */
-.form-actions {
-    text-align: center;
-    margin-top: 20px;
-}
-
-.btn {
-    padding: 10px 16px;
-    margin: 5px;
-    border-radius: 8px;
-    font-size: 14px;
-    border: none;
-    cursor: pointer;
-    transition: 0.2s;
-    color: #fff;
-    text-decoration: none;
-}
-
+/* TUTTO IL TUO CSS IDENTICO, NON TOCCATO */
+.container { width: 95%; max-width: 900px; margin: 0 auto; padding: 20px; color: #f5f5f5; }
+h1 { text-align: center; color: #00b4ff; margin-bottom: 25px; font-weight: 600; }
+.form-box { background: #1a1c27; padding: 25px 30px; border-radius: 10px; box-shadow: 0 3px 10px rgba(0,0,0,0.4); }
+.form-row { display: flex; flex-wrap: wrap; justify-content: space-between; margin-bottom: 15px; }
+.form-group { display: flex; flex-direction: column; width: 48%; }
+label { font-weight: 500; margin-bottom: 5px; color: #00b4ff; }
+input, select, textarea { background-color: #2b2f3c; border: 1px solid #555; border-radius: 6px; padding: 10px; color: #fff; font-size: 14px; }
+input:focus, select:focus, textarea:focus { outline: none; border-color: #00b4ff; box-shadow: 0 0 5px #00b4ff; }
+.form-actions { text-align: center; margin-top: 20px; }
+.btn { padding: 10px 16px; margin: 5px; border-radius: 8px; font-size: 14px; border: none; cursor: pointer; transition: 0.2s; color: #fff; text-decoration: none; }
 .btn-save { background-color: #007bff; }
 .btn-reset { background-color: #ffc107; color: black; }
 .btn-back { background-color: #6c757d; }
-
-.btn:hover {
-    transform: scale(1.05);
-    opacity: 0.9;
-}
+.btn:hover { transform: scale(1.05); opacity: 0.9; }
 </style>
 
+<!-- JS tipo intervento -->
 <script>
 function gestisciAltroIntervento() {
     const select = document.getElementById('tipo_intervento');
@@ -208,6 +161,8 @@ function gestisciAltroIntervento() {
     }
 }
 </script>
+
+<!-- JS marca nuova -->
 <script>
 function gestisciNuovaMarca() {
     const select = document.getElementById('marca_veicolo');
@@ -221,4 +176,5 @@ function gestisciNuovaMarca() {
     }
 }
 </script>
+
 {% endblock %}
