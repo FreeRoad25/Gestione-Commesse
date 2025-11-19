@@ -1,91 +1,103 @@
 {% extends "layout.html" %}
 
-<style>
-/* === FIX DEFINITIVO RIGHE TROPPO ALTE ARCHIVIO CONSEGNATI === */
+{% block title %}Archivio Commesse Consegnate{% endblock %}
 
-/* forza la tabella a usare solo le nostre regole */
+<style>
+/* ============================
+   FIX TABELLA ARCHIVIO STRETTA
+   ============================ */
+
+/* Contenitore scrollabile orizzontale */
+.archivio-wrapper {
+    width: 100%;
+    overflow-x: auto;
+    margin-top: 20px;
+}
+
+/* Tabella compatta */
 .table-archivio {
     width: 100%;
+    min-width: 950px; /* evita allargamenti pazzi */
     border-collapse: collapse !important;
-    margin: 0 !important;
-    padding: 0 !important;
 }
 
-/* celle compatte */
+/* Celle */
 .table-archivio th,
 .table-archivio td {
-    padding: 3px 6px !important;
-    height: 22px !important;
-    line-height: 14px !important;
+    padding: 5px 8px !important;
     font-size: 13px !important;
+    height: 26px !important;
+    line-height: 16px !important;
     color: #e0e0e0;
-    background: rgba(0, 0, 0, 0.25) !important;
     vertical-align: middle !important;
+    white-space: nowrap; /* impedisce righe alte */
 }
 
-/* altezza riga */
-.table-archivio tr {
-    height: 22px !important;
+/* Header */
+.table-archivio th {
+    background-color: #00bfff !important;
+    color: #fff !important;
+    font-weight: 600;
 }
 
-/* righe alternate */
+/* Righe alternate */
 .table-archivio tr:nth-child(even) {
     background-color: #26283a !important;
 }
 
-/* righe non saldate evidenziate */
+/* Righe non saldate */
 .riga-non-saldata {
     background-color: #7a1f1f !important;
 }
 
-/* header blu */
-.table-archivio th {
-    background-color: #00bfff !important;
-    color: #ffffff !important;
+/* Pulsante "Cambia" */
+.table-archivio button {
+    padding: 4px 10px;
+    font-size: 12px;
 }
 </style>
-
-{% block title %}Archivio Commesse Consegnate{% endblock %}
 
 {% block content %}
 <div class="content-wrapper">
     <h1>📁 Archivio Commesse Consegnate</h1>
 
-    <table class="table-archivio">
-        <thead>
-            <tr>
-                <th>Nome</th>
-                <th>Tipo Intervento</th>
-                <th>Data Conferma</th>
-                <th>Data Arrivo Materiali</th>
-                <th>Data Consegna</th>
-                <th>Ore Previste</th>
-                <th>Ore Lavorate</th>
-                <th>Saldata</th>
-                <th>Azione</th>
-            </tr>
-        </thead>
+    <div class="archivio-wrapper">
+        <table class="table-archivio">
+            <thead>
+                <tr>
+                    <th>Nome</th>
+                    <th>Tipo Intervento</th>
+                    <th>Data Conferma</th>
+                    <th>Data Arrivo Materiali</th>
+                    <th>Data Consegna</th>
+                    <th>Ore Previste</th>
+                    <th>Ore Lavorate</th>
+                    <th>Saldata</th>
+                    <th>Azione</th>
+                </tr>
+            </thead>
 
-        <tbody>
-            {% for c in commesse %}
-            <tr class="{% if c.saldata == 'No' %}riga-non-saldata{% endif %}">
-                <td>{{ c.nome }}</td>
-                <td>{{ c.tipo_intervento }}</td>
-                <td>{{ c.data_conferma }}</td>
-                <td>{{ c.data_arrivo_materiali }}</td>
-                <td>{{ c.data_consegna }}</td>
-                <td>{{ c.ore_previste }}</td>
-                <td>{{ c.ore_lavorate }}</td>
-                <td>{{ c.saldata }}</td>
+            <tbody>
+                {% for c in commesse %}
+                <tr class="{% if c.saldata == 'No' %}riga-non-saldata{% endif %}">
+                    <td>{{ c.nome }}</td>
+                    <td>{{ c.tipo_intervento }}</td>
+                    <td>{{ c.data_conferma }}</td>
+                    <td>{{ c.data_arrivo_materiali }}</td>
+                    <td>{{ c.data_consegna }}</td>
+                    <td>{{ c.ore_previste }}</td>
+                    <td>{{ c.ore_lavorate }}</td>
+                    <td>{{ c.saldata }}</td>
 
-                <td>
-                    <form action="{{ url_for('toggle_saldata', id=c.id) }}" method="POST">
-                        <button class="btn btn-sm btn-primary">Cambia</button>
-                    </form>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+                    <td>
+                        <form action="{{ url_for('toggle_saldata', id=c.id) }}" method="POST">
+                            <button class="btn btn-sm btn-primary">Cambia</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 </div>
 {% endblock %}
