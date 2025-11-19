@@ -1,66 +1,9 @@
 {% extends "layout.html" %}
 {% block title %}Archivio Commesse Consegnate{% endblock %}
 
-<style>
-/* === FIX DEFINITIVO ALTEZZA RIGHE TABELLA ARCHIVIO === */
-
-.table-archivio {
-    display: table !important;
-    width: 100% !important;
-    border-collapse: collapse !important;
-    margin: 0 !important;
-    padding: 0 !important;
-}
-
-/* righe */
-.table-archivio tr {
-    display: table-row !important;
-    height: 26px !important;
-}
-
-/* celle */
-.table-archivio th,
-.table-archivio td {
-    display: table-cell !important;
-    padding: 3px 6px !important;
-    margin: 0 !important;
-    height: 26px !important;
-    max-height: 26px !important;
-    line-height: 16px !important;
-    font-size: 13px !important;
-    color: #e0e0e0 !important;
-    background: rgba(0, 0, 0, 0.25) !important;
-    vertical-align: middle !important;
-    border: none !important;
-    overflow: hidden !important;
-}
-
-/* header */
-.table-archivio th {
-    background-color: #00bfff !important;
-    color: #ffffff !important;
-}
-
-/* righe alternate */
-.table-archivio tr:nth-child(even) {
-    background-color: #26283a !important;
-}
-
-/* evidenzia NON saldate */
-.riga-non-saldata {
-    background-color: #7a1f1f !important;
-}
-
-/* reset min-height da stili globali */
-.table-archivio td *,
-.table-archivio th * {
-    min-height: 0 !important;
-    height: auto !important;
-}
-</style>
-
 {% block content %}
-<div class="content-wrapper">
+
+<div class="archivio-page">
     <h1>📁 Archivio Commesse Consegnate</h1>
 
     <table class="table-archivio">
@@ -100,4 +43,45 @@
         </tbody>
     </table>
 </div>
+
+<!-- FIX NODEFINITIVE E SICURO SOLO PER QUESTA PAGINA -->
+<style>
+.archivio-page table,
+.archivio-page tr,
+.archivio-page td,
+.archivio-page th {
+    padding: 3px 5px !important;
+    margin: 0 !important;
+    height: 18px !important;
+    line-height: 14px !important;
+    font-size: 13px !important;
+    white-space: nowrap !important;
+}
+
+.archivio-page tr {
+    height: 20px !important;
+}
+
+.archivio-page {
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+/* Header */
+.table-archivio th {
+    background-color: #00bfff !important;
+    color: #fff !important;
+}
+
+/* Righe alterne */
+.table-archivio tr:nth-child(even) {
+    background-color: #26283a !important;
+}
+
+/* Righe non saldate */
+.riga-non-saldata {
+    background-color: #4b1f1f !important;
+}
+</style>
+
 {% endblock %}
