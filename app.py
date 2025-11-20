@@ -60,51 +60,7 @@ from flask_login import LoginManager, UserMixin, login_user, logout_user, login_
 
 app = Flask(__name__)
 
-# ===== ROUTE TEMPORANEA: CREAZIONE TABELLE POSTGRES =====
-@app.route("/setup_pg")
-def setup_pg():
-    try:
-        conn = get_pg_connection()
-        cur = conn.cursor()
 
-        # Tabelle esempio – qui mettiamo le tue tabelle reali
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS commesse (
-                id SERIAL PRIMARY KEY,
-                nome VARCHAR(255),
-                tipo_intervento VARCHAR(255),
-                data_conferma DATE,
-                data_consegna DATE,
-                note TEXT
-            );
-        """)
-
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS magazzino (
-                id SERIAL PRIMARY KEY,
-                nome VARCHAR(255),
-                descrizione VARCHAR(255),
-                quantita INTEGER,
-                soglia_minima INTEGER
-            );
-        """)
-
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS operatori (
-                id SERIAL PRIMARY KEY,
-                nome VARCHAR(255),
-                costo_orario NUMERIC
-            );
-        """)
-
-        conn.commit()
-        cur.close()
-        conn.close()
-
-        return "Tabelle create con successo su PostgreSQL!"
-
-    except Exception as e:
-        return f"Errore creazione tabelle: {str(e)}"
 
 # BYPASS LOGIN
 @app.before_request
