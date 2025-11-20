@@ -6,19 +6,14 @@ import psycopg2.extras
 import os
 from dotenv import load_dotenv
 load_dotenv()
-print("DB_HOST:", DB_HOST)
-print("DB_NAME:", DB_NAME)
-print("DB_USER:", DB_USER)
-
-# =========================
-# CONFIGURAZIONE POSTGRES RENDER
-# =========================
-
 DB_HOST = os.getenv("DB_HOST")
 DB_PORT = os.getenv("DB_PORT", "5432")
 DB_NAME = os.getenv("DB_NAME")
 DB_USER = os.getenv("DB_USER")
 DB_PASSWORD = os.getenv("DB_PASSWORD")
+print("DB_HOST:", DB_HOST)
+print("DB_NAME:", DB_NAME)
+print("DB_USER:", DB_USER)
 
 def get_db_connection():
     conn = psycopg2.connect(
