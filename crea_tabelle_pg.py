@@ -1,7 +1,6 @@
 import psycopg2
 import os
 
-# Legge le variabili di Render (localmente saranno None, è normale)
 DB_HOST = os.getenv("DB_HOST")
 DB_PORT = os.getenv("DB_PORT", "5432")
 DB_NAME = os.getenv("DB_NAME")
@@ -19,7 +18,7 @@ def create_tables():
         )
         cur = conn.cursor()
 
-        # === CREAZIONE TABELLE ===
+        # --- COMMESSE ---
         cur.execute("""
         CREATE TABLE IF NOT EXISTS commesse (
             id SERIAL PRIMARY KEY,
@@ -27,28 +26,105 @@ def create_tables():
             tipo_intervento TEXT,
             marca_veicolo TEXT,
             modello_veicolo TEXT,
-            data_conferma TEXT,
-            data_arrivo_materiali TEXT,
-            ore_necessarie INTEGER,
-            stato TEXT
+            dimensioni TEXT,
+            data_conferma DATE,
+            data_arrivo_materiali DATE,
+            data_inizio DATE,
+            ore_necessarie REAL,
+            ore_eseguite REAL DEFAULT 0,
+            ore_rimanenti REAL DEFAULT 0,
+            data_consegna DATE,
+            note_importanti TEXT
         );
         """)
 
+        # --- MARCHE ---
         cur.execute("""
-        CREATE TABLE IF NOT EXISTS materiali (
+        CREATE TABLE IF NOT EXISTS marche (
+            id SERIAL PRIMARY KEY,
+            nome TEXT UNIQUE NOT NULL
+        );
+        """)
+
+        # --- ARTICOLI MAGAZZINO ---
+        cur.execute("""
+        CREATE TABLE IF NOT EXISTS articoli (
+            id SERIAL PRIMARY KEY,
+            codice TEXT UNIQUE NOT NULL,
+            descrizione TEXT NOT NULL,
+            unita TEXT,
+            quantita REAL DEFAULT 0,
+            codice_barre TEXT,
+            fornitore TEXT,
+            scorta_minima REAL DEFAULT 0,
+            costo_netto REAL DEFAULT 0
+        );
+        """)
+
+        # --- COMMESSE MATERIALI ---
+        cur.execute("""
+        CREATE TABLE IF NOT EXISTS commesse_materiali (
+            id SERIAL PRIMARY KEY,
+            id_commessa INTEGER REFERENCES commesse(id),
+            id_articolo INTEGER REFERENCES articoli(id),
+            quantita REAL NOT NULL
+        );
+        """)
+
+        # --- OPERATORI ---
+        cur.execute("""
+        CREATE TABLE IF NOT EXISTS operatori (
             id SERIAL PRIMARY KEY,
             nome TEXT NOT NULL,
-            quantita INTEGER,
-            prezzo REAL
+            costo_orario REAL DEFAULT 0
         );
         """)
 
+        # --- ORE LAVORATE ---
         cur.execute("""
-        CREATE TABLE IF NOT EXISTS utenti (
+        CREATE TABLE IF NOT EXISTS ore_lavorate (
             id SERIAL PRIMARY KEY,
-            username TEXT UNIQUE NOT NULL,
-            password_hash TEXT,
-            ruolo TEXT
+            id_operatore INTEGER REFERENCES operatori(id),
+            id_commessa INTEGER REFERENCES commesse(id),
+            ore REAL,
+            data_imputazione DATE
+        );
+        """)
+
+        # --- MOVIMENTI MAGAZZINO ---
+        cur.execute("""
+        CREATE TABLE IF NOT EXISTS movimenti_magazzino (
+            id SERIAL PRIMARY KEY,
+            id_articolo INTEGER REFERENCES articoli(id),
+            tipo_movimento TEXT CHECK (tipo_movimento IN ('Carico','Scarico')),
+            quantita REAL NOT NULL,
+            data_movimento TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            id_commessa INTEGER REFERENCES commesse(id),
+            note TEXT
+        );
+        """)
+
+        # --- FILE COMMESSE ---
+        cur.execute("""
+        CREATE TABLE IF NOT EXISTS commessa_files (
+            id SERIAL PRIMARY KEY,
+            id_commessa INTEGER REFERENCES commesse(id),
+            filename TEXT NOT NULL,
+            original_name TEXT,
+            upload_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+        """)
+
+        # --- COMMESSE CONSEGNATE ---
+        cur.execute("""
+        CREATE TABLE IF NOT EXISTS commesse_consegnate (
+            id SERIAL PRIMARY KEY,
+            nome TEXT NOT NULL,
+            tipo_intervento TEXT,
+            marca_veicolo TEXT,
+            modello_veicolo TEXT,
+            data_consegna DATE,
+            saldata TEXT CHECK (saldata IN ('Si','No')) DEFAULT 'No'
         );
         """)
 
@@ -56,11 +132,10 @@ def create_tables():
         cur.close()
         conn.close()
 
-        print("TABELLE POSTGRES CREATE ✓")
+        print("✅ DATABASE POSTGRES COMPLETAMENTE CREATO")
 
     except Exception as e:
-        print("ERRORE CREAZIONE TABELLE:", e)
+        print("❌ ERRORE CREAZIONE TABELLE:", e)
 
-if __name__ == "__main__":
-    print("Avvio creazione tabelle Postgres…")
+if _name_ == "_main_":
     create_tables()
