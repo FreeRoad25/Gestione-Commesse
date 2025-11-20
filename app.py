@@ -4,6 +4,11 @@ from flask import Flask, render_template, request, redirect, url_for, flash, ses
 import psycopg2
 import psycopg2.extras
 import os
+from dotenv import load_dotenv
+load_dotenv()
+print("DB_HOST:", DB_HOST)
+print("DB_NAME:", DB_NAME)
+print("DB_USER:", DB_USER)
 
 # =========================
 # CONFIGURAZIONE POSTGRES RENDER
@@ -323,6 +328,8 @@ def crea_database():
 
     conn.commit()
     conn.close()
+  
+    crea_database()
 
 # =========================================================
 # LOGIN / LOGOUT / CAMBIO PASSWORD (STABILE)
@@ -918,7 +925,7 @@ def aggiungi_operatore():
             conn.close()
         return redirect(url_for("operatori"))
 
-    return render_template("aggiungi_operatore.html")
+    return render_template("pagina_aggiungi_operatore.html")
 
 
 @app.route("/registrazione_ore", methods=["POST"])
