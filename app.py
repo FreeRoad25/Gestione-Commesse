@@ -5,6 +5,8 @@ import psycopg2
 import psycopg2.extras
 import os
 from dotenv import load_dotenv
+from crea_tabelle_pg import create_tables
+
 load_dotenv()
 DB_HOST = os.getenv("DB_HOST")
 DB_PORT = os.getenv("DB_PORT", "5432")
@@ -44,6 +46,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 
 app = Flask(__name__)
+create_tables()
 
 # =========================
 # BYPASS LOGIN TEMPORANEO
