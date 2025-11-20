@@ -486,15 +486,23 @@ def aggiungi_commessa():
         note_importanti = request.form.get("note_importanti")
 
         c.execute("""
-            INSERT INTO commesse 
-            (nome, tipo_intervento, marca_veicolo, modello_veicolo, dimensioni,
-             data_conferma, data_arrivo_materiali, ore_necessarie, data_inizio, note_importanti)
-            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
-        """, (
-            nome, tipo_intervento, marca_veicolo, modello_veicolo, dimensioni,
-            data_conferma, data_arrivo_materiali, ore_necessarie, data_inizio, note_importanti
-        ))
-
+    INSERT INTO commesse 
+    (nome, tipo_intervento, marca_veicolo, modello_veicolo, dimensioni,
+     data_conferma, data_arrivo_materiali, ore_necessarie, data_inizio, data_consegna, note_importanti)
+    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+""", (
+    nome,
+    tipo_intervento,
+    marca_veicolo,
+    modello_veicolo,
+    dimensioni,
+    data_conferma,
+    data_arrivo_materiali,
+    ore_necessarie,
+    data_inizio,
+    None,  # data_consegna vuota alla creazione
+    note_importanti
+))
         conn.commit()
         conn.close()
         return redirect(url_for("lista_commesse"))
