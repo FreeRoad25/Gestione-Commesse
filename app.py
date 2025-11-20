@@ -1029,24 +1029,21 @@ def archivio_consegnati():
         c = conn.cursor()
 
         c.execute("""
-            SELECT
-                id,
-                nome,
-                tipo_intervento,
-                data_conferma,
-                data_arrivo_materiali,
-                data_consegna,
-                ore_necessarie AS ore_previste,
-                ore_eseguite AS ore_lavorate,
-                saldata
-            FROM commesse_consegnate
-            ORDER BY
-                CASE WHEN LOWER(saldata) = 'no' THEN 0 ELSE 1 END,
-                id DESC
+        SELECT
+            id,
+            nome,
+            tipo_intervento,
+            data_consegna,
+            saldata
+        FROM commesse_consegnate
+        ORDER BY
+            CASE WHEN LOWER(saldata) = 'no' THEN 0 ELSE 1 END,
+            id DESC
         """)
 
         commesse = c.fetchall()
         conn.close()
+
         return render_template("archivio_consegnati.html", commesse=commesse)
 
     except Exception as e:
