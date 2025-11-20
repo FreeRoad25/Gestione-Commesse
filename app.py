@@ -3,7 +3,8 @@ from reportlab.lib.styles import ParagraphStyle
 from flask import Flask, render_template, request, redirect, url_for, flash, session
 import sqlite3
 import os
-# === Database path unico e corretto ===
+
+# === Database path unico e corretto (SQLite locale) ===
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_NAME = "commesse.db"
 DB_PATH = os.path.join(BASE_DIR, DB_NAME)
@@ -12,20 +13,43 @@ def get_db_connection():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
+
+# ===== POSTGRES CONFIG (Render) =====
+import psycopg2
+
+DB_HOST = os.getenv("DB_HOST")
+DB_PORT = os.getenv("DB_PORT", "5432")
+DB_NAME_PG = os.getenv("DB_NAME")
+DB_USER = os.getenv("DB_USER")
+DB_PASSWORD = os.getenv("DB_PASSWORD")
+
+def get_pg_connection():
+    conn = psycopg2.connect(
+        host=DB_HOST,
+        port=DB_PORT,
+        database=DB_NAME_PG,
+        user=DB_USER,
+        password=DB_PASSWORD
+    )
+    return conn
+# ===== FINE BLOCCO POSTGRES =====
+
 from datetime import datetime, date
-from datetime import datetime
 from functools import wraps
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
+
 app = Flask(__name__)
+
 # BYPASS LOGIN
-from flask import session
 @app.before_request
 def bypass_login():
     session["ruolo"] = "amministratore"
+
 # Inizializzazione LoginManager
 login_manager = LoginManager()
+
 # Login automatico di sicurezza
 @login_manager.request_loader
 def load_user_from_request(request):
@@ -34,15 +58,14 @@ def load_user_from_request(request):
         ruolo = "amministratore"
     session["ruolo"] = "amministratore"
     return FakeUser()
+
 login_manager.init_app(app)
-login_manager.login_view = "login"  # nome della route di login
+login_manager.login_view = "login"
 app.secret_key = os.environ.get("SECRET_KEY", "fallback123")
-login_manager.session_protection = "strong"
 app.config["SESSION_PERMANENT"] = True
 app.config["PERMANENT_SESSION_LIFETIME"] = 3600  # 1 ora
+
 # ===================== CONTROLLO RUOLO AMMINISTRATORE =====================
-
-
 def admin_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -55,17 +78,6 @@ def admin_required(f):
         return f(*args, **kwargs)
     return decorated_function
 # ========================================================================
-import os
-
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DB_NAME = "commesse.db"
-DB_PATH = os.path.join(BASE_DIR, DB_NAME)
-
-def get_db_connection():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    return conn
-
 
 
 # ====== CREAZIONE AUTOMATICA TABELLA UTENTI SU RENDER ======
@@ -795,23 +807,35 @@ def elimina_commessa(id):
     conn.commit()
     conn.close()
     return redirect(url_for("lista_commesse"))
+
 @app.route("/test_db")
 def test_db():
     import psycopg2
     import os
 
+    DB_HOST = os.getenv("DB_HOST")
+    DB_PORT = os.getenv("DB_PORT", "5432")
+    DB_NAME = os.getenv("DB_NAME")
+    DB_USER = os.getenv("DB_USER")
+    DB_PASSWORD = os.getenv("DB_PASSWORD")
+
     try:
         conn = psycopg2.connect(
-            host=os.getenv("DB_HOST"),
-            port=os.getenv("DB_PORT"),
-            database=os.getenv("DB_NAME"),
-            user=os.getenv("DB_USER"),
-            password=os.getenv("DB_PASSWORD")
+            host=DB_HOST,
+            port=DB_PORT,
+            database=DB_NAME,
+            user=DB_USER,
+            password=DB_PASSWORD
         )
+        cur = conn.cursor()
+        cur.execute("SELECT NOW();")
+        result = cur.fetchone()
+
         conn.close()
-        return "Connessione PostgreSQL OK!"
+        return f"CONNESSIONE OK – PostgreSQL risponde {result}"
+
     except Exception as e:
-        return f"ERRORE: {e}"
+        return f"ERRORE CONNESSIONE: {e}"
 
 # =========================================================
 # FILE ALLEGATI COMMESSE
