@@ -33,6 +33,53 @@ def get_pg_connection():
     )
     return conn
 # ===== FINE BLOCCO POSTGRES =====
+
+# ===== ROUTE TEMPORANEA: CREAZIONE TABELLE POSTGRES =====
+@app.route("/setup_pg")
+def setup_pg():
+    try:
+        conn = get_pg_connection()
+        cur = conn.cursor()
+
+        # Tabelle esempio – qui mettiamo le tue tabelle reali
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS commesse (
+                id SERIAL PRIMARY KEY,
+                nome VARCHAR(255),
+                tipo_intervento VARCHAR(255),
+                data_conferma DATE,
+                data_consegna DATE,
+                note TEXT
+            );
+        """)
+
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS magazzino (
+                id SERIAL PRIMARY KEY,
+                nome VARCHAR(255),
+                descrizione VARCHAR(255),
+                quantita INTEGER,
+                soglia_minima INTEGER
+            );
+        """)
+
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS operatori (
+                id SERIAL PRIMARY KEY,
+                nome VARCHAR(255),
+                costo_orario NUMERIC
+            );
+        """)
+
+        conn.commit()
+        cur.close()
+        conn.close()
+
+        return "Tabelle create con successo su PostgreSQL!"
+
+    except Exception as e:
+        return f"Errore creazione tabelle: {str(e)}"
+    
 # ===== TEST CONNESSIONE POSTGRES =====
 def test_pg_connection():
     try:
@@ -48,7 +95,7 @@ def test_pg_connection():
     except Exception as e:
         print(">>> TEST POSTGRES: ERRORE ❌")
         print(e)
-        
+
 from datetime import datetime, date
 from functools import wraps
 from werkzeug.utils import secure_filename
