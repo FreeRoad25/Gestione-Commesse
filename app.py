@@ -923,7 +923,7 @@ def aggiungi_operatore():
             conn.close()
         return redirect(url_for("operatori"))
 
-    return render_template("pagina_aggiungi_operatore.html")
+    return render_template("aggiungi_operatore.html")
 
 
 @app.route("/registrazione_ore", methods=["POST"])
