@@ -33,7 +33,22 @@ def get_pg_connection():
     )
     return conn
 # ===== FINE BLOCCO POSTGRES =====
-
+# ===== TEST CONNESSIONE POSTGRES =====
+def test_pg_connection():
+    try:
+        conn = psycopg2.connect(
+            host=DB_HOST,
+            port=DB_PORT,
+            database=DB_NAME_PG,
+            user=DB_USER,
+            password=DB_PASSWORD
+        )
+        conn.close()
+        print(">>> TEST POSTGRES: CONNESSIONE OK ✔")
+    except Exception as e:
+        print(">>> TEST POSTGRES: ERRORE ❌")
+        print(e)
+        
 from datetime import datetime, date
 from functools import wraps
 from werkzeug.utils import secure_filename
