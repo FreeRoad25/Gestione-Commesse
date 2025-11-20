@@ -7,3 +7,4 @@ Werkzeug==3.0.4
 reportlab
 flask-login
 psycopg2-binary
+python-dotenv
