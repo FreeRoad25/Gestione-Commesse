@@ -34,6 +34,32 @@ def get_pg_connection():
     return conn
 # ===== FINE BLOCCO POSTGRES =====
 
+
+    
+# ===== TEST CONNESSIONE POSTGRES =====
+def test_pg_connection():
+    try:
+        conn = psycopg2.connect(
+            host=DB_HOST,
+            port=DB_PORT,
+            database=DB_NAME_PG,
+            user=DB_USER,
+            password=DB_PASSWORD
+        )
+        conn.close()
+        print(">>> TEST POSTGRES: CONNESSIONE OK ✔")
+    except Exception as e:
+        print(">>> TEST POSTGRES: ERRORE ❌")
+        print(e)
+
+from datetime import datetime, date
+from functools import wraps
+from werkzeug.utils import secure_filename
+from werkzeug.security import generate_password_hash, check_password_hash
+from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
+
+app = Flask(__name__)
+
 # ===== ROUTE TEMPORANEA: CREAZIONE TABELLE POSTGRES =====
 @app.route("/setup_pg")
 def setup_pg():
@@ -79,30 +105,6 @@ def setup_pg():
 
     except Exception as e:
         return f"Errore creazione tabelle: {str(e)}"
-    
-# ===== TEST CONNESSIONE POSTGRES =====
-def test_pg_connection():
-    try:
-        conn = psycopg2.connect(
-            host=DB_HOST,
-            port=DB_PORT,
-            database=DB_NAME_PG,
-            user=DB_USER,
-            password=DB_PASSWORD
-        )
-        conn.close()
-        print(">>> TEST POSTGRES: CONNESSIONE OK ✔")
-    except Exception as e:
-        print(">>> TEST POSTGRES: ERRORE ❌")
-        print(e)
-
-from datetime import datetime, date
-from functools import wraps
-from werkzeug.utils import secure_filename
-from werkzeug.security import generate_password_hash, check_password_hash
-from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
-
-app = Flask(__name__)
 
 # BYPASS LOGIN
 @app.before_request
