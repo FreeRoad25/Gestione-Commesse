@@ -131,8 +131,9 @@ CREATE TABLE IF NOT EXISTS tipi_intervento (
 """)
 
 # Verifica se vuota
-cur.execute("SELECT COUNT(*) FROM tipi_intervento")
-count = cur.fetchone()[0]
+cur.execute("SELECT COUNT(*) AS count FROM tipi_intervento")
+result = cur.fetchone()
+count = result["count"]
 
 if count == 0:
     valori_default = [
