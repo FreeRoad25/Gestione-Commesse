@@ -137,5 +137,5 @@ def create_tables():
     except Exception as e:
         print("❌ ERRORE CREAZIONE TABELLE:", e)
 
-if _name_ == "_main_":
+if __name__ == "__main__":
     create_tables()
