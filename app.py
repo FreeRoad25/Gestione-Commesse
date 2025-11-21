@@ -457,22 +457,28 @@ def aggiungi_commessa():
 
         try:
             c.execute("""
-                INSERT INTO commesse
-                (nome, tipo_intervento, marca_veicolo, modello_veicolo, dimensioni,
-                 data_conferma, data_arrivo_materiali, ore_necessarie, data_inizio, note_importanti)
-                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
-            """, (
-                nome,
-                tipo_intervento,
-                marca_veicolo,
-                modello_veicolo,
-                dimensioni,
-                data_conferma,
-                data_arrivo_materiali,
-                ore_necessarie,
-                data_inizio,
-                note_importanti
-            ))
+               INSERT INTO commesse
+               (nome, tipo_intervento, marca_veicolo, modello_veicolo, dimensioni,
+               data_conferma, data_arrivo_materiali, data_inizio,
+               ore_necessarie, ore_eseguite, ore_rimanenti, data_consegna, note_importanti)
+               VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+    """, (
+        nome,
+        tipo_intervento,
+        marca_veicolo,
+        modello_veicolo,
+        dimensioni,
+        data_conferma,
+        data_arrivo_materiali,
+        data_inizio,
+        ore_necessarie,
+        0,
+        ore_necessarie,
+        None,
+        note_importanti
+    ))
+
+    
 
             conn.commit()
             return redirect(url_for("lista_commesse"))
