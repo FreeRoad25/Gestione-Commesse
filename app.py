@@ -455,44 +455,55 @@ def aggiungi_commessa():
         data_inizio = request.form.get("data_inizio")
         note_importanti = request.form.get("note_importanti")
 
-        ore_necessarie = int(request.form.get("ore_necessarie") or 0)
+        ore_necessarie = float(request.form.get("ore_necessarie") or 0)
         ore_eseguite = 0
         ore_rimanenti = ore_necessarie
 
         try:
             c.execute("""
-                INSERT INTO commesse
-                (nome, tipo_intervento, marca_veicolo, modello_veicolo, dimensioni,
-                 data_conferma, data_arrivo_materiali, data_inizio,
-                 ore_necessarie, ore_eseguite, ore_rimanenti, data_consegna, note_importanti)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                INSERT INTO commesse (
+                    nome,
+                    tipo_intervento,
+                    data_conferma,
+                    data_arrivo_materiali,
+                    data_inizio,
+                    ore_necessarie,
+                    ore_eseguite,
+                    ore_rimanenti,
+                    marca_veicolo,
+                    modello_veicolo,
+                    dimensioni,
+                    data_consegna,
+                    note_importanti
+                ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
             """, (
                 nome,
                 tipo_intervento,
-                marca_veicolo,
-                modello_veicolo,
-                dimensioni,
                 data_conferma,
                 data_arrivo_materiali,
                 data_inizio,
                 ore_necessarie,
                 ore_eseguite,
                 ore_rimanenti,
+                marca_veicolo,
+                modello_veicolo,
+                dimensioni,
                 None,
                 note_importanti
             ))
 
             conn.commit()
-            conn.close()
             return redirect(url_for("lista_commesse"))
 
         except Exception as e:
             conn.rollback()
-            conn.close()
             print("ERRORE INSERT COMMESSA:", e)
-            return "Errore salvataggio commessa", 500
+            return f"Errore salvataggio commessa: {str(e)}", 500
 
-    # -------- GET --------
+        finally:
+            conn.close()
+
+    # GET
     c.execute("SELECT nome FROM tipi_intervento ORDER BY nome ASC")
     tipi_intervento = [row["nome"] for row in c.fetchall()]
 
