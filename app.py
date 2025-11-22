@@ -539,8 +539,9 @@ def modifica_commessa(id):
         data_consegna = request.form.get("data_consegna")
         note_importanti = request.form.get("note_importanti")
 
-        ore_necessarie = int(request.form.get("ore_necessarie") or 0)
-        ore_eseguite = commessa.get("ore_eseguite", 0)
+        ore_raw = request.form.get("ore_necessarie") or 0
+        ore_necessarie = float(ore_raw)
+        ore_eseguite = float(commessa.get("ore_eseguite", 0))
         ore_rimanenti = ore_necessarie - ore_eseguite
 
         try:
