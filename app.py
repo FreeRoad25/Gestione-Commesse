@@ -444,52 +444,53 @@ def aggiungi_commessa():
     c = conn.cursor()
 
     if request.method == "POST":
-        nome = request.form.get("nome")
-        tipo_intervento = request.form.get("tipo_intervento")
-        marca_veicolo = request.form.get("marca_veicolo")
-        modello_veicolo = request.form.get("modello_veicolo")
-        dimensioni = request.form.get("dimensioni")
-        data_conferma = request.form.get("data_conferma")
-        data_arrivo_materiali = request.form.get("data_arrivo_materiali")
-        ore_necessarie = request.form.get("ore_necessarie") or 0
-        data_inizio = request.form.get("data_inizio")
-        note_importanti = request.form.get("note_importanti")
+     nome = request.form.get("nome")
+    tipo_intervento = request.form.get("tipo_intervento")
+    marca_veicolo = request.form.get("marca_veicolo")
+    modello_veicolo = request.form.get("modello_veicolo")
+    dimensioni = request.form.get("dimensioni")
+    data_conferma = request.form.get("data_conferma")
+    data_arrivo_materiali = request.form.get("data_arrivo_materiali")
+    data_inizio = request.form.get("data_inizio")
+    note_importanti = request.form.get("note_importanti")
 
-        try:
-            c.execute("""
-               INSERT INTO commesse
-               (nome, tipo_intervento, marca_veicolo, modello_veicolo, dimensioni,
-               data_conferma, data_arrivo_materiali, data_inizio,
-               ore_necessarie, ore_eseguite, ore_rimanenti, data_consegna, note_importanti)
-               VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-    """, (
-        nome,
-        tipo_intervento,
-        marca_veicolo,
-        modello_veicolo,
-        dimensioni,
-        data_conferma,
-        data_arrivo_materiali,
-        data_inizio,
-        ore_necessarie,
-        0,
-        ore_necessarie,
-        None,
-        note_importanti
-    ))
+    ore_necessarie = int(request.form.get("ore_necessarie") or 0)
+    ore_eseguite = 0
+    ore_rimanenti = ore_necessarie
 
-    
+    try:
+        c.execute("""
+           INSERT INTO commesse
+           (nome, tipo_intervento, marca_veicolo, modello_veicolo, dimensioni,
+            data_conferma, data_arrivo_materiali, data_inizio,
+            ore_necessarie, ore_eseguite, ore_rimanenti, data_consegna, note_importanti)
+           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """, (
+            nome,
+            tipo_intervento,
+            marca_veicolo,
+            modello_veicolo,
+            dimensioni,
+            data_conferma,
+            data_arrivo_materiali,
+            data_inizio,
+            ore_necessarie,
+            ore_eseguite,
+            ore_rimanenti,
+            None,
+            note_importanti
+        ))
 
-            conn.commit()
-            return redirect(url_for("lista_commesse"))
+        conn.commit()
+        return redirect(url_for("lista_commesse"))
 
-        except Exception as e:
-            conn.rollback()
-            print("ERRORE INSERT COMMESSA:", e)
-            return "Errore salvataggio commessa", 500
+    except Exception as e:
+        conn.rollback()
+        print("ERRORE INSERT COMMESSA:", e)
+        return "Errore salvataggio commessa", 500
 
-        finally:
-            conn.close()
+    finally:
+        conn.close()
 
     # -------- GET --------
     c.execute("SELECT nome FROM tipi_intervento ORDER BY nome ASC")
