@@ -441,7 +441,8 @@ from flask_login import login_required
 @app.route("/aggiungi_commessa", methods=["GET", "POST"])
 def aggiungi_commessa():
     conn = get_db_connection()
-    c = conn.cursor()
+    import psycopg2.extras
+    c = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
     if request.method == "POST":
      nome = request.form.get("nome")
