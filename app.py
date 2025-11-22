@@ -515,9 +515,10 @@ def aggiungi_commessa():
 @app.route("/modifica_commessa/<int:id>", methods=["GET", "POST"])
 def modifica_commessa(id):
     conn = get_db_connection()
-    c = conn.cursor()
+    import psycopg2.extras
+    c = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
-    # Preleva la commessa
+    # Recupero commessa
     c.execute("SELECT * FROM commesse WHERE id = %s", (id,))
     commessa = c.fetchone()
 
@@ -527,124 +528,73 @@ def modifica_commessa(id):
 
     if request.method == "POST":
 
-        # --- NOME ---
         nome = request.form.get("nome")
-
-        # --- TIPO INTERVENTO ---
-        tipo_intervento = (request.form.get("tipo_intervento") or "").strip()
-        nuovo_intervento = (request.form.get("nuovo_intervento") or "").strip()
-
-        # Se selezioni "Altro" e scrivi qualcosa → salva in tabella e usa quel valore
-        if tipo_intervento == "Altro" and nuovo_intervento:
-            c.execute(
-                """
-                INSERT INTO tipi_intervento (nome)
-                VALUES (%s)
-                ON CONFLICT (nome) DO NOTHING
-                """,
-                (nuovo_intervento,)
-            )
-            conn.commit()
-            tipo_intervento = nuovo_intervento
-
-        # Se la select è vuota ma hai scritto un nuovo intervento
-        elif not tipo_intervento and nuovo_intervento:
-            c.execute(
-                """
-                INSERT INTO tipi_intervento (nome)
-                VALUES (%s)
-                ON CONFLICT (nome) DO NOTHING
-                """,
-                (nuovo_intervento,)
-            )
-            conn.commit()
-            tipo_intervento = nuovo_intervento
-
-        # Se non cambi nulla → mantieni valore precedente
-        elif not tipo_intervento:
-            # commessa è un dict (RealDictCursor)
-            tipo_intervento = commessa["tipo_intervento"]
-
-        # --- MARCA ---
-        marca_sel = request.form.get("marca_veicolo")
-        nuova_marca = (request.form.get("nuova_marca") or "").strip()
-
-        if marca_sel == "nuova" and nuova_marca:
-            # salva nel DB solo se non esiste
-            c.execute(
-                """
-                INSERT INTO marche (nome)
-                VALUES (%s)
-                ON CONFLICT (nome) DO NOTHING
-                """,
-                (nuova_marca,)
-            )
-            conn.commit()
-            marca = nuova_marca
-        else:
-            marca = marca_sel
-
-        # --- ALTRI CAMPI ---
-        modello = request.form.get("modello_veicolo")
+        tipo_intervento = request.form.get("tipo_intervento")
+        marca_veicolo = request.form.get("marca_veicolo")
+        modello_veicolo = request.form.get("modello_veicolo")
         dimensioni = request.form.get("dimensioni")
         data_conferma = request.form.get("data_conferma")
         data_arrivo_materiali = request.form.get("data_arrivo_materiali")
         data_inizio = request.form.get("data_inizio")
         data_consegna = request.form.get("data_consegna")
-        ore_necessarie = request.form.get("ore_necessarie") or 0
-        note_importanti = (request.form.get("note_importanti") or "").strip()
+        note_importanti = request.form.get("note_importanti")
 
-        # --- UPDATE COMMESSA ---
-        c.execute("""
-            UPDATE commesse
-               SET nome=%s,
-                   tipo_intervento=%s,
-                   data_conferma=%s,
-                   data_arrivo_materiali=%s,
-                   data_inizio=%s,
-                   ore_necessarie=%s,
-                   marca_veicolo=%s,
-                   modello_veicolo=%s,
-                   dimensioni=%s,
-                   data_consegna=%s,
-                   note_importanti=%s
-             WHERE id=%s
-        """, (
-            nome, tipo_intervento, data_conferma, data_arrivo_materiali, data_inizio,
-            ore_necessarie, marca, modello, dimensioni, data_consegna, note_importanti, id
-        ))
+        ore_necessarie = int(request.form.get("ore_necessarie") or 0)
+        ore_eseguite = commessa.get("ore_eseguite", 0)
+        ore_rimanenti = ore_necessarie - ore_eseguite
 
-        # --- FILE ALLEGATI ---
-        files = request.files.getlist("file_commessa")
-        for f in files:
-            if f and allowed_file(f.filename):
-                original_name = f.filename
-                filename = secure_filename(f.filename)
-                ts = datetime.now().strftime("%Y%m%d%H%M%S")
-                final_name = f"{id}{ts}{filename}"
-                path = os.path.join(app.config["UPLOAD_FOLDER"], final_name)
-                f.save(path)
+        try:
+            c.execute("""
+                UPDATE commesse SET
+                    nome = %s,
+                    tipo_intervento = %s,
+                    marca_veicolo = %s,
+                    modello_veicolo = %s,
+                    dimensioni = %s,
+                    data_conferma = %s,
+                    data_arrivo_materiali = %s,
+                    data_inizio = %s,
+                    ore_necessarie = %s,
+                    ore_eseguite = %s,
+                    ore_rimanenti = %s,
+                    data_consegna = %s,
+                    note_importanti = %s
+                WHERE id = %s
+            """, (
+                nome,
+                tipo_intervento,
+                marca_veicolo,
+                modello_veicolo,
+                dimensioni,
+                data_conferma,
+                data_arrivo_materiali,
+                data_inizio,
+                ore_necessarie,
+                ore_eseguite,
+                ore_rimanenti,
+                data_consegna,
+                note_importanti,
+                id
+            ))
 
-                c.execute("""
-                    INSERT INTO commessa_files (id_commessa, filename, original_name, upload_date)
-                    VALUES (%s, %s, %s, %s)
-                """, (id, final_name, original_name, datetime.now().isoformat(timespec="seconds")))
+            conn.commit()
+            return redirect(url_for("lista_commesse"))
 
-        conn.commit()
-        conn.close()
-        return redirect(url_for("lista_commesse"))
+        except Exception as e:
+            conn.rollback()
+            print("ERRORE MODIFICA COMMESSA:", e)
+            return "Errore modifica commessa", 500
 
-    # --- GET: CARICO LE TENDINE ---
+        finally:
+            conn.close()
 
-    # Tipi intervento dalla tabella
+    # -------- GET --------
     c.execute("SELECT nome FROM tipi_intervento ORDER BY nome ASC")
     tipi_intervento = [row["nome"] for row in c.fetchall()]
 
-    # Marche dalla tabella
     c.execute("SELECT id, nome FROM marche ORDER BY nome ASC")
     marche = c.fetchall()
 
-    # Modelli (come prima)
     c.execute("""
         SELECT DISTINCT modello_veicolo
         FROM commesse
@@ -652,7 +602,6 @@ def modifica_commessa(id):
     """)
     modelli = [row["modello_veicolo"] for row in c.fetchall()]
 
-    # File allegati
     c.execute(
         "SELECT * FROM commessa_files WHERE id_commessa = %s ORDER BY upload_date DESC",
         (id,)
