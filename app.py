@@ -533,10 +533,17 @@ def modifica_commessa(id):
         marca_veicolo = request.form.get("marca_veicolo")
         modello_veicolo = request.form.get("modello_veicolo")
         dimensioni = request.form.get("dimensioni")
-        data_conferma = request.form.get("data_conferma")
-        data_arrivo_materiali = request.form.get("data_arrivo_materiali")
-        data_inizio = request.form.get("data_inizio")
-        data_consegna = request.form.get("data_consegna")
+        data_conferma_raw = request.form.get("data_conferma")
+        data_conferma = data_conferma_raw if data_conferma_raw else None
+
+        data_arrivo_materiali_raw = request.form.get("data_arrivo_materiali")
+        data_arrivo_materiali = data_arrivo_materiali_raw if data_arrivo_materiali_raw else None
+
+        data_inizio_raw = request.form.get("data_inizio")
+        data_inizio = data_inizio_raw if data_inizio_raw else None
+
+        data_consegna_raw = request.form.get("data_consegna")
+        data_consegna = data_consegna_raw if data_consegna_raw else None
         note_importanti = request.form.get("note_importanti")
 
         ore_raw = request.form.get("ore_necessarie") or 0
