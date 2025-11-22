@@ -460,19 +460,33 @@ def aggiungi_commessa():
         ore_rimanenti = ore_necessarie
 
         try:
-            c.execute("""
-    INSERT INTO commesse (nome, tipo_intervento, data_conferma, data_consegna, note)
-    VALUES (%s, %s, %s, %s, %s)
-""", (
-    nome,
-    tipo_intervento,
-    data_conferma,
-    None,
-    note_importanti
-))
+           c.execute("""
+             INSERT INTO commesse
+             (nome, tipo_intervento, marca_veicolo, modello_veicolo, dimensioni,
+             data_conferma, data_arrivo_materiali, data_inizio,
+             ore_necessarie, ore_eseguite, ore_rimanenti, data_consegna,
+             foto, allegato, note_importanti)
+               VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """, (
+            nome,
+            tipo_intervento,
+            marca_veicolo,
+            modello_veicolo,
+            dimensioni,
+            data_conferma,
+           data_arrivo_materiali,
+            data_inizio,
+            ore_necessarie,
+           ore_eseguite,
+            ore_rimanenti,
+            None,
+           None,
+           None,
+           note_importanti
+ )) 
 
-            conn.commit()
-            return redirect(url_for("lista_commesse"))
+           conn.commit()
+           return redirect(url_for("lista_commesse"))
 
         except Exception as e:
             conn.rollback()
