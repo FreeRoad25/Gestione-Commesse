@@ -759,16 +759,27 @@ def stampa_commessa_archiviata(id):
     return render_template("stampa_commessa.html", commessa=com)
 
 
-@app.route("/elimina/<int:id>", methods=["POST"])
+@app.route("/elimina/<int:id>", methods=["GET"])
 def elimina_commessa(id):
     try:
         conn = get_db_connection()
         c = conn.cursor()
 
-        c.execute("DELETE FROM commesse WHERE id = %s", (id,))
-        conn.commit()
+        # Verifica esistenza
+        c.execute("SELECT id FROM commesse WHERE id = %s", (id,))
+        if not c.fetchone():
+            conn.close()
+            return "Commessa non trovata", 404
 
+        # Elimina file collegati
+        c.execute("DELETE FROM commessa_files WHERE id_commessa = %s", (id,))
+
+        # Elimina commessa
+        c.execute("DELETE FROM commesse WHERE id = %s", (id,))
+
+        conn.commit()
         conn.close()
+
         return redirect(url_for("lista_commesse"))
 
     except Exception as e:
