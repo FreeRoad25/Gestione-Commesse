@@ -765,16 +765,13 @@ def elimina_commessa(id):
         conn = get_db_connection()
         c = conn.cursor()
 
-        # Verifica esistenza
-        c.execute("SELECT id FROM commesse WHERE id = %s", (id,))
-        if not c.fetchone():
-            conn.close()
-            return "Commessa non trovata", 404
+        # 1. Elimina eventuali ore lavorate legate alla commessa
+        c.execute("DELETE FROM ore_lavorate WHERE id_commessa = %s", (id,))
 
-        # Elimina file collegati
+        # 2. Elimina eventuali file allegati
         c.execute("DELETE FROM commessa_files WHERE id_commessa = %s", (id,))
 
-        # Elimina commessa
+        # 3. Elimina la commessa
         c.execute("DELETE FROM commesse WHERE id = %s", (id,))
 
         conn.commit()
