@@ -635,6 +635,8 @@ def stampa_commessa(id):
     from reportlab.lib.pagesizes import A4
     from reportlab.lib.styles import getSampleStyleSheet
     from decimal import Decimal
+    from flask import send_file
+    import tempfile
     import uuid
 
     conn = get_db_connection()
@@ -672,8 +674,9 @@ def stampa_commessa(id):
 
     conn.close()
 
-    # === FILE PDF ===
-    filename = f"/tmp/commessa_{id}_{uuid.uuid4().hex}.pdf"
+    # === FILE PDF TEMP ===
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
+        filename = tmp.name
 
     pdf = SimpleDocTemplate(filename, pagesize=A4)
     styles = getSampleStyleSheet()
@@ -757,12 +760,9 @@ def stampa_commessa(id):
     # === GENERAZIONE PDF ===
     pdf.build(elements)
 
-    return send_file(
-        filename,
-        mimetype="application/pdf",
-        as_attachment=False,
-        download_name=f"commessa_{id}.pdf"
-    )
+    response = send_file(filename, mimetype="application/pdf")
+    response.headers["Content-Disposition"] = f"inline; filename=commessa_{id}.pdf"
+    return response
   
 @app.route("/stampa_commessa_archiviata/<int:id>")
 def stampa_commessa_archiviata(id):
