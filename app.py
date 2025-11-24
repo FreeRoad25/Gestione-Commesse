@@ -728,7 +728,9 @@ def stampa_commessa(id):
     if ore_lavorate:
         data_ore = [["Operatore", "Ore", "€/h", "Totale €"]]
         for r in ore_lavorate:
-            tot = r["ore"] * r["costo_orario"]
+            from decimal import Decimal
+
+            tot = Decimal(str(r["ore"])) * r["costo_orario"]
             data_ore.append([r["operatore"], r["ore"], r["costo_orario"], f"{tot:.2f}"])
 
         t_ore = Table(data_ore, colWidths=[200, 80, 80, 80])
