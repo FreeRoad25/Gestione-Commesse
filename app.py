@@ -634,16 +634,17 @@ def stampa_commessa(id):
     from reportlab.lib import colors
     from reportlab.lib.pagesizes import A4
     from reportlab.lib.styles import getSampleStyleSheet
+    from flask import send_file
+    from decimal import Decimal
+    import psycopg2.extras
     import tempfile
 
     conn = get_db_connection()
-    c = conn.cursor()
+    c = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
-    # CERCA IN COMMESSE
     c.execute("SELECT * FROM commesse WHERE id = %s", (id,))
     commessa = c.fetchone()
 
-    # SE NON TROVATA, CERCA IN ARCHIVIO
     if not commessa:
         c.execute("SELECT * FROM commesse_consegnate WHERE id = %s", (id,))
         commessa = c.fetchone()
@@ -652,7 +653,6 @@ def stampa_commessa(id):
         conn.close()
         return "Commessa non trovata"
 
-    # MATERIALI
     c.execute("""
         SELECT a.codice, a.descrizione, cm.quantita, a.costo_netto
         FROM commesse_materiali cm
@@ -661,7 +661,6 @@ def stampa_commessa(id):
     """, (id,))
     materiali = c.fetchall()
 
-    # ORE LAVORATE
     c.execute("""
         SELECT o.nome AS operatore, ol.ore, COALESCE(o.costo_orario, 0) AS costo_orario
         FROM ore_lavorate ol
@@ -672,7 +671,6 @@ def stampa_commessa(id):
 
     conn.close()
 
-    # === CREAZIONE PDF TEMPORANEO ===
     tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
     filename = tmp.name
 
@@ -680,11 +678,9 @@ def stampa_commessa(id):
     styles = getSampleStyleSheet()
     elements = []
 
-    # INTESTAZIONE
     elements.append(Paragraph(f"<b>Commessa #{id} – {commessa['nome']}</b>", styles["Title"]))
     elements.append(Spacer(1, 12))
 
-    # DATI COMMESSA
     tabella_commessa = [
         ["Tipo Intervento", commessa["tipo_intervento"]],
         ["Marca Veicolo", f"{commessa['marca_veicolo']} {commessa['modello_veicolo']}"],
@@ -693,7 +689,7 @@ def stampa_commessa(id):
         ["Data Inizio", commessa["data_inizio"] or "---"],
         ["Data Consegna", commessa["data_consegna"] or "---"],
         ["Ore Necessarie", commessa["ore_necessarie"] or 0],
-        ["Ore Eseguite", commessa.get("ore_eseguite", 0)]
+        ["Ore Eseguite", commessa["ore_eseguite"] or 0]
     ]
 
     t_info = Table(tabella_commessa, colWidths=[150, 350])
@@ -704,11 +700,10 @@ def stampa_commessa(id):
     elements.append(t_info)
     elements.append(Spacer(1, 20))
 
-    # MATERIALI
     if materiali:
         data_materiali = [["Codice", "Descrizione", "Q.tà", "Costo €", "Totale €"]]
         for m in materiali:
-            tot = (m["quantita"] or 0) * (m["costo_netto"] or 0)
+            tot = Decimal(str(m["quantita"])) * Decimal(str(m["costo_netto"]))
             data_materiali.append([
                 m["codice"], m["descrizione"], m["quantita"],
                 f"{m['costo_netto']:.2f}", f"{tot:.2f}"
@@ -719,32 +714,31 @@ def stampa_commessa(id):
             ("BACKGROUND", (0,0), (-1,0), colors.lightgrey),
             ("GRID", (0,0), (-1,-1), 0.4, colors.black),
         ]))
-
         elements.append(Paragraph("Materiali Utilizzati", styles["Heading2"]))
         elements.append(t_mat)
         elements.append(Spacer(1, 12))
 
-    # ORE LAVORATE
     if ore_lavorate:
         data_ore = [["Operatore", "Ore", "€/h", "Totale €"]]
         for r in ore_lavorate:
-            from decimal import Decimal
-
-            tot = Decimal(str(r["ore"])) * r["costo_orario"]
-            data_ore.append([r["operatore"], r["ore"], r["costo_orario"], f"{tot:.2f}"])
+            tot = Decimal(str(r["ore"])) * Decimal(str(r["costo_orario"]))
+            data_ore.append([
+                r["operatore"], r["ore"],
+                f"{r['costo_orario']:.2f}",
+                f"{tot:.2f}"
+            ])
 
         t_ore = Table(data_ore, colWidths=[200, 80, 80, 80])
         t_ore.setStyle(TableStyle([
             ("BACKGROUND", (0,0), (-1,0), colors.lightgrey),
             ("GRID", (0,0), (-1,-1), 0.4, colors.black),
         ]))
-
         elements.append(Paragraph("Ore Lavorate", styles["Heading2"]))
         elements.append(t_ore)
 
     pdf.build(elements)
 
-    return send_file(filename, as_attachment=False, mimetype="application/pdf")
+    return send_file(filename, mimetype="application/pdf", as_attachment=False)
   
 @app.route("/stampa_commessa_archiviata/<int:id>")
 def stampa_commessa_archiviata(id):
