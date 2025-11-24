@@ -634,14 +634,13 @@ def stampa_commessa(id):
     from reportlab.lib import colors
     from reportlab.lib.pagesizes import A4
     from reportlab.lib.styles import getSampleStyleSheet
-    from flask import send_file
     from decimal import Decimal
-    import psycopg2.extras
-    import tempfile
+    import uuid
 
     conn = get_db_connection()
-    c = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    c = conn.cursor()
 
+    # === CERCA COMMESSA ===
     c.execute("SELECT * FROM commesse WHERE id = %s", (id,))
     commessa = c.fetchone()
 
@@ -651,8 +650,9 @@ def stampa_commessa(id):
 
     if not commessa:
         conn.close()
-        return "Commessa non trovata"
+        return "Commessa non trovata", 404
 
+    # === MATERIALI ===
     c.execute("""
         SELECT a.codice, a.descrizione, cm.quantita, a.costo_netto
         FROM commesse_materiali cm
@@ -661,6 +661,7 @@ def stampa_commessa(id):
     """, (id,))
     materiali = c.fetchall()
 
+    # === ORE LAVORATE ===
     c.execute("""
         SELECT o.nome AS operatore, ol.ore, COALESCE(o.costo_orario, 0) AS costo_orario
         FROM ore_lavorate ol
@@ -671,28 +672,29 @@ def stampa_commessa(id):
 
     conn.close()
 
-    tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
-    filename = tmp.name
+    # === FILE PDF ===
+    filename = f"/tmp/commessa_{id}_{uuid.uuid4().hex}.pdf"
 
     pdf = SimpleDocTemplate(filename, pagesize=A4)
     styles = getSampleStyleSheet()
     elements = []
 
+    # === TITOLO ===
     elements.append(Paragraph(f"<b>Commessa #{id} – {commessa['nome']}</b>", styles["Title"]))
     elements.append(Spacer(1, 12))
 
+    # === DATI COMMESSA ===
     tabella_commessa = [
-        ["Tipo Intervento", commessa["tipo_intervento"]],
-        ["Marca Veicolo", f"{commessa['marca_veicolo']} {commessa['modello_veicolo']}"],
+        ["Tipo Intervento", commessa["tipo_intervento"] or "---"],
+        ["Veicolo", f"{commessa['marca_veicolo'] or ''} {commessa['modello_veicolo'] or ''}"],
         ["Data Conferma", commessa["data_conferma"] or "---"],
         ["Data Arrivo Materiali", commessa["data_arrivo_materiali"] or "---"],
         ["Data Inizio", commessa["data_inizio"] or "---"],
         ["Data Consegna", commessa["data_consegna"] or "---"],
         ["Ore Necessarie", commessa["ore_necessarie"] or 0],
-        ["Ore Eseguite", commessa["ore_eseguite"] or 0]
     ]
 
-    t_info = Table(tabella_commessa, colWidths=[150, 350])
+    t_info = Table(tabella_commessa, colWidths=[180, 320])
     t_info.setStyle(TableStyle([
         ("GRID", (0,0), (-1,-1), 0.5, colors.grey),
         ("FONTNAME", (0,0), (-1,-1), "Helvetica"),
@@ -700,32 +702,47 @@ def stampa_commessa(id):
     elements.append(t_info)
     elements.append(Spacer(1, 20))
 
+    # === MATERIALI ===
     if materiali:
         data_materiali = [["Codice", "Descrizione", "Q.tà", "Costo €", "Totale €"]]
+
         for m in materiali:
-            tot = Decimal(str(m["quantita"])) * Decimal(str(m["costo_netto"]))
+            quantita = Decimal(str(m["quantita"] or 0))
+            costo = Decimal(str(m["costo_netto"] or 0))
+            totale = quantita * costo
+
             data_materiali.append([
-                m["codice"], m["descrizione"], m["quantita"],
-                f"{m['costo_netto']:.2f}", f"{tot:.2f}"
+                m["codice"],
+                m["descrizione"],
+                float(quantita),
+                f"{costo:.2f}",
+                f"{totale:.2f}"
             ])
 
-        t_mat = Table(data_materiali, colWidths=[70, 250, 60, 80, 80])
+        t_mat = Table(data_materiali, colWidths=[80, 240, 60, 80, 80])
         t_mat.setStyle(TableStyle([
             ("BACKGROUND", (0,0), (-1,0), colors.lightgrey),
             ("GRID", (0,0), (-1,-1), 0.4, colors.black),
         ]))
+
         elements.append(Paragraph("Materiali Utilizzati", styles["Heading2"]))
         elements.append(t_mat)
         elements.append(Spacer(1, 12))
 
+    # === ORE LAVORATE ===
     if ore_lavorate:
         data_ore = [["Operatore", "Ore", "€/h", "Totale €"]]
+
         for r in ore_lavorate:
-            tot = Decimal(str(r["ore"])) * Decimal(str(r["costo_orario"]))
+            ore = Decimal(str(r["ore"] or 0))
+            costo_orario = Decimal(str(r["costo_orario"] or 0))
+            totale = ore * costo_orario
+
             data_ore.append([
-                r["operatore"], r["ore"],
-                f"{r['costo_orario']:.2f}",
-                f"{tot:.2f}"
+                r["operatore"] or "---",
+                float(ore),
+                f"{costo_orario:.2f}",
+                f"{totale:.2f}"
             ])
 
         t_ore = Table(data_ore, colWidths=[200, 80, 80, 80])
@@ -733,12 +750,19 @@ def stampa_commessa(id):
             ("BACKGROUND", (0,0), (-1,0), colors.lightgrey),
             ("GRID", (0,0), (-1,-1), 0.4, colors.black),
         ]))
+
         elements.append(Paragraph("Ore Lavorate", styles["Heading2"]))
         elements.append(t_ore)
 
+    # === GENERAZIONE PDF ===
     pdf.build(elements)
 
-    return send_file(filename, mimetype="application/pdf", as_attachment=False)
+    return send_file(
+        filename,
+        mimetype="application/pdf",
+        as_attachment=False,
+        download_name=f"commessa_{id}.pdf"
+    )
   
 @app.route("/stampa_commessa_archiviata/<int:id>")
 def stampa_commessa_archiviata(id):
