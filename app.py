@@ -760,8 +760,13 @@ def stampa_commessa(id):
     # === GENERAZIONE PDF ===
     pdf.build(elements)
 
-    response = send_file(filename, mimetype="application/pdf")
+    with open(filename, "rb") as f:
+     pdf_data = f.read()
+
+    response = make_response(pdf_data)
+    response.headers["Content-Type"] = "application/pdf"
     response.headers["Content-Disposition"] = f"inline; filename=commessa_{id}.pdf"
+    response.headers["Cache-Control"] = "no-store"
     return response
   
 @app.route("/stampa_commessa_archiviata/<int:id>")
