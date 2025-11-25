@@ -1239,14 +1239,14 @@ def aggiungi_articolo():
             c = conn.cursor()
 
             c.execute("""
-                INSERT INTO articoli
-                (codice, descrizione, unita, quantita, codice_barre, fornitore, scorta_minima, costo_netto, data_modifica)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (
-                codice, descrizione, unita, quantita,
-                codice_barre, fornitore, scorta_minima,
-                costo_netto, data_modifica
-            ))
+    INSERT INTO articoli
+    (codice, descrizione, unita, quantita, codice_barre, fornitore, scorta_minima, costo_netto, data_modifica)
+    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+""", (
+    codice, descrizione, unita, quantita,
+    codice_barre, fornitore, scorta_minima,
+    costo_netto, data_modifica
+))
 
             conn.commit()
             conn.close()

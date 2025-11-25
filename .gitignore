@@ -2,3 +2,5 @@ venv/
 _pycache__/
 uploads/
 *.sqbpro
+commesse.db
+commesse.db-journal
