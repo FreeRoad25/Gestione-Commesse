@@ -1075,8 +1075,6 @@ def magazzino():
 @app.route("/modifica_articolo/<int:id>", methods=["GET", "POST"])
 def modifica_articolo(id):
     conn = get_db_connection()
-    
-    # SEMPRE usare cursor dictionary
     c = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
     if request.method == "POST":
@@ -1093,8 +1091,9 @@ def modifica_articolo(id):
         row = c.fetchone()
         prezzo_vecchio = row["costo_netto"] if row else 0
 
+        # Aggiorna con o senza data modifica
         if costo_netto != prezzo_vecchio:
-            query = """
+            c.execute("""
                 UPDATE articoli SET
                     descrizione = %s,
                     unita = %s,
@@ -1105,9 +1104,13 @@ def modifica_articolo(id):
                     costo_netto = %s,
                     data_modifica = CURRENT_DATE
                 WHERE id = %s
-            """
+            """, (
+                descrizione, unita, quantita,
+                scorta_minima, fornitore,
+                codice_barre, costo_netto, id
+            ))
         else:
-            query = """
+            c.execute("""
                 UPDATE articoli SET
                     descrizione = %s,
                     unita = %s,
@@ -1117,22 +1120,21 @@ def modifica_articolo(id):
                     codice_barre = %s,
                     costo_netto = %s
                 WHERE id = %s
-            """
-
-        c.execute(query, (
-            descrizione, unita, quantita,
-            scorta_minima, fornitore,
-            codice_barre, costo_netto, id
-        ))
+            """, (
+                descrizione, unita, quantita,
+                scorta_minima, fornitore,
+                codice_barre, costo_netto, id
+            ))
 
         conn.commit()
+        conn.close()
 
-    # === QUI LA PARTE IMPORTANTE ===
-    # Nuovo cursore SEMPRE dopo commit
-    c = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        # 👉 DOPO IL SALVATAGGIO TORNA ALLA PAGINA MAGAZZINO
+        return redirect(url_for('magazzino_articoli'))
+
+    # GET → carica dati articolo
     c.execute("SELECT * FROM articoli WHERE id = %s", (id,))
     articolo = c.fetchone()
-
     conn.close()
 
     if not articolo:
