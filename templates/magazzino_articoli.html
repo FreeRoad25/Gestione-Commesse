@@ -1,71 +1,74 @@
 {% extends "layout.html" %}
-{% block title %}Magazzino Articoli{% endblock %}
+{% block title %}Articoli di Magazzino{% endblock %}
 
 {% block content %}
-<div class="container">
-    <h1>📦 Magazzino Articoli</h1>
+<h1>Articoli di Magazzino</h1>
 
-    <!-- 🔘 Toolbar -->
-    <div class="toolbar">
-        <a href="{{ url_for('magazzino_sottoscorta') }}" class="btn btn-warning">⚠ Sottoscorta</a>
-        <a href="{{ url_for('movimenti_magazzino') }}" class="btn btn-info">📊 Movimenti Magazzino</a>
-        <a href="{{ url_for('pagina_aggiungi_articolo') }}" class="btn btn-success">➕ Aggiungi Articolo</a>
-        <a href="{{ url_for('stampa_magazzino') }}" class="btn btn-primary">🖨 Stampa Magazzino</a>
+<div class="toolbar">
+    <a href="{{ url_for('magazzino_sottoscorta') }}" class="btn btn-warning">⚠ Sottoscorta</a>
+    <a href="{{ url_for('movimenti_magazzino') }}" class="btn btn-secondary">📦 Movimenti Magazzino</a>
+    <a href="{{ url_for('pagina_aggiungi_articolo') }}" class="btn btn-primary">➕ Aggiungi Articolo</a>
+    <a href="{{ url_for('stampa_magazzino') }}" class="btn btn-info">🖨 Stampa Magazzino</a>
 
-        <!-- ✅ NUOVO PULSANTE IMPORTA EXCEL -->
-        <a href="{{ url_for('importa_excel') }}" class="btn btn-orange">📥 Importa da Excel</a>
-    </div>
+    <!-- 🔥 NUOVO PULSANTE IMPORT EXCEL -->
+    <a href="{{ url_for('importa_excel') }}" class="btn btn-success" style="background:#ff9100; border:none;">
+        📤 Importa da Excel
+    </a>
+</div>
 
-    <!-- 🔍 Ricerca generale -->
-    <div class="search-section">
-        <input id="filtro" type="text" placeholder="Cerca per nome, codice o fornitore..." onkeyup="filtraTabella()">
-    </div>
+<div class="search-section">
+    <input type="text" id="filtro" placeholder="Cerca per nome, codice o fornitore…" onkeyup="filtraTabella()">
+    <br><br>
+    <input type="text" id="barcodeInput" placeholder="Scansiona codice a barre…" onkeyup="ricercaBarcode()">
+    <button onclick="resetFiltri()" class="btn btn-secondary">Reset</button>
+</div>
 
-    <!-- 🔍 Ricerca codice a barre -->
-    <div class="search-section">
-        <input id="barcodeInput" type="text" placeholder="Scansiona codice a barre..." onkeyup="ricercaBarcode()">
-        <button class="btn btn-secondary" onclick="resetFiltri()">🔄 Reset</button>
-    </div>
+<div class="table-container">
+<table id="tabellaMagazzino">
+    <thead>
+        <tr>
+            <th>Codice</th>
+            <th>Descrizione</th>
+            <th>Unità</th>
+            <th>Q.tà</th>
+            <th>Codice a Barre</th>
+            <th>Fornitore</th>
+            <th>Costo Netto (€)</th>
+            <th>Data Modifica</th>
+            <th>Scorta Minima</th>
+            <th>Valore Totale (€)</th>
+            <th>Azioni</th>
+        </tr>
+    </thead>
 
-    <!-- 📋 Tabella articoli -->
-    <div class="table-container">
-        <table id="tabellaMagazzino">
-            <thead>
-                <tr>
-                    <th>Codice</th>
-                    <th>Descrizione</th>
-                    <th>Unità</th>
-                    <th>Q.tà</th>
-                    <th>Scorta Min.</th>
-                    <th>Fornitore</th>
-                    <th>Prezzo (€)</th>
-                    <th>Data Modifica</th>
-                    <th>Valore Totale (€)</th>
-                    <th>Azioni</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for art in articoli %}
-                <tr class="{% if art.quantita <= art.scorta_minima %}basso-scorta{% endif %}">
-                    <td>{{ art.codice }}</td>
-                    <td>{{ art.descrizione }}</td>
-                    <td>{{ art.unita }}</td>
-                    <td>{{ art.quantita }}</td>
-                    <td>{{ art.scorta_minima }}</td>
-                    <td>{{ art.fornitore }}</td>
-                    <td>{{ art.costo_netto }}</td>
-                    <td class="data-modifica" data-date="{{ art.data_modifica or '' }}">
-                        {{ art.data_modifica or '' }}
-                    </td>
-                    <td>{{ "%.2f"|format((art.quantita or 0) * (art.costo_netto or 0)) }}</td>
-                    <td>
-                        <a href="{{ url_for('modifica_articolo', id=art.id) }}" class="btn btn-sm btn-primary">✏ Modifica</a>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
+    <tbody>
+        {% for art in articoli %}
+        <tr class="{% if art.quantita <= art.scorta_minima %}basso-scorta{% endif %}">
+            <td>{{ art.codice }}</td>
+            <td>{{ art.descrizione }}</td>
+            <td>{{ art.unita }}</td>
+            <td>{{ art.quantita }}</td>
+            <td>{{ art.codice_barre }}</td>
+            <td>{{ art.fornitore }}</td>
+            <td>{{ "%.2f"|format(art.costo_netto or 0) }}</td>
+
+            <td class="data-modifica" data-date="{{ art.data_modifica }}">
+                {{ art.data_modifica }}
+            </td>
+
+            <td>{{ art.scorta_minima }}</td>
+
+            <td>{{ "%.2f"|format((art.quantita or 0) * (art.costo_netto or 0)) }}</td>
+
+            <td>
+                <a href="{{ url_for('scarico_magazzino', id_articolo=art.id) }}" class="btn btn-danger btn-sm">– Scarica</a>
+                <a href="{{ url_for('carico_magazzino', id_articolo=art.id) }}" class="btn btn-success btn-sm">+ Carica</a>
+                <a href="{{ url_for('modifica_articolo', id=art.id) }}" class="btn btn-primary btn-sm">✏ Modifica</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
 </div>
 
 <style>
@@ -120,7 +123,6 @@ th, td {
 
 th {
     background-color: #007bff;
-    color: #fff;
     font-weight: 600;
 }
 
@@ -131,20 +133,9 @@ tr:nth-child(odd) { background-color: #1c1c1c; }
     background-color: rgba(255, 0, 0, 0.35);
 }
 
-.btn-orange {
-    background-color: #ff9800;
-    color: white;
-    padding: 6px 12px;
-    border-radius: 6px;
-    text-decoration: none;
-}
-
-.btn-orange:hover {
-    background-color: #e68900;
-}
-
-.data-modifica {
-    font-weight: bold;
+.btn-sm {
+    padding: 4px 6px;
+    font-size: 12px;
 }
 </style>
 
@@ -170,7 +161,6 @@ function resetFiltri() {
     filtraTabella();
 }
 
-// 🔵 Colorazione date
 document.addEventListener("DOMContentLoaded", () => {
     document.querySelectorAll('.data-modifica').forEach(cell => {
         const d = cell.dataset.date;
