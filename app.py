@@ -1455,17 +1455,29 @@ def stampa_magazzino():
     for art in articoli:
         codice, descrizione, unita, qta, scorta_minima, fornitore, prezzo = art
 
-        qta = float(qta or 0)
-        scorta_minima = float(scorta_minima or 0)
-        prezzo = float(prezzo or 0)
+        # 🔥 Conversioni sicure per PostgreSQL
+        try:
+            qta = float(qta or 0)
+        except:
+            qta = 0.0
+        
+        try:
+            scorta_minima = float(scorta_minima or 0)
+        except:
+            scorta_minima = 0.0
+
+        try:
+            prezzo = float(prezzo or 0)
+        except:
+            prezzo = 0.0
 
         valore = qta * prezzo
         totale_generale += valore
 
         data.append([
-            str(codice),
-            str(descrizione),
-            str(unita),
+            str(codice or ""),
+            str(descrizione or ""),
+            str(unita or ""),
             f"{qta:.2f}",
             f"{scorta_minima:.2f}",
             str(fornitore or ""),
