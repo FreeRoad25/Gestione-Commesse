@@ -5,21 +5,31 @@
 <div class="container">
     <h1>📦 Magazzino Articoli</h1>
 
-    <!-- 🔘 Pulsanti funzione -->
-    <div class="action-bar">
-        <a href="{{ url_for('aggiungi_articolo') }}" class="btn btn-blue">➕ Aggiungi Articolo</a>
-        <a href="{{ url_for('stampa_magazzino') }}" class="btn btn-green">🖨 Stampa Magazzino</a>
+    <!-- 🔘 Toolbar -->
+    <div class="toolbar">
+        <a href="{{ url_for('magazzino_sottoscorta') }}" class="btn btn-warning">⚠ Sottoscorta</a>
+        <a href="{{ url_for('movimenti_magazzino') }}" class="btn btn-info">📊 Movimenti Magazzino</a>
+        <a href="{{ url_for('pagina_aggiungi_articolo') }}" class="btn btn-success">➕ Aggiungi Articolo</a>
+        <a href="{{ url_for('stampa_magazzino') }}" class="btn btn-primary">🖨 Stampa Magazzino</a>
+
+        <!-- ✅ NUOVO PULSANTE IMPORTA EXCEL -->
         <a href="{{ url_for('importa_excel') }}" class="btn btn-orange">📥 Importa da Excel</a>
     </div>
 
-    <!-- 🔍 Barra ricerca -->
-    <div class="search-panel">
-        <input type="text" id="searchInput" placeholder="🔍 Cerca per codice o descrizione..." onkeyup="filtraTabella()">
+    <!-- 🔍 Ricerca generale -->
+    <div class="search-section">
+        <input id="filtro" type="text" placeholder="Cerca per nome, codice o fornitore..." onkeyup="filtraTabella()">
+    </div>
+
+    <!-- 🔍 Ricerca codice a barre -->
+    <div class="search-section">
+        <input id="barcodeInput" type="text" placeholder="Scansiona codice a barre..." onkeyup="ricercaBarcode()">
+        <button class="btn btn-secondary" onclick="resetFiltri()">🔄 Reset</button>
     </div>
 
     <!-- 📋 Tabella articoli -->
     <div class="table-container">
-        <table id="tableArticoli">
+        <table id="tabellaMagazzino">
             <thead>
                 <tr>
                     <th>Codice</th>
@@ -28,13 +38,15 @@
                     <th>Q.tà</th>
                     <th>Scorta Min.</th>
                     <th>Fornitore</th>
-                    <th>Prezzo €</th>
-                    <th>Modifica</th>
+                    <th>Prezzo (€)</th>
+                    <th>Data Modifica</th>
+                    <th>Valore Totale (€)</th>
+                    <th>Azioni</th>
                 </tr>
             </thead>
             <tbody>
                 {% for art in articoli %}
-                <tr>
+                <tr class="{% if art.quantita <= art.scorta_minima %}basso-scorta{% endif %}">
                     <td>{{ art.codice }}</td>
                     <td>{{ art.descrizione }}</td>
                     <td>{{ art.unita }}</td>
@@ -42,8 +54,12 @@
                     <td>{{ art.scorta_minima }}</td>
                     <td>{{ art.fornitore }}</td>
                     <td>{{ art.costo_netto }}</td>
+                    <td class="data-modifica" data-date="{{ art.data_modifica or '' }}">
+                        {{ art.data_modifica or '' }}
+                    </td>
+                    <td>{{ "%.2f"|format((art.quantita or 0) * (art.costo_netto or 0)) }}</td>
                     <td>
-                        <a class="btn-small" href="{{ url_for('modifica_articolo', id=art.id) }}">✏ Modifica</a>
+                        <a href="{{ url_for('modifica_articolo', id=art.id) }}" class="btn btn-sm btn-primary">✏ Modifica</a>
                     </td>
                 </tr>
                 {% endfor %}
@@ -53,63 +69,36 @@
 </div>
 
 <style>
-/* ===== STRUTTURA ===== */
-.container {
-    width: 95%;
-    max-width: 1300px;
-    margin: auto;
-    padding: 20px;
-}
-
 h1 {
-    color: #00c6ff;
     text-align: center;
+    color: #00bfff;
+    font-weight: 600;
     margin-bottom: 20px;
-    font-size: 28px;
-    font-weight: bold;
+    font-size: 22px;
 }
 
-/* ===== PULSANTI ===== */
-.action-bar {
+.toolbar {
     display: flex;
     justify-content: center;
-    gap: 15px;
-    margin-bottom: 25px;
+    gap: 10px;
+    margin-bottom: 15px;
 }
 
-.btn {
-    padding: 10px 16px;
-    border-radius: 8px;
-    text-decoration: none;
-    font-size: 15px;
-    font-weight: bold;
-    color: white;
-    transition: 0.2s;
+.search-section {
+    text-align: center;
+    margin-bottom: 15px;
 }
 
-.btn-blue { background-color: #007bff; }
-.btn-blue:hover { background-color: #0066d6; }
-
-.btn-green { background-color: #28a745; }
-.btn-green:hover { background-color: #1f8637; }
-
-.btn-orange { background-color: #ff9800; }
-.btn-orange:hover { background-color: #e68900; }
-
-.btn-small {
-    padding: 4px 10px;
-    background-color: #00bfff;
-    border-radius: 6px;
-    color: white;
-    text-decoration: none;
+.search-section input {
+    padding: 6px;
+    width: 30%;
+    border-radius: 5px;
+    border: 1px solid #555;
+    background-color: #111;
+    color: #fff;
     font-size: 13px;
-    transition: 0.2s;
-}
-.btn-small:hover {
-    background-color: #0099cc;
 }
 
-/* ===== TABELLA ===== */
 .table-container {
     overflow-x: auto;
 }
@@ -117,68 +106,81 @@ h1 {
 table {
     width: 100%;
     border-collapse: collapse;
-    background-color: #2b2d3a;
-    border-radius: 10px;
-    overflow: hidden;
-    font-size: 14px;
+    background-color: #1a1a1a;
+    border-radius: 8px;
+    font-size: 13px;
 }
 
 th, td {
-    border: 1px solid #444;
-    padding: 8px;
+    border: 1px solid #333;
+    padding: 6px 4px;
     text-align: center;
     color: #fff;
 }
 
 th {
-    background-color: #00a6c7;
+    background-color: #007bff;
+    color: #fff;
     font-weight: 600;
 }
 
-tr:nth-child(even) {
-    background-color: #34374a;
+tr:nth-child(even) { background-color: #2b2b2b; }
+tr:nth-child(odd) { background-color: #1c1c1c; }
+
+.basso-scorta {
+    background-color: rgba(255, 0, 0, 0.35);
 }
 
-tr:hover {
-    background-color: #00bfff33;
-}
-
-/* ===== RICERCA ===== */
-.search-panel {
-    display: flex;
-    justify-content: center;
-    margin-bottom: 20px;
-}
-
-.search-panel input {
-    width: 300px;
-    padding: 8px 12px;
-    border-radius: 6px;
-    border: 1px solid #555;
-    background-color: #2b2d3a;
+.btn-orange {
+    background-color: #ff9800;
     color: white;
-    font-size: 14px;
+    padding: 6px 12px;
+    border-radius: 6px;
+    text-decoration: none;
 }
-.search-panel input:focus {
-    outline: 2px solid #00bfff;
+
+.btn-orange:hover {
+    background-color: #e68900;
+}
+
+.data-modifica {
+    font-weight: bold;
 }
 </style>
 
 <script>
 function filtraTabella() {
-    const input = document.getElementById("searchInput").value.toLowerCase();
-    const rows = document.querySelectorAll("#tableArticoli tbody tr");
-
-    rows.forEach(r => {
-        const codice = r.children[0].innerText.toLowerCase();
-        const descrizione = r.children[1].innerText.toLowerCase();
-
-        if (codice.includes(input) || descrizione.includes(input)) {
-            r.style.display = "";
-        } else {
-            r.style.display = "none";
-        }
+    let filtro = document.getElementById("filtro").value.toLowerCase();
+    document.querySelectorAll("#tabellaMagazzino tbody tr").forEach(riga => {
+        riga.style.display = riga.innerText.toLowerCase().includes(filtro) ? "" : "none";
     });
 }
+
+function ricercaBarcode() {
+    let codice = document.getElementById("barcodeInput").value.trim().toLowerCase();
+    document.querySelectorAll("#tabellaMagazzino tbody tr").forEach(riga => {
+        riga.style.display = codice && riga.innerText.toLowerCase().includes(codice) ? "" : "none";
+    });
+    if (codice.length > 3) setTimeout(() => document.getElementById("barcodeInput").value = "", 1200);
+}
+
+function resetFiltri() {
+    document.getElementById("filtro").value = "";
+    document.getElementById("barcodeInput").value = "";
+    filtraTabella();
+}
+
+// 🔵 Colorazione date
+document.addEventListener("DOMContentLoaded", () => {
+    document.querySelectorAll('.data-modifica').forEach(cell => {
+        const d = cell.dataset.date;
+        if (!d) return;
+        const diff = (Date.now() - new Date(d).getTime()) / (1000 * 3600 * 24);
+        if (diff <= 7) cell.style.color = "#00ff88";
+        else if (diff <= 30) cell.style.color = "#ffb300";
+        else cell.style.color = "#ff4444";
+    });
+});
 </script>
+
 {% endblock %}
