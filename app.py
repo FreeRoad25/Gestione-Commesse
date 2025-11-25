@@ -1426,9 +1426,23 @@ def stampa_magazzino():
     from reportlab.lib.styles import getSampleStyleSheet
     import tempfile
     from flask import send_file
+    import psycopg2.extras
+    from decimal import Decimal
+
+    def to_float(v):
+        if v is None:
+            return 0.0
+        if isinstance(v, (int, float)):
+            return float(v)
+        if isinstance(v, Decimal):
+            return float(v)
+        try:
+            return float(str(v).replace(",", "."))
+        except:
+            return 0.0
 
     conn = get_db_connection()
-    cur = conn.cursor()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
     cur.execute("""
         SELECT codice, descrizione, unita, quantita, scorta_minima, fornitore, costo_netto
@@ -1436,6 +1450,10 @@ def stampa_magazzino():
         ORDER BY descrizione
     """)
     articoli = cur.fetchall()
+
+    # --- DIAGNOSTICA: controlla cosa stai leggendo (vedi Render logs) ---
+    print(f"[STAMPA_MAGAZZINO] rows: {len(articoli)}; first: {articoli[0] if articoli else 'none'}")
+
     conn.close()
 
     tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
@@ -1451,36 +1469,25 @@ def stampa_magazzino():
     data = [["Codice", "Descrizione", "Unità", "Q.tà", "Scorta Min.", "Fornitore", "Prezzo Netto €", "Valore Totale €"]]
 
     totale_generale = 0.0
-
     for art in articoli:
-        codice, descrizione, unita, qta, scorta_minima, fornitore, prezzo = art
-
-        # 🔥 Conversioni sicure per PostgreSQL
-        try:
-            qta = float(qta or 0)
-        except:
-            qta = 0.0
-        
-        try:
-            scorta_minima = float(scorta_minima or 0)
-        except:
-            scorta_minima = 0.0
-
-        try:
-            prezzo = float(prezzo or 0)
-        except:
-            prezzo = 0.0
+        codice = art.get("codice") or ""
+        descrizione = art.get("descrizione") or ""
+        unita = art.get("unita") or ""
+        qta = to_float(art.get("quantita"))
+        scorta_minima = to_float(art.get("scorta_minima"))
+        prezzo = to_float(art.get("costo_netto"))
+        fornitore = art.get("fornitore") or ""
 
         valore = qta * prezzo
         totale_generale += valore
 
         data.append([
-            str(codice or ""),
-            str(descrizione or ""),
-            str(unita or ""),
+            str(codice),
+            str(descrizione),
+            str(unita),
             f"{qta:.2f}",
             f"{scorta_minima:.2f}",
-            str(fornitore or ""),
+            str(fornitore),
             f"{prezzo:.2f}",
             f"{valore:.2f}",
         ])
