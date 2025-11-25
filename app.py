@@ -1075,7 +1075,7 @@ def magazzino():
 @app.route("/modifica_articolo/<int:id>", methods=["GET", "POST"])
 def modifica_articolo(id):
     conn = get_db_connection()
-    c = conn.cursor()
+    c = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
     if request.method == "POST":
         descrizione = request.form.get("descrizione")
@@ -1105,14 +1105,8 @@ def modifica_articolo(id):
                     data_modifica = CURRENT_DATE
                 WHERE id = %s
             """, (
-                descrizione,
-                unita,
-                quantita,
-                scorta_minima,
-                fornitore,
-                codice_barre,
-                costo_netto,
-                id
+                descrizione, unita, quantita, scorta_minima,
+                fornitore, codice_barre, costo_netto, id
             ))
         else:
             c.execute("""
@@ -1126,14 +1120,8 @@ def modifica_articolo(id):
                     costo_netto = %s
                 WHERE id = %s
             """, (
-                descrizione,
-                unita,
-                quantita,
-                scorta_minima,
-                fornitore,
-                codice_barre,
-                costo_netto,
-                id
+                descrizione, unita, quantita, scorta_minima,
+                fornitore, codice_barre, costo_netto, id
             ))
 
         conn.commit()
@@ -1141,8 +1129,8 @@ def modifica_articolo(id):
     # Ricarica articolo aggiornato
     c.execute("SELECT * FROM articoli WHERE id = %s", (id,))
     articolo = c.fetchone()
-    conn.close()
 
+    conn.close()
     return render_template("modifica_articolo.html", articolo=articolo)
 
 
