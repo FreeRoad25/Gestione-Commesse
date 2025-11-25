@@ -1419,18 +1419,22 @@ def aggiorna_costo_orario():
     return redirect(url_for("operatori"))
 
 @app.route("/stampa_magazzino")
-#@login_required
 def stampa_magazzino():
     from reportlab.lib.pagesizes import landscape, A4
     from reportlab.lib import colors
     from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
     from reportlab.lib.styles import getSampleStyleSheet
     import tempfile
+    from flask import send_file
 
     conn = get_db_connection()
     cur = conn.cursor()
 
-    cur.execute("SELECT codice, descrizione, unita, quantita, scorta_minima, fornitore, costo_netto FROM articoli ORDER BY descrizione")
+    cur.execute("""
+        SELECT codice, descrizione, unita, quantita, scorta_minima, fornitore, costo_netto
+        FROM articoli
+        ORDER BY descrizione
+    """)
     articoli = cur.fetchall()
     conn.close()
 
@@ -1446,42 +1450,49 @@ def stampa_magazzino():
 
     data = [["Codice", "Descrizione", "Unità", "Q.tà", "Scorta Min.", "Fornitore", "Prezzo Netto €", "Valore Totale €"]]
 
-    totale_generale = 0
+    totale_generale = 0.0
 
     for art in articoli:
         codice, descrizione, unita, qta, scorta_minima, fornitore, prezzo = art
-        qta = qta or 0
-        prezzo = prezzo or 0
+
+        qta = float(qta or 0)
+        scorta_minima = float(scorta_minima or 0)
+        prezzo = float(prezzo or 0)
+
         valore = qta * prezzo
         totale_generale += valore
 
         data.append([
-            codice,
-            descrizione,
-            unita,
+            str(codice),
+            str(descrizione),
+            str(unita),
             f"{qta:.2f}",
             f"{scorta_minima:.2f}",
-            fornitore,
+            str(fornitore or ""),
             f"{prezzo:.2f}",
-            f"{valore:.2f}"
+            f"{valore:.2f}",
         ])
 
     data.append(["", "", "", "", "", "", "Totale", f"{totale_generale:.2f} €"])
 
     t = Table(data, repeatRows=1)
     t.setStyle(TableStyle([
-        ("BACKGROUND", (0,0), (-1,0), colors.lightgrey),
-        ("GRID", (0,0), (-1,-1), 0.5, colors.black),
-        ("ALIGN", (3,1), (-1,-1), "CENTER"),
-        ("FONTNAME", (0,0), (-1,0), "Helvetica-Bold"),
-        ("BACKGROUND", (-2,-1), (-1,-1), colors.beige),
+        ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
+        ("GRID", (0, 0), (-1, -1), 0.5, colors.black),
+        ("ALIGN", (3, 1), (-1, -1), "CENTER"),
+        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+        ("BACKGROUND", (-2, -1), (-1, -1), colors.beige),
     ]))
 
     elements.append(t)
     pdf.build(elements)
 
-    from flask import send_file
-    return send_file(filename, download_name="stampa_magazzino.pdf", as_attachment=False, mimetype="application/pdf")
+    return send_file(
+        filename,
+        download_name="stampa_magazzino.pdf",
+        as_attachment=False,
+        mimetype="application/pdf",
+    )
 # ROOT
 # =========================================================
 @app.route("/")
