@@ -1218,6 +1218,11 @@ def aggiungi_articolo():
         scorta_minima = request.form.get("scorta_minima", "").strip()
         costo_netto = request.form.get("costo_netto", "").strip()
 
+        # Correzione virgole nei numeri
+        quantita = quantita.replace(",", ".")
+        scorta_minima = scorta_minima.replace(",", ".")
+        costo_netto = costo_netto.replace(",", ".")
+
         try:
             quantita = float(quantita) if quantita else 0.0
             scorta_minima = float(scorta_minima) if scorta_minima else 0.0
@@ -1236,7 +1241,7 @@ def aggiungi_articolo():
             c.execute("""
                 INSERT INTO articoli
                 (codice, descrizione, unita, quantita, codice_barre, fornitore, scorta_minima, costo_netto, data_modifica)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 codice, descrizione, unita, quantita,
                 codice_barre, fornitore, scorta_minima,
