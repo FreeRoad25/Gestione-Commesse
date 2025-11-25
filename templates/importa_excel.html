@@ -1,0 +1,25 @@
+{% extends "layout.html" %}
+{% block title %}Importa Excel{% endblock %}
+
+{% block content %}
+<div class="content-wrapper">
+    <h1>📥 Importa Articoli da Excel</h1>
+
+    <form action="/importa_excel" method="POST" enctype="multipart/form-data">
+        <label>Carica file Excel (.xlsx)</label>
+        <input type="file" name="file_excel" accept=".xlsx" required>
+
+        <button type="submit" class="btn-confirm">📤 Importa</button>
+        <a href="{{ url_for('magazzino_articoli') }}" class="btn-back">↩ Torna al Magazzino</a>
+    </form>
+</div>
+
+<style>
+.content-wrapper { width: 50%; margin: 40px auto; padding: 40px;
+    background: rgba(0,0,0,0.7); border-radius: 16px; color: white; }
+h1 { color: #00bfff; text-align: center; margin-bottom: 30px; }
+input { width: 100%; padding: 10px; margin: 10px 0; border-radius: 8px; background: #111; color: white; }
+.btn-confirm { background: #00bfff; padding: 12px 18px; border-radius: 8px; border: none; color: white; cursor: pointer; }
+.btn-back { margin-left: 10px; background: #444; padding: 12px 18px; border-radius: 8px; color: white; text-decoration: none; }
+</style>
+{% endblock %}

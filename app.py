@@ -1418,6 +1418,74 @@ def aggiorna_costo_orario():
 
     return redirect(url_for("operatori"))
 
+@app.route("/importa_excel", methods=["GET", "POST"])
+def importa_excel():
+    import openpyxl
+    import psycopg2.extras
+
+    if request.method == "POST":
+        file = request.files.get("file_excel")
+
+        if not file:
+            return "Errore: nessun file caricato"
+
+        try:
+            wb = openpyxl.load_workbook(file)
+            ws = wb.active
+        except:
+            return "Errore: il file deve essere un Excel .xlsx valido"
+
+        conn = get_db_connection()
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+        # Lettura riga per riga
+        for row in ws.iter_rows(min_row=2, values_only=True):
+            if not row or not row[0]:
+                continue  # salta righe vuote
+
+            codice = str(row[0]).strip()
+            descrizione = str(row[1] or "").strip()
+            unita = str(row[2] or "").strip()
+
+            # conversioni sicure
+            def safe(x):
+                try:
+                    return float(str(x).replace(",", ".")) if x is not None else 0
+                except:
+                    return 0
+
+            quantita = safe(row[3])
+            scorta_minima = safe(row[4])
+            fornitore = str(row[5] or "").strip()
+            costo_netto = safe(row[6])
+
+            # Controllo se il codice esiste già
+            cur.execute("SELECT id FROM articoli WHERE codice = %s", (codice,))
+            esiste = cur.fetchone()
+
+            if esiste:
+                # aggiorno
+                cur.execute("""
+                    UPDATE articoli
+                    SET descrizione=%s, unita=%s, quantita=%s, scorta_minima=%s,
+                        fornitore=%s, costo_netto=%s, data_modifica=CURRENT_DATE
+                    WHERE codice=%s
+                """, (descrizione, unita, quantita, scorta_minima, fornitore, costo_netto, codice))
+            else:
+                # inserisco
+                cur.execute("""
+                    INSERT INTO articoli (codice, descrizione, unita, quantita, scorta_minima, 
+                                          fornitore, costo_netto, data_modifica)
+                    VALUES (%s,%s,%s,%s,%s,%s,%s,CURRENT_DATE)
+                """, (codice, descrizione, unita, quantita, scorta_minima, fornitore, costo_netto))
+
+        conn.commit()
+        conn.close()
+
+        return redirect(url_for("magazzino_articoli"))
+
+    return render_template("importa_excel.html")
+
 @app.route("/stampa_magazzino")
 def stampa_magazzino():
     from reportlab.lib.pagesizes import landscape, A4
