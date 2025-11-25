@@ -1481,7 +1481,7 @@ def stampa_magazzino():
     pdf.build(elements)
 
     from flask import send_file
-    return send_file(filename, as_attachment=False, mimetype="application/pdf")
+    return send_file(filename, download_name="stampa_magazzino.pdf", as_attachment=False, mimetype="application/pdf")
 # ROOT
 # =========================================================
 @app.route("/")
