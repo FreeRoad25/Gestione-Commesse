@@ -1422,6 +1422,7 @@ def aggiorna_costo_orario():
 def importa_excel():
     import openpyxl
     import psycopg2.extras
+    import re
 
     if request.method == "POST":
         file = request.files.get("file_excel")
@@ -1438,6 +1439,20 @@ def importa_excel():
         conn = get_db_connection()
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
+        # funzione per convertire in float valori tipo "54,90 €"
+        def safe(x):
+            if x is None:
+                return 0
+            s = str(x)
+            # tolgo simbolo euro e spazi
+            s = s.replace("€", "").replace(" ", "")
+            # converto la virgola decimale in punto
+            s = s.replace(",", ".")
+            try:
+                return float(s)
+            except:
+                return 0
+
         # Lettura riga per riga
         for row in ws.iter_rows(min_row=2, values_only=True):
             if not row or not row[0]:
@@ -1447,17 +1462,17 @@ def importa_excel():
             descrizione = str(row[1] or "").strip()
             unita = str(row[2] or "").strip()
 
-            # conversioni sicure
-            def safe(x):
-                try:
-                    return float(str(x).replace(",", ".")) if x is not None else 0
-                except:
-                    return 0
-
             quantita = safe(row[3])
-            scorta_minima = safe(row[4])
+
+            # nel tuo Excel:
+            # [4] = BARCODE (al momento non lo usi nel DB)
+            # [5] = FORNITORE
+            # [6] = VALORE (costo netto)
+            # [7] = SCORTA MINIMA
+
             fornitore = str(row[5] or "").strip()
             costo_netto = safe(row[6])
+            scorta_minima = safe(row[7]) if len(row) > 7 else 0
 
             # Controllo se il codice esiste già
             cur.execute("SELECT id FROM articoli WHERE codice = %s", (codice,))
@@ -1467,17 +1482,39 @@ def importa_excel():
                 # aggiorno
                 cur.execute("""
                     UPDATE articoli
-                    SET descrizione=%s, unita=%s, quantita=%s, scorta_minima=%s,
-                        fornitore=%s, costo_netto=%s, data_modifica=CURRENT_DATE
+                    SET descrizione=%s,
+                        unita=%s,
+                        quantita=%s,
+                        scorta_minima=%s,
+                        fornitore=%s,
+                        costo_netto=%s,
+                        data_modifica=CURRENT_DATE
                     WHERE codice=%s
-                """, (descrizione, unita, quantita, scorta_minima, fornitore, costo_netto, codice))
+                """, (
+                    descrizione,
+                    unita,
+                    quantita,
+                    scorta_minima,
+                    fornitore,
+                    costo_netto,
+                    codice
+                ))
             else:
                 # inserisco
                 cur.execute("""
-                    INSERT INTO articoli (codice, descrizione, unita, quantita, scorta_minima, 
-                                          fornitore, costo_netto, data_modifica)
+                    INSERT INTO articoli
+                        (codice, descrizione, unita, quantita,
+                         scorta_minima, fornitore, costo_netto, data_modifica)
                     VALUES (%s,%s,%s,%s,%s,%s,%s,CURRENT_DATE)
-                """, (codice, descrizione, unita, quantita, scorta_minima, fornitore, costo_netto))
+                """, (
+                    codice,
+                    descrizione,
+                    unita,
+                    quantita,
+                    scorta_minima,
+                    fornitore,
+                    costo_netto
+                ))
 
         conn.commit()
         conn.close()
