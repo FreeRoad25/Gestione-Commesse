@@ -1168,11 +1168,11 @@ def magazzino_sottoscorta():
         c = conn.cursor()
 
         c.execute("""
-            SELECT codice, descrizione, unita, quantita, scorta_minima
-            FROM articoli
-            WHERE COALESCE(quantita, 0) < COALESCE(scorta_minima, 0)
-            ORDER BY descrizione ASC
-        """)
+    SELECT codice, descrizione, unita, quantita, scorta_minima, fornitore
+    FROM articoli
+    WHERE COALESCE(quantita, 0) < COALESCE(scorta_minima, 0)
+    ORDER BY descrizione ASC
+""")
 
         articoli_sottoscorta = c.fetchall()
         conn.close()
