@@ -446,8 +446,43 @@ def aggiungi_commessa():
 
     if request.method == "POST":
         nome = request.form.get("nome")
-        tipo_intervento = request.form.get("tipo_intervento")
-        marca_veicolo = request.form.get("marca_veicolo")
+
+        # ---------------- TIPO INTERVENTO ----------------
+        tipo_sel = request.form.get("tipo_intervento") or ""
+        nuovo_intervento = (request.form.get("nuovo_intervento") or "").strip()
+
+        if tipo_sel == "Altro" and nuovo_intervento:
+            # Se l'utente ha scritto un nuovo tipo, lo salvo nella tabella tipi_intervento (se non esiste)
+            c.execute(
+                "SELECT 1 FROM tipi_intervento WHERE LOWER(nome) = LOWER(%s) LIMIT 1",
+                (nuovo_intervento,)
+            )
+            esiste = c.fetchone()
+            if not esiste:
+                c.execute("INSERT INTO tipi_intervento (nome) VALUES (%s)", (nuovo_intervento,))
+            tipo_intervento = nuovo_intervento
+        else:
+            tipo_intervento = tipo_sel
+        # -------------------------------------------------
+
+        # -------------------- MARCA ----------------------
+        marca_sel = request.form.get("marca_veicolo") or ""
+        nuova_marca = (request.form.get("nuova_marca") or "").strip()
+
+        if marca_sel == "nuova" and nuova_marca:
+            # Salvo la nuova marca nella tabella marche se non esiste
+            c.execute(
+                "SELECT 1 FROM marche WHERE LOWER(nome) = LOWER(%s) LIMIT 1",
+                (nuova_marca,)
+            )
+            esiste_marca = c.fetchone()
+            if not esiste_marca:
+                c.execute("INSERT INTO marche (nome) VALUES (%s)", (nuova_marca,))
+            marca_veicolo = nuova_marca
+        else:
+            marca_veicolo = marca_sel
+        # -------------------------------------------------
+
         modello_veicolo = request.form.get("modello_veicolo")
         dimensioni = request.form.get("dimensioni")
         data_conferma = request.form.get("data_conferma")
@@ -460,33 +495,36 @@ def aggiungi_commessa():
         ore_rimanenti = ore_necessarie
 
         try:
-           c.execute("""
-             INSERT INTO commesse
-             (nome, tipo_intervento, marca_veicolo, modello_veicolo, dimensioni,
-             data_conferma, data_arrivo_materiali, data_inizio,
-             ore_necessarie, ore_eseguite, ore_rimanenti, data_consegna,
-             foto, allegato, note_importanti)
-               VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-            """, (
-            nome,
-            tipo_intervento,
-            marca_veicolo,
-            modello_veicolo,
-            dimensioni,
-            data_conferma,
-           data_arrivo_materiali,
-            data_inizio,
-            ore_necessarie,
-           ore_eseguite,
-            ore_rimanenti,
-            None,
-           None,
-           None,
-           note_importanti
- )) 
+            c.execute(
+                """
+                INSERT INTO commesse
+                (nome, tipo_intervento, marca_veicolo, modello_veicolo, dimensioni,
+                 data_conferma, data_arrivo_materiali, data_inizio,
+                 ore_necessarie, ore_eseguite, ore_rimanenti, data_consegna,
+                 foto, allegato, note_importanti)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                """,
+                (
+                    nome,
+                    tipo_intervento,
+                    marca_veicolo,
+                    modello_veicolo,
+                    dimensioni,
+                    data_conferma,
+                    data_arrivo_materiali,
+                    data_inizio,
+                    ore_necessarie,
+                    ore_eseguite,
+                    ore_rimanenti,
+                    None,
+                    None,
+                    None,
+                    note_importanti,
+                ),
+            )
 
-           conn.commit()
-           return redirect(url_for("lista_commesse"))
+            conn.commit()
+            return redirect(url_for("lista_commesse"))
 
         except Exception as e:
             conn.rollback()
@@ -496,7 +534,7 @@ def aggiungi_commessa():
         finally:
             conn.close()
 
-    # GET
+    # ------- GET -------
     c.execute("SELECT nome FROM tipi_intervento ORDER BY nome ASC")
     tipi_intervento = [row["nome"] for row in c.fetchall()]
 
@@ -510,6 +548,7 @@ def aggiungi_commessa():
         tipi_intervento=tipi_intervento,
         marche=marche
     )
+
 
 
 @app.route("/modifica_commessa/<int:id>", methods=["GET", "POST"])
@@ -527,12 +566,45 @@ def modifica_commessa(id):
         return "Commessa non trovata", 404
 
     if request.method == "POST":
-
         nome = request.form.get("nome")
-        tipo_intervento = request.form.get("tipo_intervento")
-        marca_veicolo = request.form.get("marca_veicolo")
+
+        # ------------ TIPO INTERVENTO ------------
+        tipo_sel = request.form.get("tipo_intervento") or ""
+        nuovo_intervento = (request.form.get("nuovo_intervento") or "").strip()
+
+        if tipo_sel == "Altro" and nuovo_intervento:
+            c.execute(
+                "SELECT 1 FROM tipi_intervento WHERE LOWER(nome) = LOWER(%s) LIMIT 1",
+                (nuovo_intervento,)
+            )
+            esiste = c.fetchone()
+            if not esiste:
+                c.execute("INSERT INTO tipi_intervento (nome) VALUES (%s)", (nuovo_intervento,))
+            tipo_intervento = nuovo_intervento
+        else:
+            tipo_intervento = tipo_sel
+        # ----------------------------------------
+
+        # ------------------ MARCA ----------------
+        marca_sel = request.form.get("marca_veicolo") or ""
+        nuova_marca = (request.form.get("nuova_marca") or "").strip()
+
+        if marca_sel == "nuova" and nuova_marca:
+            c.execute(
+                "SELECT 1 FROM marche WHERE LOWER(nome) = LOWER(%s) LIMIT 1",
+                (nuova_marca,)
+            )
+            esiste_marca = c.fetchone()
+            if not esiste_marca:
+                c.execute("INSERT INTO marche (nome) VALUES (%s)", (nuova_marca,))
+            marca_veicolo = nuova_marca
+        else:
+            marca_veicolo = marca_sel
+        # ----------------------------------------
+
         modello_veicolo = request.form.get("modello_veicolo")
         dimensioni = request.form.get("dimensioni")
+
         data_conferma_raw = request.form.get("data_conferma")
         data_conferma = data_conferma_raw if data_conferma_raw else None
 
@@ -544,6 +616,7 @@ def modifica_commessa(id):
 
         data_consegna_raw = request.form.get("data_consegna")
         data_consegna = data_consegna_raw if data_consegna_raw else None
+
         note_importanti = request.form.get("note_importanti")
 
         ore_raw = request.form.get("ore_necessarie") or 0
@@ -552,7 +625,8 @@ def modifica_commessa(id):
         ore_rimanenti = ore_necessarie - ore_eseguite
 
         try:
-            c.execute("""
+            c.execute(
+                """
                 UPDATE commesse SET
                     nome = %s,
                     tipo_intervento = %s,
@@ -568,22 +642,24 @@ def modifica_commessa(id):
                     data_consegna = %s,
                     note_importanti = %s
                 WHERE id = %s
-            """, (
-                nome,
-                tipo_intervento,
-                marca_veicolo,
-                modello_veicolo,
-                dimensioni,
-                data_conferma,
-                data_arrivo_materiali,
-                data_inizio,
-                ore_necessarie,
-                ore_eseguite,
-                ore_rimanenti,
-                data_consegna,
-                note_importanti,
-                id
-            ))
+                """,
+                (
+                    nome,
+                    tipo_intervento,
+                    marca_veicolo,
+                    modello_veicolo,
+                    dimensioni,
+                    data_conferma,
+                    data_arrivo_materiali,
+                    data_inizio,
+                    ore_necessarie,
+                    ore_eseguite,
+                    ore_rimanenti,
+                    data_consegna,
+                    note_importanti,
+                    id,
+                ),
+            )
 
             conn.commit()
             return redirect(url_for("lista_commesse"))
@@ -603,16 +679,18 @@ def modifica_commessa(id):
     c.execute("SELECT id, nome FROM marche ORDER BY nome ASC")
     marche = c.fetchall()
 
-    c.execute("""
+    c.execute(
+        """
         SELECT DISTINCT modello_veicolo
         FROM commesse
         WHERE modello_veicolo IS NOT NULL AND modello_veicolo != ''
-    """)
+        """
+    )
     modelli = [row["modello_veicolo"] for row in c.fetchall()]
 
     c.execute(
         "SELECT * FROM commessa_files WHERE id_commessa = %s ORDER BY upload_date DESC",
-        (id,)
+        (id,),
     )
     files = c.fetchall()
 
@@ -625,8 +703,9 @@ def modifica_commessa(id):
         files=files,
         tipi_intervento=tipi_intervento,
         marche=marche,
-        modelli=modelli
+        modelli=modelli,
     )
+
 
 @app.route("/stampa_commessa/<int:id>")
 def stampa_commessa(id):
