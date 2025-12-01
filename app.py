@@ -716,9 +716,11 @@ def stampa_commessa(id):
     from decimal import Decimal
     from flask import Response
     from io import BytesIO
+    import psycopg2.extras
 
     conn = get_db_connection()
-    c = conn.cursor()
+    # >>> cursore a dizionario, come nel resto dell’app
+    c = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
     # Commessa aperta
     c.execute("SELECT * FROM commesse WHERE id = %s", (id,))
@@ -764,16 +766,16 @@ def stampa_commessa(id):
 
     # Tabella info principali
     dati = [
-        ["Tipo Intervento", commessa["tipo_intervento"] or "---"],
+        ["Tipo Intervento", commessa.get("tipo_intervento") or "---"],
         [
             "Veicolo",
-            f"{commessa['marca_veicolo'] or ''} {commessa['modello_veicolo'] or ''}"
+            f"{commessa.get('marca_veicolo') or ''} {commessa.get('modello_veicolo') or ''}"
         ],
-        ["Data Conferma", str(commessa["data_conferma"] or "---")],
-        ["Data Arrivo Materiali", str(commessa["data_arrivo_materiali"] or "---")],
-        ["Data Inizio", str(commessa["data_inizio"] or "---")],
-        ["Data Consegna", str(commessa["data_consegna"] or "---")],
-        ["Ore Necessarie", commessa["ore_necessarie"] or 0],
+        ["Data Conferma", str(commessa.get("data_conferma") or "---")],
+        ["Data Arrivo Materiali", str(commessa.get("data_arrivo_materiali") or "---")],
+        ["Data Inizio", str(commessa.get("data_inizio") or "---")],
+        ["Data Consegna", str(commessa.get("data_consegna") or "---")],
+        ["Ore Necessarie", commessa.get("ore_necessarie") or 0],
     ]
 
     table_info = Table(dati, colWidths=[200, 300])
@@ -785,58 +787,48 @@ def stampa_commessa(id):
     elements.append(Spacer(1, 15))
 
     # NOTE IMPORTANTI
-    note_text = None
-    try:
-        # se è un RealDictRow / dict
-        note_text = commessa.get("note_importanti")
-    except AttributeError:
-        # se per qualche motivo non supporta .get
-        try:
-            note_text = commessa["note_importanti"]
-        except (KeyError, TypeError):
-            note_text = None
-
+    note_text = commessa.get("note_importanti")
     if note_text:
         elements.append(Paragraph("Note importanti", styles["Heading2"]))
-        # sostituisco gli a capo con <br> per mantenere la formattazione
         note_clean = str(note_text).replace("\n", "<br/>")
         elements.append(Paragraph(note_clean, styles["Normal"]))
         elements.append(Spacer(1, 15))
 
-    # MATERIALI
-    if materiali:
-        mat_data = [["Codice", "Descrizione", "Q.tà", "Costo €", "Totale €"]]
-        for m in materiali:
-            q = Decimal(str(m["quantita"] or 0))
-            cst = Decimal(str(m["costo_netto"] or 0))
-            tot = q * cst
+    # MATERIALI – sempre mostra intestazione, anche se vuota
+    elements.append(Paragraph("Materiali Utilizzati", styles["Heading2"]))
 
-            mat_data.append([
-                m["codice"],
-                m["descrizione"],
-                float(q),
-                f"{cst:.2f}",
-                f"{tot:.2f}",
-            ])
+    mat_data = [["Codice", "Descrizione", "Q.tà", "Costo €", "Totale €"]]
+    for m in materiali:
+        # m è un RealDictRow
+        q = Decimal(str(m.get("quantita") or 0))
+        cst = Decimal(str(m.get("costo_netto") or 0))
+        tot = q * cst
 
-        t_mat = Table(mat_data, colWidths=[80, 220, 60, 80, 80])
-        t_mat.setStyle(TableStyle([
-            ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
-            ("GRID", (0, 0), (-1, -1), 0.4, colors.black),
-        ]))
-        elements.append(Paragraph("Materiali Utilizzati", styles["Heading2"]))
-        elements.append(t_mat)
+        mat_data.append([
+            m.get("codice"),
+            m.get("descrizione"),
+            float(q),
+            f"{cst:.2f}",
+            f"{tot:.2f}",
+        ])
+
+    t_mat = Table(mat_data, colWidths=[80, 220, 60, 80, 80])
+    t_mat.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
+        ("GRID", (0, 0), (-1, -1), 0.4, colors.black),
+    ]))
+    elements.append(t_mat)
 
     # ORE LAVORATE
     if ore_lavorate:
         ore_data = [["Operatore", "Ore", "€/h", "Totale €"]]
         for r in ore_lavorate:
-            ore = Decimal(str(r["ore"] or 0))
-            costo = Decimal(str(r["costo_orario"] or 0))
+            ore = Decimal(str(r.get("ore") or 0))
+            costo = Decimal(str(r.get("costo_orario") or 0))
             tot = ore * costo
 
             ore_data.append([
-                r["operatore"] or "---",
+                r.get("operatore") or "---",
                 float(ore),
                 f"{costo:.2f}",
                 f"{tot:.2f}",
@@ -860,6 +852,7 @@ def stampa_commessa(id):
         mimetype="application/pdf",
         headers={"Content-Disposition": f"inline; filename=commessa_{id}.pdf"}
     )
+
 
   
 @app.route("/stampa_commessa_archiviata/<int:id>")
