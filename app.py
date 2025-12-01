@@ -1185,9 +1185,12 @@ def magazzino():
 @app.route("/modifica_articolo/<int:id>", methods=["GET", "POST"])
 def modifica_articolo(id):
     conn = get_db_connection()
+    import psycopg2.extras
     c = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
     if request.method == "POST":
+        # NUOVO: leggo anche il codice
+        codice = request.form.get("codice")
         descrizione = request.form.get("descrizione")
         unita = request.form.get("unita")
         quantita = float(request.form.get("quantita") or 0)
@@ -1205,6 +1208,7 @@ def modifica_articolo(id):
         if costo_netto != prezzo_vecchio:
             c.execute("""
                 UPDATE articoli SET
+                    codice = %s,
                     descrizione = %s,
                     unita = %s,
                     quantita = %s,
@@ -1215,13 +1219,20 @@ def modifica_articolo(id):
                     data_modifica = CURRENT_DATE
                 WHERE id = %s
             """, (
-                descrizione, unita, quantita,
-                scorta_minima, fornitore,
-                codice_barre, costo_netto, id
+                codice,
+                descrizione,
+                unita,
+                quantita,
+                scorta_minima,
+                fornitore,
+                codice_barre,
+                costo_netto,
+                id
             ))
         else:
             c.execute("""
                 UPDATE articoli SET
+                    codice = %s,
                     descrizione = %s,
                     unita = %s,
                     quantita = %s,
@@ -1231,15 +1242,21 @@ def modifica_articolo(id):
                     costo_netto = %s
                 WHERE id = %s
             """, (
-                descrizione, unita, quantita,
-                scorta_minima, fornitore,
-                codice_barre, costo_netto, id
+                codice,
+                descrizione,
+                unita,
+                quantita,
+                scorta_minima,
+                fornitore,
+                codice_barre,
+                costo_netto,
+                id
             ))
 
         conn.commit()
         conn.close()
 
-        # 👉 DOPO IL SALVATAGGIO TORNA ALLA PAGINA MAGAZZINO
+        # Dopo il salvataggio torna alla pagina magazzino
         return redirect(url_for('magazzino_articoli'))
 
     # GET → carica dati articolo
@@ -1251,6 +1268,7 @@ def modifica_articolo(id):
         return "Errore: articolo non trovato", 404
 
     return render_template("modifica_articolo.html", articolo=articolo)
+
 
 
 @app.route('/pagina_aggiungi_articolo')

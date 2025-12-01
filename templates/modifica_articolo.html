@@ -7,7 +7,7 @@
 
     <form action="{{ url_for('modifica_articolo', id=articolo.id) }}" method="POST" class="mag-form">
         <label>Codice:</label>
-        <input type="text" value="{{ articolo.codice }}" disabled>
+        <input type="text" value="{{ articolo.codice }}" required>
 
         <label>Descrizione:</label>
         <input type="text" name="descrizione" value="{{ articolo.descrizione }}" required>
