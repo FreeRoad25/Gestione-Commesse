@@ -1184,82 +1184,115 @@ def magazzino():
 
 @app.route("/modifica_articolo/<int:id>", methods=["GET", "POST"])
 def modifica_articolo(id):
-    conn = get_db_connection()
     import psycopg2.extras
+
+    conn = get_db_connection()
     c = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
-    if request.method == "POST":
-        # NUOVO: leggo anche il codice
-        codice = request.form.get("codice")
-        descrizione = request.form.get("descrizione")
-        unita = request.form.get("unita")
-        quantita = float(request.form.get("quantita") or 0)
-        scorta_minima = float(request.form.get("scorta_minima") or 0)
-        fornitore = request.form.get("fornitore")
-        codice_barre = request.form.get("codice_barre")
-        costo_netto = float(request.form.get("costo_netto") or 0)
+    def parse_float(value):
+        """
+        Converte una stringa in float:
+        - gestisce None / stringhe vuote
+        - sostituisce la virgola con il punto
+        - in caso di errore restituisce 0.0
+        """
+        if not value:
+            return 0.0
+        s = str(value).strip().replace(",", ".")
+        try:
+            return float(s)
+        except ValueError:
+            print("VALORE NUMERICO NON VALIDO:", value)
+            return 0.0
 
-        # Legge costo precedente
+    if request.method == "POST":
+        # --- dati dal form ---
+        codice        = request.form.get("codice")
+        descrizione   = request.form.get("descrizione")
+        unita         = request.form.get("unita")
+        quantita      = parse_float(request.form.get("quantita"))
+        scorta_minima = parse_float(request.form.get("scorta_minima"))
+        fornitore     = request.form.get("fornitore")
+        codice_barre  = request.form.get("codice_barre")
+        costo_netto   = parse_float(request.form.get("costo_netto"))
+
+        # costo precedente
         c.execute("SELECT costo_netto FROM articoli WHERE id = %s", (id,))
         row = c.fetchone()
-        prezzo_vecchio = row["costo_netto"] if row else 0
-
-        # Aggiorna con o senza data modifica
-        if costo_netto != prezzo_vecchio:
-            c.execute("""
-                UPDATE articoli SET
-                    codice = %s,
-                    descrizione = %s,
-                    unita = %s,
-                    quantita = %s,
-                    scorta_minima = %s,
-                    fornitore = %s,
-                    codice_barre = %s,
-                    costo_netto = %s,
-                    data_modifica = CURRENT_DATE
-                WHERE id = %s
-            """, (
-                codice,
-                descrizione,
-                unita,
-                quantita,
-                scorta_minima,
-                fornitore,
-                codice_barre,
-                costo_netto,
-                id
-            ))
+        if row and row["costo_netto"] is not None:
+            prezzo_vecchio = float(row["costo_netto"])
         else:
-            c.execute("""
-                UPDATE articoli SET
-                    codice = %s,
-                    descrizione = %s,
-                    unita = %s,
-                    quantita = %s,
-                    scorta_minima = %s,
-                    fornitore = %s,
-                    codice_barre = %s,
-                    costo_netto = %s
-                WHERE id = %s
-            """, (
-                codice,
-                descrizione,
-                unita,
-                quantita,
-                scorta_minima,
-                fornitore,
-                codice_barre,
-                costo_netto,
-                id
-            ))
+            prezzo_vecchio = 0.0
 
-        conn.commit()
+        try:
+            if costo_netto != prezzo_vecchio:
+                # costo cambiato -> aggiorno anche data_modifica
+                c.execute(
+                    """
+                    UPDATE articoli SET
+                        codice = %s,
+                        descrizione = %s,
+                        unita = %s,
+                        quantita = %s,
+                        scorta_minima = %s,
+                        fornitore = %s,
+                        codice_barre = %s,
+                        costo_netto = %s,
+                        data_modifica = CURRENT_DATE
+                    WHERE id = %s
+                    """,
+                    (
+                        codice,
+                        descrizione,
+                        unita,
+                        quantita,
+                        scorta_minima,
+                        fornitore,
+                        codice_barre,
+                        costo_netto,
+                        id,
+                    ),
+                )
+            else:
+                # costo uguale -> non tocco data_modifica
+                c.execute(
+                    """
+                    UPDATE articoli SET
+                        codice = %s,
+                        descrizione = %s,
+                        unita = %s,
+                        quantita = %s,
+                        scorta_minima = %s,
+                        fornitore = %s,
+                        codice_barre = %s,
+                        costo_netto = %s
+                    WHERE id = %s
+                    """,
+                    (
+                        codice,
+                        descrizione,
+                        unita,
+                        quantita,
+                        scorta_minima,
+                        fornitore,
+                        codice_barre,
+                        costo_netto,
+                        id,
+                    ),
+                )
+
+            conn.commit()
+
+        except Exception as e:
+            conn.rollback()
+            print("ERRORE MODIFICA_ARTICOLO:", e)
+            conn.close()
+            return "Errore modifica articolo", 500
+
         conn.close()
+        return redirect(url_for("magazzino_articoli"))
 
-        # Dopo il salvataggio torna alla pagina magazzino
-        return redirect(url_for('magazzino_articoli'))
-
-    # GET → carica dati articolo
+    # ------- GET: carico dati articolo -------
     c.execute("SELECT * FROM articoli WHERE id = %s", (id,))
     articolo = c.fetchone()
     conn.close()
@@ -1268,6 +1301,7 @@ def modifica_articolo(id):
         return "Errore: articolo non trovato", 404
 
     return render_template("modifica_articolo.html", articolo=articolo)
+
 
 
 
