@@ -720,9 +720,11 @@ def stampa_commessa(id):
     conn = get_db_connection()
     c = conn.cursor()
 
+    # Commessa aperta
     c.execute("SELECT * FROM commesse WHERE id = %s", (id,))
     commessa = c.fetchone()
 
+    # Se non trovata, cerco tra le consegnate
     if not commessa:
         c.execute("SELECT * FROM commesse_consegnate WHERE id = %s", (id,))
         commessa = c.fetchone()
@@ -731,6 +733,7 @@ def stampa_commessa(id):
         conn.close()
         return "Commessa non trovata", 404
 
+    # Materiali usati
     c.execute("""
         SELECT a.codice, a.descrizione, cm.quantita, a.costo_netto
         FROM commesse_materiali cm
@@ -739,6 +742,7 @@ def stampa_commessa(id):
     """, (id,))
     materiali = c.fetchall()
 
+    # Ore lavorate
     c.execute("""
         SELECT o.nome AS operatore, ol.ore, COALESCE(o.costo_orario, 0) AS costo_orario
         FROM ore_lavorate ol
@@ -754,12 +758,17 @@ def stampa_commessa(id):
     styles = getSampleStyleSheet()
     elements = []
 
+    # Titolo
     elements.append(Paragraph(f"<b>Commessa #{id} – {commessa['nome']}</b>", styles["Title"]))
     elements.append(Spacer(1, 12))
 
+    # Tabella info principali
     dati = [
         ["Tipo Intervento", commessa["tipo_intervento"] or "---"],
-        ["Veicolo", f"{commessa['marca_veicolo'] or ''} {commessa['modello_veicolo'] or ''}"],
+        [
+            "Veicolo",
+            f"{commessa['marca_veicolo'] or ''} {commessa['modello_veicolo'] or ''}"
+        ],
         ["Data Conferma", str(commessa["data_conferma"] or "---")],
         ["Data Arrivo Materiali", str(commessa["data_arrivo_materiali"] or "---")],
         ["Data Inizio", str(commessa["data_inizio"] or "---")],
@@ -769,12 +778,32 @@ def stampa_commessa(id):
 
     table_info = Table(dati, colWidths=[200, 300])
     table_info.setStyle(TableStyle([
-        ("GRID", (0,0), (-1,-1), 0.5, colors.grey),
-        ("FONTNAME", (0,0), (-1,-1), "Helvetica"),
+        ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+        ("FONTNAME", (0, 0), (-1, -1), "Helvetica"),
     ]))
     elements.append(table_info)
     elements.append(Spacer(1, 15))
 
+    # NOTE IMPORTANTI
+    note_text = None
+    try:
+        # se è un RealDictRow / dict
+        note_text = commessa.get("note_importanti")
+    except AttributeError:
+        # se per qualche motivo non supporta .get
+        try:
+            note_text = commessa["note_importanti"]
+        except (KeyError, TypeError):
+            note_text = None
+
+    if note_text:
+        elements.append(Paragraph("Note importanti", styles["Heading2"]))
+        # sostituisco gli a capo con <br> per mantenere la formattazione
+        note_clean = str(note_text).replace("\n", "<br/>")
+        elements.append(Paragraph(note_clean, styles["Normal"]))
+        elements.append(Spacer(1, 15))
+
+    # MATERIALI
     if materiali:
         mat_data = [["Codice", "Descrizione", "Q.tà", "Costo €", "Totale €"]]
         for m in materiali:
@@ -787,17 +816,18 @@ def stampa_commessa(id):
                 m["descrizione"],
                 float(q),
                 f"{cst:.2f}",
-                f"{tot:.2f}"
+                f"{tot:.2f}",
             ])
 
         t_mat = Table(mat_data, colWidths=[80, 220, 60, 80, 80])
         t_mat.setStyle(TableStyle([
-            ("BACKGROUND", (0,0), (-1,0), colors.lightgrey),
-            ("GRID", (0,0), (-1,-1), 0.4, colors.black),
+            ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
+            ("GRID", (0, 0), (-1, -1), 0.4, colors.black),
         ]))
         elements.append(Paragraph("Materiali Utilizzati", styles["Heading2"]))
         elements.append(t_mat)
 
+    # ORE LAVORATE
     if ore_lavorate:
         ore_data = [["Operatore", "Ore", "€/h", "Totale €"]]
         for r in ore_lavorate:
@@ -809,20 +839,20 @@ def stampa_commessa(id):
                 r["operatore"] or "---",
                 float(ore),
                 f"{costo:.2f}",
-                f"{tot:.2f}"
+                f"{tot:.2f}",
             ])
 
         t_ore = Table(ore_data, colWidths=[200, 80, 80, 80])
         t_ore.setStyle(TableStyle([
-            ("BACKGROUND", (0,0), (-1,0), colors.lightgrey),
-            ("GRID", (0,0), (-1,-1), 0.4, colors.black),
+            ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
+            ("GRID", (0, 0), (-1, -1), 0.4, colors.black),
         ]))
         elements.append(Spacer(1, 15))
         elements.append(Paragraph("Ore Lavorate", styles["Heading2"]))
         elements.append(t_ore)
 
+    # Costruzione PDF
     pdf.build(elements)
-
     buffer.seek(0)
 
     return Response(
@@ -830,6 +860,7 @@ def stampa_commessa(id):
         mimetype="application/pdf",
         headers={"Content-Disposition": f"inline; filename=commessa_{id}.pdf"}
     )
+
   
 @app.route("/stampa_commessa_archiviata/<int:id>")
 def stampa_commessa_archiviata(id):
