@@ -1412,18 +1412,17 @@ def aggiungi_articolo():
 
 @app.route("/scarico_magazzino", methods=["GET", "POST"])
 def scarico_magazzino():
-
     id_articolo = request.args.get("id_articolo")
     print("SCARICO – ID articolo selezionato:", id_articolo)
 
     conn = get_db_connection()
     c = conn.cursor()
 
-    # Elenco articoli
+    # Elenco articoli per il select
     c.execute("SELECT id, descrizione FROM articoli ORDER BY descrizione ASC")
     articoli = c.fetchall()
 
-    # Elenco commesse
+    # Elenco commesse per il select
     c.execute("SELECT id, nome FROM commesse ORDER BY id DESC")
     commesse = c.fetchall()
 
@@ -1440,12 +1439,19 @@ def scarico_magazzino():
             WHERE id = %s
         """, (quantita, id_articolo_form))
 
-        # Registra movimento
+        # Registra movimento in movimenti_magazzino
         c.execute("""
             INSERT INTO movimenti_magazzino
             (id_articolo, tipo_movimento, quantita, note, id_commessa)
             VALUES (%s, %s, %s, %s, %s)
         """, (id_articolo_form, 'Scarico', quantita, note, id_commessa))
+
+        # Se è stata selezionata una commessa, registra anche il materiale
+        if id_commessa:
+            c.execute("""
+                INSERT INTO commesse_materiali (id_commessa, id_articolo, quantita)
+                VALUES (%s, %s, %s)
+            """, (id_commessa, id_articolo_form, quantita))
 
         conn.commit()
         conn.close()
@@ -1458,6 +1464,7 @@ def scarico_magazzino():
         commesse=commesse,
         id_articolo=id_articolo
     )
+
 
 
 @app.route("/carico_magazzino", methods=["GET", "POST"])
