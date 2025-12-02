@@ -553,58 +553,54 @@ def aggiungi_commessa():
 
 @app.route("/modifica_commessa/<int:id>", methods=["GET", "POST"])
 def modifica_commessa(id):
-    conn = get_db_connection()
     import psycopg2.extras
+
+    conn = get_db_connection()
     c = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
     # Recupero commessa
     c.execute("SELECT * FROM commesse WHERE id = %s", (id,))
     commessa = c.fetchone()
-
     if not commessa:
         conn.close()
         return "Commessa non trovata", 404
 
     if request.method == "POST":
-        nome = request.form.get("nome")
+        nome = (request.form.get("nome") or "").strip()
 
-        # ------------ TIPO INTERVENTO ------------
-        tipo_sel = request.form.get("tipo_intervento") or ""
+        # ---- TIPO INTERVENTO (con gestione 'Altro') ----
+        tipo_sel = request.form.get("tipo_intervento")
         nuovo_intervento = (request.form.get("nuovo_intervento") or "").strip()
 
         if tipo_sel == "Altro" and nuovo_intervento:
-            c.execute(
-                "SELECT 1 FROM tipi_intervento WHERE LOWER(nome) = LOWER(%s) LIMIT 1",
-                (nuovo_intervento,)
-            )
-            esiste = c.fetchone()
-            if not esiste:
-                c.execute("INSERT INTO tipi_intervento (nome) VALUES (%s)", (nuovo_intervento,))
             tipo_intervento = nuovo_intervento
+            # lo salvo in tabella tipi_intervento se non esiste
+            c.execute("""
+                INSERT INTO tipi_intervento (nome)
+                VALUES (%s)
+                ON CONFLICT (nome) DO NOTHING
+            """, (nuovo_intervento,))
         else:
             tipo_intervento = tipo_sel
-        # ----------------------------------------
 
-        # ------------------ MARCA ----------------
-        marca_sel = request.form.get("marca_veicolo") or ""
+        # ---- MARCA VEICOLO (con gestione 'nuova') ----
+        marca_sel = request.form.get("marca_veicolo")
         nuova_marca = (request.form.get("nuova_marca") or "").strip()
 
         if marca_sel == "nuova" and nuova_marca:
-            c.execute(
-                "SELECT 1 FROM marche WHERE LOWER(nome) = LOWER(%s) LIMIT 1",
-                (nuova_marca,)
-            )
-            esiste_marca = c.fetchone()
-            if not esiste_marca:
-                c.execute("INSERT INTO marche (nome) VALUES (%s)", (nuova_marca,))
             marca_veicolo = nuova_marca
+            c.execute("""
+                INSERT INTO marche (nome)
+                VALUES (%s)
+                ON CONFLICT (nome) DO NOTHING
+            """, (nuova_marca,))
         else:
             marca_veicolo = marca_sel
-        # ----------------------------------------
 
         modello_veicolo = request.form.get("modello_veicolo")
         dimensioni = request.form.get("dimensioni")
 
+        # Date (gestite come NULL se vuote)
         data_conferma_raw = request.form.get("data_conferma")
         data_conferma = data_conferma_raw if data_conferma_raw else None
 
@@ -619,14 +615,14 @@ def modifica_commessa(id):
 
         note_importanti = request.form.get("note_importanti")
 
+        # Ore
         ore_raw = request.form.get("ore_necessarie") or 0
         ore_necessarie = float(ore_raw)
-        ore_eseguite = float(commessa.get("ore_eseguite", 0))
+        ore_eseguite = float(commessa.get("ore_eseguite", 0) or 0)
         ore_rimanenti = ore_necessarie - ore_eseguite
 
         try:
-            c.execute(
-                """
+            c.execute("""
                 UPDATE commesse SET
                     nome = %s,
                     tipo_intervento = %s,
@@ -642,56 +638,48 @@ def modifica_commessa(id):
                     data_consegna = %s,
                     note_importanti = %s
                 WHERE id = %s
-                """,
-                (
-                    nome,
-                    tipo_intervento,
-                    marca_veicolo,
-                    modello_veicolo,
-                    dimensioni,
-                    data_conferma,
-                    data_arrivo_materiali,
-                    data_inizio,
-                    ore_necessarie,
-                    ore_eseguite,
-                    ore_rimanenti,
-                    data_consegna,
-                    note_importanti,
-                    id,
-                ),
-            )
+            """, (
+                nome,
+                tipo_intervento,
+                marca_veicolo,
+                modello_veicolo,
+                dimensioni,
+                data_conferma,
+                data_arrivo_materiali,
+                data_inizio,
+                ore_necessarie,
+                ore_eseguite,
+                ore_rimanenti,
+                data_consegna,
+                note_importanti,
+                id
+            ))
 
             conn.commit()
+            conn.close()
             return redirect(url_for("lista_commesse"))
 
         except Exception as e:
             conn.rollback()
             print("ERRORE MODIFICA COMMESSA:", e)
+            conn.close()
             return "Errore modifica commessa", 500
 
-        finally:
-            conn.close()
-
     # -------- GET --------
+    # elenco tipi intervento
     c.execute("SELECT nome FROM tipi_intervento ORDER BY nome ASC")
     tipi_intervento = [row["nome"] for row in c.fetchall()]
 
+    # elenco marche
     c.execute("SELECT id, nome FROM marche ORDER BY nome ASC")
     marche = c.fetchall()
 
-    c.execute(
-        """
-        SELECT DISTINCT modello_veicolo
-        FROM commesse
-        WHERE modello_veicolo IS NOT NULL AND modello_veicolo != ''
-        """
-    )
-    modelli = [row["modello_veicolo"] for row in c.fetchall()]
-
-    c.execute(
-        "SELECT * FROM commessa_files WHERE id_commessa = %s ORDER BY upload_date DESC",
-        (id,),
-    )
+    # file allegati
+    c.execute("""
+        SELECT * FROM commessa_files
+        WHERE id_commessa = %s
+        ORDER BY upload_date DESC
+    """, (id,))
     files = c.fetchall()
 
     conn.close()
@@ -702,25 +690,23 @@ def modifica_commessa(id):
         commessa=commessa,
         files=files,
         tipi_intervento=tipi_intervento,
-        marche=marche,
-        modelli=modelli,
+        marche=marche
     )
+
 
 
 @app.route("/stampa_commessa/<int:id>")
 def stampa_commessa(id):
     from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
     from reportlab.lib import colors
-    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.pagesizes import A4, landscape
     from reportlab.lib.styles import getSampleStyleSheet
     from decimal import Decimal
     from flask import Response
     from io import BytesIO
-    import psycopg2.extras
 
     conn = get_db_connection()
-    # >>> cursore a dizionario, come nel resto dell’app
-    c = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    c = conn.cursor()
 
     # Commessa aperta
     c.execute("SELECT * FROM commesse WHERE id = %s", (id,))
@@ -756,102 +742,120 @@ def stampa_commessa(id):
     conn.close()
 
     buffer = BytesIO()
-    pdf = SimpleDocTemplate(buffer, pagesize=A4)
+    pdf = SimpleDocTemplate(
+        buffer,
+        pagesize=landscape(A4),   # A4 ORIZZONTALE
+        leftMargin=30,
+        rightMargin=30,
+        topMargin=40,
+        bottomMargin=40,
+    )
+
     styles = getSampleStyleSheet()
     elements = []
 
     # Titolo
-    elements.append(Paragraph(f"<b>Commessa #{id} – {commessa['nome']}</b>", styles["Title"]))
+    elements.append(Paragraph(
+        f"<b>Commessa #{id} – {commessa['nome']}</b>",
+        styles["Title"]
+    ))
     elements.append(Spacer(1, 12))
 
     # Tabella info principali
     dati = [
-        ["Tipo Intervento", commessa.get("tipo_intervento") or "---"],
-        [
-            "Veicolo",
-            f"{commessa.get('marca_veicolo') or ''} {commessa.get('modello_veicolo') or ''}"
-        ],
-        ["Data Conferma", str(commessa.get("data_conferma") or "---")],
-        ["Data Arrivo Materiali", str(commessa.get("data_arrivo_materiali") or "---")],
-        ["Data Inizio", str(commessa.get("data_inizio") or "---")],
-        ["Data Consegna", str(commessa.get("data_consegna") or "---")],
-        ["Ore Necessarie", commessa.get("ore_necessarie") or 0],
+        ["Tipo Intervento", commessa["tipo_intervento"] or "---"],
+        ["Veicolo", f"{commessa['marca_veicolo'] or ''} {commessa['modello_veicolo'] or ''}"],
+        ["Data Conferma", str(commessa["data_conferma"] or "---")],
+        ["Data Arrivo Materiali", str(commessa["data_arrivo_materiali"] or "---")],
+        ["Data Inizio", str(commessa["data_inizio"] or "---")],
+        ["Data Consegna", str(commessa["data_consegna"] or "---")],
+        ["Ore Necessarie", commessa["ore_necessarie"] or 0],
     ]
 
-    table_info = Table(dati, colWidths=[200, 300])
+    table_info = Table(dati, colWidths=[200, 440])
     table_info.setStyle(TableStyle([
         ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
         ("FONTNAME", (0, 0), (-1, -1), "Helvetica"),
+        ("FONTSIZE", (0, 0), (-1, -1), 9),
     ]))
     elements.append(table_info)
     elements.append(Spacer(1, 15))
 
-    # NOTE IMPORTANTI
-    note_text = commessa.get("note_importanti")
+    # NOTE IMPORTANTI (come prima)
+    note_text = None
+    try:
+        note_text = commessa.get("note_importanti")
+    except AttributeError:
+        try:
+            note_text = commessa["note_importanti"]
+        except (KeyError, TypeError):
+            note_text = None
+
     if note_text:
         elements.append(Paragraph("Note importanti", styles["Heading2"]))
         note_clean = str(note_text).replace("\n", "<br/>")
         elements.append(Paragraph(note_clean, styles["Normal"]))
         elements.append(Spacer(1, 15))
 
-    # MATERIALI – sempre mostra intestazione, anche se vuota
-    elements.append(Paragraph("Materiali Utilizzati", styles["Heading2"]))
+    # MATERIALI
+    if materiali:
+        mat_data = [["Codice", "Descrizione", "Q.tà", "Costo €", "Totale €"]]
+        for m in materiali:
+            q = Decimal(str(m["quantita"] or 0))
+            cst = Decimal(str(m["costo_netto"] or 0))
+            tot = q * cst
 
-    mat_data = [["Codice", "Descrizione", "Q.tà", "Costo €", "Totale €"]]
-    for m in materiali:
-        # m è un RealDictRow
-        q = Decimal(str(m.get("quantita") or 0))
-        cst = Decimal(str(m.get("costo_netto") or 0))
-        tot = q * cst
+            mat_data.append([
+                m["codice"],
+                m["descrizione"],
+                float(q),
+                f"{cst:.2f}",
+                f"{tot:.2f}",
+            ])
 
-        mat_data.append([
-            m.get("codice"),
-            m.get("descrizione"),
-            float(q),
-            f"{cst:.2f}",
-            f"{tot:.2f}",
-        ])
-
-    t_mat = Table(mat_data, colWidths=[80, 220, 60, 80, 80])
-    t_mat.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
-        ("GRID", (0, 0), (-1, -1), 0.4, colors.black),
-    ]))
-    elements.append(t_mat)
+        t_mat = Table(mat_data, colWidths=[90, 330, 50, 70, 70])
+        t_mat.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
+            ("GRID", (0, 0), (-1, -1), 0.4, colors.black),
+            ("FONTSIZE", (0, 0), (-1, -1), 8),
+        ]))
+        elements.append(Paragraph("Materiali Utilizzati", styles["Heading2"]))
+        elements.append(t_mat)
 
     # ORE LAVORATE
     if ore_lavorate:
         ore_data = [["Operatore", "Ore", "€/h", "Totale €"]]
         for r in ore_lavorate:
-            ore = Decimal(str(r.get("ore") or 0))
-            costo = Decimal(str(r.get("costo_orario") or 0))
+            ore = Decimal(str(r["ore"] or 0))
+            costo = Decimal(str(r["costo_orario"] or 0))
             tot = ore * costo
 
             ore_data.append([
-                r.get("operatore") or "---",
+                r["operatore"] or "---",
                 float(ore),
                 f"{costo:.2f}",
                 f"{tot:.2f}",
             ])
 
-        t_ore = Table(ore_data, colWidths=[200, 80, 80, 80])
+        t_ore = Table(ore_data, colWidths=[260, 60, 60, 60])
         t_ore.setStyle(TableStyle([
             ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
             ("GRID", (0, 0), (-1, -1), 0.4, colors.black),
+            ("FONTSIZE", (0, 0), (-1, -1), 8),
         ]))
         elements.append(Spacer(1, 15))
         elements.append(Paragraph("Ore Lavorate", styles["Heading2"]))
         elements.append(t_ore)
 
-    # Costruzione PDF
     pdf.build(elements)
     buffer.seek(0)
 
     return Response(
         buffer.getvalue(),
         mimetype="application/pdf",
-        headers={"Content-Disposition": f"inline; filename=commessa_{id}.pdf"}
+        headers={"Content-Disposition": f"inline; filename=commessa_{id}.pdf"},
     )
+
 
 
   
