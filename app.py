@@ -707,10 +707,9 @@ def stampa_commessa(id):
     from io import BytesIO
     import psycopg2.extras
 
-    # ----- PROVA AD IMPORTARE IL BARCODE -----
+    # --- barcode opzionale ---
     try:
         from reportlab.graphics.barcode import code128
-        from reportlab.graphics.shapes import Drawing
         HAS_BARCODE = True
     except Exception as e:
         print("ERRORE IMPORT BARCODE:", e)
@@ -772,7 +771,7 @@ def stampa_commessa(id):
     buffer = BytesIO()
     pdf = SimpleDocTemplate(
         buffer,
-        pagesize=landscape(A4),        # ORIZZONTALE
+        pagesize=landscape(A4),   # ORIZZONTALE
         leftMargin=15 * mm,
         rightMargin=15 * mm,
         topMargin=15 * mm,
@@ -784,33 +783,32 @@ def stampa_commessa(id):
     # --- CODICE COMMESSA A 10 CIFRE ---
     codice_commessa_10 = str(commessa.get("id", id)).zfill(10)
 
+    # Titolo
     elements.append(Paragraph(
         f"<b>Commessa #{commessa.get('id', id)} – {commessa.get('nome','')}</b>",
         styles["Title"]
     ))
     elements.append(Spacer(1, 4))
 
+    # Codice numerico
     elements.append(Paragraph(
         f"Codice commessa (per barcode): <b>{codice_commessa_10}</b>",
         styles["Normal"]
     ))
     elements.append(Spacer(1, 2))
 
-    # --- BARCODE (SOLO SE L'IMPORT È RIUSCITO) ---
+    # --- BARCODE come Flowable ---
     if HAS_BARCODE:
         try:
             barcode_obj = code128.Code128(
                 codice_commessa_10,
                 barHeight=18 * mm,
-                barWidth=0.35 * mm
+                barWidth=0.35 * mm,
             )
-            drawing = Drawing(0, 0)
-            drawing.add(barcode_obj)
-            elements.append(drawing)
+            elements.append(barcode_obj)
             elements.append(Spacer(1, 8))
         except Exception as e:
             print("ERRORE CREAZIONE BARCODE:", e)
-            # se il barcode fallisce, continuo comunque senza bloccare la stampa
             elements.append(Spacer(1, 8))
 
     # --- INFO PRINCIPALI ---
@@ -898,7 +896,36 @@ def stampa_commessa(id):
         ]))
         elements.append(Paragraph("Ore Lavorate", styles["Heading3"]))
         elements.append(t_ore)
-        elements.append(Spacer(1
+        elements.append(Spacer(1, 6))
+
+    # --- RIEPILOGO COSTI ---
+    totale_generale = tot_materiali + tot_ore_lavoro
+
+    riepilogo_data = [
+        ["Totale Materiali", f"{tot_materiali:.2f} €"],
+        ["Totale Ore Lavoro", f"{tot_ore_lavoro:.2f} €"],
+        ["Totale Complessivo", f"{totale_generale:.2f} €"],
+    ]
+
+    t_riep = Table(riepilogo_data, colWidths=[60 * mm, 30 * mm])
+    t_riep.setStyle(TableStyle([
+        ("GRID", (0, 0), (-1, -1), 0.4, colors.black),
+        ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
+        ("FONTSIZE", (0, 0), (-1, -1), 8),
+        ("ALIGN", (1, 0), (1, -1), "RIGHT"),
+    ]))
+    elements.append(Spacer(1, 8))
+    elements.append(t_riep)
+
+    # --- BUILD PDF ---
+    pdf.build(elements)
+    buffer.seek(0)
+
+    return Response(
+        buffer.getvalue(),
+        mimetype="application/pdf",
+        headers={"Content-Disposition": f"inline; filename=commessa_{id}.pdf"}
+    )
 
 
 
