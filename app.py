@@ -447,17 +447,44 @@ def aggiungi_commessa():
 
     if request.method == "POST":
         nome = request.form.get("nome")
+
+        # Tipo intervento (+ gestione "Altro")
         tipo_intervento = request.form.get("tipo_intervento")
+        if tipo_intervento == "Altro":
+            nuovo_intervento = (request.form.get("nuovo_intervento") or "").strip()
+            if nuovo_intervento:
+                tipo_intervento = nuovo_intervento
+
+        # Marca veicolo (+ gestione "nuova marca")
         marca_veicolo = request.form.get("marca_veicolo")
+        if marca_veicolo == "nuova":
+            nuova_marca = (request.form.get("nuova_marca") or "").strip()
+            if nuova_marca:
+                # salvo la nuova marca in tabella marche
+                c.execute("INSERT INTO marche (nome) VALUES (%s)", (nuova_marca,))
+                marca_veicolo = nuova_marca
+
         modello_veicolo = request.form.get("modello_veicolo")
         dimensioni = request.form.get("dimensioni")
-        data_conferma = request.form.get("data_conferma")
-        data_arrivo_materiali = request.form.get("data_arrivo_materiali")
-        data_inizio = request.form.get("data_inizio")
+
+        # --- DATE: stringa vuota -> None (NULL su Postgres) ---
+        def get_date(field_name: str):
+            val = request.form.get(field_name)
+            return val or None
+
+        data_conferma = get_date("data_conferma")
+        data_arrivo_materiali = get_date("data_arrivo_materiali")
+        data_inizio = get_date("data_inizio")
+
         note_importanti = request.form.get("note_importanti")
 
-        ore_necessarie = float(request.form.get("ore_necessarie") or 0)
-        ore_eseguite = 0
+        # Ore
+        try:
+            ore_necessarie = float(request.form.get("ore_necessarie") or 0)
+        except ValueError:
+            ore_necessarie = 0.0
+
+        ore_eseguite = 0.0
         ore_rimanenti = ore_necessarie
 
         try:
@@ -479,9 +506,9 @@ def aggiungi_commessa():
                 marca_veicolo,
                 modello_veicolo,
                 dimensioni,
-                data_conferma,
-                data_arrivo_materiali,
-                data_inizio,
+                data_conferma,          # può essere None
+                data_arrivo_materiali,  # può essere None
+                data_inizio,            # può essere None
                 ore_necessarie,
                 ore_eseguite,
                 ore_rimanenti,
@@ -491,14 +518,13 @@ def aggiungi_commessa():
                 note_importanti
             ))
 
-            # ID della nuova commessa
             new_id_row = c.fetchone()
             new_id = new_id_row["id"]
 
             conn.commit()
             conn.close()
 
-            # dopo il salvataggio apro direttamente la stampa (con barcode)
+            # dopo il salvataggio apro direttamente la stampa
             return redirect(url_for("stampa_commessa", id=new_id))
 
         except Exception as e:
@@ -521,7 +547,6 @@ def aggiungi_commessa():
         tipi_intervento=tipi_intervento,
         marche=marche
     )
-
 
 
 
