@@ -163,6 +163,7 @@
             {% endif %}
 
             <!-- BOTTONI -->
+                        <!-- BOTTONI -->
             <div style="margin-top:25px; text-align:center;">
                 <button type="submit" class="btn btn-primary" 
                         style="background:#00AFFF; padding:10px 25px; border-radius:8px;">
@@ -181,7 +182,16 @@
                    style="margin-left:10px; padding:10px 25px; border-radius:8px;">
                     🖨 Stampa Commessa
                 </a>
+
+                <!-- NUOVO: scarico materiali per questa commessa -->
+                <a href="{{ url_for('scarico_magazzino') }}?id_commessa={{ id_commessa }}"
+                   target="_blank"
+                   class="btn btn-warning"
+                   style="margin-left:10px; padding:10px 25px; border-radius:8px;">
+                    📦 Scarica materiale
+                </a>
             </div>
+
 
         </form>
     </div>
