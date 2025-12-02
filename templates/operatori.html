@@ -18,7 +18,11 @@
     </div>
 
     <!-- 🔹 Registrazione Ore -->
-    <form action="{{ url_for('registrazione_ore') }}" method="POST" class="row-form">
+    <form id="formRegistrazioneOre"
+          action="{{ url_for('registrazione_ore') }}"
+          method="POST"
+          class="row-form">
+
         <label>Operatore:</label>
         <select name="id_operatore" required>
             <option value="">— Seleziona operatore —</option>
@@ -40,6 +44,9 @@
 
         <label>Data:</label>
         <input type="date" name="data_imputazione" value="{{ today }}" required>
+
+        <!-- 🔸 Campo nascosto per decidere il redirect -->
+        <input type="hidden" name="redirect_scarico" id="redirect_scarico" value="0">
 
         <div class="pulsante-centro">
             <button type="submit" class="btn btn-primary">✅ Registra Ore</button>
@@ -112,5 +119,18 @@ input:focus, select:focus {
     margin: 6px 0;
 }
 </style>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const form = document.getElementById("formRegistrazioneOre");
+    const hiddenRedirect = document.getElementById("redirect_scarico");
+
+    form.addEventListener("submit", function () {
+        const risposta = confirm("Hai materiale da scaricare per questa commessa?");
+        hiddenRedirect.value = risposta ? "1" : "0";
+        // il form viene comunque inviato normalmente
+    });
+});
+</script>
 
 {% endblock %}

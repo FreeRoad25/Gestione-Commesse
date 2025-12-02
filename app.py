@@ -1020,13 +1020,14 @@ def aggiungi_operatore():
 
     return render_template("aggiungi_operatore.html")
 
-
 @app.route("/registrazione_ore", methods=["POST"])
 def registrazione_ore():
     id_operatore = request.form.get("id_operatore")
     id_commessa = request.form.get("id_commessa")
     ore = float(request.form.get("ore") or 0)
     data_imputazione = request.form.get("data_imputazione") or date.today()
+    # valore inviato dal campo nascosto nel form (0 = no, 1 = sì)
+    redirect_scarico = request.form.get("redirect_scarico") == "1"
 
     conn = get_db_connection()
     c = conn.cursor()
@@ -1046,7 +1047,16 @@ def registrazione_ore():
 
     conn.commit()
     conn.close()
-    return redirect(url_for("operatori"))
+
+    # ✅ Decido dove andare in base alla risposta del popup
+    if redirect_scarico:
+        # porta direttamente allo scarico materiali con la commessa già selezionata
+        return redirect(url_for("scarico_magazzino", id_commessa=id_commessa))
+    else:
+        # comportamento normale: torna alla pagina operatori
+        return redirect(url_for("operatori"))
+
+
 
 
 # =========================================================
