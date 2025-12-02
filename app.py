@@ -1416,21 +1416,13 @@ def aggiungi_articolo():
 
 @app.route("/scarico_magazzino", methods=["GET", "POST"])
 def scarico_magazzino():
-    id_articolo = request.args.get("id_articolo")
-    print("SCARICO – ID articolo selezionato:", id_articolo)
+    import psycopg2.extras
 
-    conn = get_db_connection()
-    c = conn.cursor()
-
-    # Elenco articoli per il select
-    c.execute("SELECT id, descrizione FROM articoli ORDER BY descrizione ASC")
-    articoli = c.fetchall()
-
-    # Elenco commesse per il select
-    c.execute("SELECT id, nome FROM commesse ORDER BY id DESC")
-    commesse = c.fetchall()
-
+    # ---------- POST: eseguo lo scarico ----------
     if request.method == "POST":
+        conn = get_db_connection()
+        c = conn.cursor()
+
         id_articolo_form = request.form.get("id_articolo")
         id_commessa = request.form.get("id_commessa") or None
         quantita = float(request.form.get("quantita") or 0)
@@ -1443,14 +1435,14 @@ def scarico_magazzino():
             WHERE id = %s
         """, (quantita, id_articolo_form))
 
-        # Registra movimento in movimenti_magazzino
+        # Registra movimento
         c.execute("""
             INSERT INTO movimenti_magazzino
             (id_articolo, tipo_movimento, quantita, note, id_commessa)
             VALUES (%s, %s, %s, %s, %s)
         """, (id_articolo_form, 'Scarico', quantita, note, id_commessa))
 
-        # Se è stata selezionata una commessa, registra anche il materiale
+        # Registra anche sui materiali della commessa (per stampa)
         if id_commessa:
             c.execute("""
                 INSERT INTO commesse_materiali (id_commessa, id_articolo, quantita)
@@ -1459,15 +1451,41 @@ def scarico_magazzino():
 
         conn.commit()
         conn.close()
+
+        # se ho una commessa, torno alla sua pagina di modifica
+        if id_commessa:
+            return redirect(url_for("modifica_commessa", id=id_commessa))
+
+        # altrimenti torno al magazzino
         return redirect(url_for("magazzino_articoli"))
 
+    # ---------- GET: preparo la pagina ----------
+    id_commessa = request.args.get("id_commessa")  # arriva dal pulsante giallo
+
+    conn = get_db_connection()
+    c = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+    # articoli: includo anche il codice_barre per la ricerca
+    c.execute("""
+        SELECT id, codice_barre, descrizione
+        FROM articoli
+        ORDER BY descrizione ASC
+    """)
+    articoli = c.fetchall()
+
+    # commesse
+    c.execute("SELECT id, nome FROM commesse ORDER BY id DESC")
+    commesse = c.fetchall()
+
     conn.close()
+
     return render_template(
         "scarico_magazzino.html",
         articoli=articoli,
         commesse=commesse,
-        id_articolo=id_articolo
+        id_commessa_prefill=id_commessa
     )
+
 
 
 

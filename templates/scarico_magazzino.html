@@ -7,13 +7,20 @@
 
     <form action="{{ url_for('scarico_magazzino') }}" method="POST" class="mag-form">
         
+        <!-- 🔹 Filtro articoli (descrizione o barcode) -->
+        <label>Cerca articolo (descrizione o codice a barre):</label>
+        <input type="text"
+               id="filtro_articolo"
+               placeholder="Digita o scansiona per filtrare la lista..."
+               onkeyup="filtraArticoli()">
+
         <!-- 🔹 Selezione articolo -->
         <label>Articolo:</label>
-        <select name="id_articolo" required>
+        <select name="id_articolo" id="id_articolo" required>
             <option value="">— Seleziona articolo —</option>
             {% for art in articoli %}
-                <option value="{{ art.id }}" {% if id_articolo == art.id|string %}selected{% endif %}>
-                    {{ art.descrizione }}
+                <option value="{{ art.id }}">
+                    {% if art.codice_barre %}{{ art.codice_barre }} — {% endif %}{{ art.descrizione }}
                 </option>
             {% endfor %}
         </select>
@@ -22,13 +29,17 @@
         <label>Quantità da scaricare:</label>
         <input type="number" step="0.01" name="quantita" placeholder="Inserisci quantità" required>
 
+        <!-- 🔹 Commessa -->
         <label>Commessa:</label>
-    <select name="id_commessa" required>
-        <option value="">— Seleziona commessa —</option>
-        {% for com in commesse %}
-            <option value="{{ com.id }}">Commessa {{ com.id }} — {{ com.nome }}</option>
-        {% endfor %}
-    </select>
+        <select name="id_commessa" required>
+            <option value="">— Seleziona commessa —</option>
+            {% for com in commesse %}
+                <option value="{{ com.id }}"
+                    {% if id_commessa_prefill and com.id == id_commessa_prefill|int %}selected{% endif %}>
+                    Commessa {{ com.id }} — {{ com.nome }}
+                </option>
+            {% endfor %}
+        </select>
 
         <!-- 🔹 Note -->
         <label>Note:</label>
@@ -85,4 +96,29 @@ h1 {
     background-color: #b02a37;
 }
 </style>
+
+<script>
+function filtraArticoli() {
+    const filtro = document.getElementById('filtro_articolo').value.toLowerCase();
+    const select = document.getElementById('id_articolo');
+    const options = select.options;
+
+    for (let i = 0; i < options.length; i++) {
+        const opt = options[i];
+
+        if (i === 0) {
+            // la prima opzione ("— Seleziona —") resta sempre visibile
+            opt.style.display = '';
+            continue;
+        }
+
+        const testo = opt.text.toLowerCase();
+        if (!filtro || testo.includes(filtro)) {
+            opt.style.display = '';
+        } else {
+            opt.style.display = 'none';
+        }
+    }
+}
+</script>
 {% endblock %}
