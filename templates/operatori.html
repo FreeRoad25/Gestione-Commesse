@@ -18,10 +18,7 @@
     </div>
 
     <!-- 🔹 Registrazione Ore -->
-    <form id="formRegistrazioneOre"
-          action="{{ url_for('registrazione_ore') }}"
-          method="POST"
-          class="row-form">
+    <form action="{{ url_for('registrazione_ore') }}" method="POST" class="row-form" id="form-ore">
 
         <label>Operatore:</label>
         <select name="id_operatore" required>
@@ -31,11 +28,18 @@
             {% endfor %}
         </select>
 
+        <!-- CAMPO PER SCANSIONE CODICE A BARRE COMMESSA -->
+        <label>Scansiona codice commessa:</label>
+        <input type="text" id="barcode_commessa"
+               placeholder="Scannerizza il codice a barre della commessa">
+
         <label>Commessa:</label>
         <select name="id_commessa" required>
             <option value="">— Seleziona commessa —</option>
             {% for com in commesse %}
-                <option value="{{ com.id }}">{{ com.nome }}</option>
+                <option value="{{ com.id }}">
+                    Commessa {{ com.id }} — {{ com.nome }}
+                </option>
             {% endfor %}
         </select>
 
@@ -45,8 +49,8 @@
         <label>Data:</label>
         <input type="date" name="data_imputazione" value="{{ today }}" required>
 
-        <!-- 🔸 Campo nascosto per decidere il redirect -->
-        <input type="hidden" name="redirect_scarico" id="redirect_scarico" value="0">
+        <!-- hidden per dire al backend se aprire lo scarico materiale -->
+        <input type="hidden" name="scarico_dopo" id="scarico_dopo" value="0">
 
         <div class="pulsante-centro">
             <button type="submit" class="btn btn-primary">✅ Registra Ore</button>
@@ -121,15 +125,55 @@ input:focus, select:focus {
 </style>
 
 <script>
-document.addEventListener("DOMContentLoaded", function () {
-    const form = document.getElementById("formRegistrazioneOre");
-    const hiddenRedirect = document.getElementById("redirect_scarico");
+document.addEventListener("DOMContentLoaded", () => {
+    const formOre = document.getElementById("form-ore");
+    const hiddenScarico = document.getElementById("scarico_dopo");
+    const barcodeInput = document.getElementById("barcode_commessa");
+    const commessaSelect = document.querySelector('select[name="id_commessa"]');
 
-    form.addEventListener("submit", function () {
-        const risposta = confirm("Hai materiale da scaricare per questa commessa?");
-        hiddenRedirect.value = risposta ? "1" : "0";
-        // il form viene comunque inviato normalmente
-    });
+    // 1) Domanda "hai materiale da scaricare?"
+    if (formOre && hiddenScarico) {
+        formOre.addEventListener("submit", (e) => {
+            const haMateriale = confirm("Hai materiale da scaricare per questa commessa?");
+            hiddenScarico.value = haMateriale ? "1" : "0";
+        });
+    }
+
+    // 2) Associazione codice a barre -> selezione commessa
+    if (barcodeInput && commessaSelect) {
+        const applicaBarcode = () => {
+            const code = barcodeInput.value.trim();
+            if (!code) return;
+
+            let trovato = false;
+            for (const opt of commessaSelect.options) {
+                if (opt.value === code) {
+                    commessaSelect.value = code;
+                    trovato = true;
+                    break;
+                }
+            }
+
+            if (!trovato) {
+                alert("Nessuna commessa con ID " + code + " trovata.");
+            }
+
+            // pulisco e metto il focus sulla select
+            barcodeInput.value = "";
+            commessaSelect.focus();
+        };
+
+        // molti scanner inviano "testo + Enter"
+        barcodeInput.addEventListener("keydown", (e) => {
+            if (e.key === "Enter") {
+                e.preventDefault();
+                applicaBarcode();
+            }
+        });
+
+        // backup: se cambia il campo (senza Enter) applico comunque
+        barcodeInput.addEventListener("change", applicaBarcode);
+    }
 });
 </script>
 
