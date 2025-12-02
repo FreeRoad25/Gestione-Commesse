@@ -6,6 +6,7 @@ import psycopg2.extras
 import os
 from dotenv import load_dotenv
 from crea_tabelle_pg import create_tables
+from datetime import date  # una sola volta in alto al file, se non c'è già
 
 load_dotenv()
 DB_HOST = os.getenv("DB_HOST")
@@ -1084,25 +1085,29 @@ def aggiungi_operatore():
 
     return render_template("aggiungi_operatore.html")
 
+
+
 @app.route("/registrazione_ore", methods=["POST"])
 def registrazione_ore():
     id_operatore = request.form.get("id_operatore")
     id_commessa = request.form.get("id_commessa")
     ore = float(request.form.get("ore") or 0)
     data_imputazione = request.form.get("data_imputazione") or date.today()
-    # valore inviato dal campo nascosto nel form (0 = no, 1 = sì)
-    redirect_scarico = request.form.get("redirect_scarico") == "1"
+
+    # valore del campo hidden del form (0 = no, 1 = sì)
+    scarico_dopo = (request.form.get("scarico_dopo") or "0").strip()
+    print("DEBUG scarico_dopo =", scarico_dopo, "id_commessa =", id_commessa)
 
     conn = get_db_connection()
     c = conn.cursor()
 
-    # ✅ Inserimento ore
+    # inserisco le ore
     c.execute("""
         INSERT INTO ore_lavorate (id_operatore, id_commessa, ore, data_imputazione)
         VALUES (%s, %s, %s, %s)
     """, (id_operatore, id_commessa, ore, data_imputazione))
 
-    # ✅ Aggiornamento ore eseguite
+    # aggiorno ore eseguite
     c.execute("""
         UPDATE commesse
         SET ore_eseguite = COALESCE(ore_eseguite, 0) + %s
@@ -1112,13 +1117,13 @@ def registrazione_ore():
     conn.commit()
     conn.close()
 
-    # ✅ Decido dove andare in base alla risposta del popup
-    if redirect_scarico:
-        # porta direttamente allo scarico materiali con la commessa già selezionata
+    # se ha risposto "OK" → vai allo scarico con la commessa pre-selezionata
+    if scarico_dopo == "1" and id_commessa:
         return redirect(url_for("scarico_magazzino", id_commessa=id_commessa))
-    else:
-        # comportamento normale: torna alla pagina operatori
-        return redirect(url_for("operatori"))
+
+    # altrimenti torna alla pagina operatori
+    return redirect(url_for("operatori"))
+
 
 
 
