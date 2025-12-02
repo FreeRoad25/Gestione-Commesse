@@ -702,12 +702,19 @@ def stampa_commessa(id):
     from reportlab.lib.pagesizes import A4, landscape
     from reportlab.lib.styles import getSampleStyleSheet
     from reportlab.lib.units import mm
-    from reportlab.graphics.barcode import code128
-    from reportlab.graphics.shapes import Drawing
     from decimal import Decimal
     from flask import Response
     from io import BytesIO
     import psycopg2.extras
+
+    # ----- PROVA AD IMPORTARE IL BARCODE -----
+    try:
+        from reportlab.graphics.barcode import code128
+        from reportlab.graphics.shapes import Drawing
+        HAS_BARCODE = True
+    except Exception as e:
+        print("ERRORE IMPORT BARCODE:", e)
+        HAS_BARCODE = False
 
     conn = get_db_connection()
     c = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
@@ -724,7 +731,7 @@ def stampa_commessa(id):
         conn.close()
         return "Commessa non trovata", 404
 
-    # --- MATERIALI: prima provo commesse_materiali, se vuoto uso movimenti_magazzino ---
+    # --- MATERIALI: prima commesse_materiali, se vuoto uso movimenti_magazzino ---
     c.execute("""
         SELECT COUNT(*) AS n
         FROM commesse_materiali
@@ -734,7 +741,6 @@ def stampa_commessa(id):
     use_commesse_materiali = row_cnt and row_cnt["n"] > 0
 
     if use_commesse_materiali:
-        # Vecchio metodo: tabella commesse_materiali
         c.execute("""
             SELECT a.codice, a.descrizione, cm.quantita, a.costo_netto
             FROM commesse_materiali cm
@@ -742,7 +748,6 @@ def stampa_commessa(id):
             WHERE cm.id_commessa = %s
         """, (id,))
     else:
-        # Nuovo metodo: usa gli scarichi di magazzino associati alla commessa
         c.execute("""
             SELECT a.codice, a.descrizione, m.quantita, a.costo_netto
             FROM movimenti_magazzino m
@@ -767,7 +772,7 @@ def stampa_commessa(id):
     buffer = BytesIO()
     pdf = SimpleDocTemplate(
         buffer,
-        pagesize=landscape(A4),        # ORIENTAMENTO ORIZZONTALE
+        pagesize=landscape(A4),        # ORIZZONTALE
         leftMargin=15 * mm,
         rightMargin=15 * mm,
         topMargin=15 * mm,
@@ -776,8 +781,8 @@ def stampa_commessa(id):
     styles = getSampleStyleSheet()
     elements = []
 
-    # --- CODICE COMMESSA A 10 CIFRE + BARCODE ---
-    codice_commessa_10 = str(commessa.get("id", id)).zfill(10)  # es. 0000000008
+    # --- CODICE COMMESSA A 10 CIFRE ---
+    codice_commessa_10 = str(commessa.get("id", id)).zfill(10)
 
     elements.append(Paragraph(
         f"<b>Commessa #{commessa.get('id', id)} – {commessa.get('nome','')}</b>",
@@ -785,20 +790,28 @@ def stampa_commessa(id):
     ))
     elements.append(Spacer(1, 4))
 
-    # Testo leggibile del codice
-    elements.append(Paragraph(f"Codice commessa (per barcode): <b>{codice_commessa_10}</b>", styles["Normal"]))
+    elements.append(Paragraph(
+        f"Codice commessa (per barcode): <b>{codice_commessa_10}</b>",
+        styles["Normal"]
+    ))
     elements.append(Spacer(1, 2))
 
-    # Barcode grande (Code128 accetta lunghezze variabili)
-    barcode_obj = code128.Code128(
-        codice_commessa_10,
-        barHeight=18 * mm,   # altezza barre
-        barWidth=0.35 * mm   # larghezza barre (più grande = più leggibile)
-    )
-    barcode_drawing = Drawing(0, 0)
-    barcode_drawing.add(barcode_obj)
-    elements.append(barcode_drawing)
-    elements.append(Spacer(1, 8))
+    # --- BARCODE (SOLO SE L'IMPORT È RIUSCITO) ---
+    if HAS_BARCODE:
+        try:
+            barcode_obj = code128.Code128(
+                codice_commessa_10,
+                barHeight=18 * mm,
+                barWidth=0.35 * mm
+            )
+            drawing = Drawing(0, 0)
+            drawing.add(barcode_obj)
+            elements.append(drawing)
+            elements.append(Spacer(1, 8))
+        except Exception as e:
+            print("ERRORE CREAZIONE BARCODE:", e)
+            # se il barcode fallisce, continuo comunque senza bloccare la stampa
+            elements.append(Spacer(1, 8))
 
     # --- INFO PRINCIPALI ---
     dati = [
@@ -885,38 +898,8 @@ def stampa_commessa(id):
         ]))
         elements.append(Paragraph("Ore Lavorate", styles["Heading3"]))
         elements.append(t_ore)
-        elements.append(Spacer(1, 6))
+        elements.append(Spacer(1
 
-    # --- RIEPILOGO TOTALI ---
-    if materiali or ore_lavorate:
-        totale_generale = tot_materiali + tot_ore_lavoro
-
-        tot_data = [
-            ["Totale Materiali", f"{tot_materiali:.2f} €"],
-            ["Totale Ore Lavoro", f"{tot_ore_lavoro:.2f} €"],
-            ["Totale Generale", f"{totale_generale:.2f} €"],
-        ]
-
-        t_tot = Table(tot_data, colWidths=[60 * mm, 40 * mm])
-        t_tot.setStyle(TableStyle([
-            ("GRID", (0, 0), (-1, -1), 0.25, colors.black),
-            ("BACKGROUND", (0, 0), (-1, -1), colors.whitesmoke),
-            ("FONTSIZE", (0, 0), (-1, -1), 8),
-            ("FONTNAME", (0, 0), (-1, -1), "Helvetica-Bold"),
-        ]))
-
-        elements.append(Spacer(1, 4))
-        elements.append(Paragraph("Riepilogo costi", styles["Heading3"]))
-        elements.append(t_tot)
-
-    pdf.build(elements)
-    buffer.seek(0)
-
-    return Response(
-        buffer.getvalue(),
-        mimetype="application/pdf",
-        headers={"Content-Disposition": f"inline; filename=commessa_{id}.pdf"}
-    )
 
 
 
