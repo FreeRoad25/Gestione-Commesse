@@ -703,6 +703,7 @@ def stampa_commessa(id):
     from reportlab.lib.styles import getSampleStyleSheet
     from reportlab.lib.units import mm
     from reportlab.graphics.barcode import code128
+    from reportlab.graphics.shapes import Drawing
     from decimal import Decimal
     from flask import Response
     from io import BytesIO
@@ -733,7 +734,7 @@ def stampa_commessa(id):
     use_commesse_materiali = row_cnt and row_cnt["n"] > 0
 
     if use_commesse_materiali:
-        # vecchio metodo: tabella commesse_materiali
+        # Vecchio metodo: tabella commesse_materiali
         c.execute("""
             SELECT a.codice, a.descrizione, cm.quantita, a.costo_netto
             FROM commesse_materiali cm
@@ -741,7 +742,7 @@ def stampa_commessa(id):
             WHERE cm.id_commessa = %s
         """, (id,))
     else:
-        # nuovo metodo: usa gli scarichi di magazzino associati alla commessa
+        # Nuovo metodo: usa gli scarichi di magazzino associati alla commessa
         c.execute("""
             SELECT a.codice, a.descrizione, m.quantita, a.costo_netto
             FROM movimenti_magazzino m
@@ -762,11 +763,11 @@ def stampa_commessa(id):
 
     conn.close()
 
-    # --- COSTRUZIONE PDF (A4 ORIZZONTALE) ---
+    # ================== COSTRUZIONE PDF ==================
     buffer = BytesIO()
     pdf = SimpleDocTemplate(
         buffer,
-        pagesize=landscape(A4),
+        pagesize=landscape(A4),        # ORIENTAMENTO ORIZZONTALE
         leftMargin=15 * mm,
         rightMargin=15 * mm,
         topMargin=15 * mm,
@@ -775,24 +776,34 @@ def stampa_commessa(id):
     styles = getSampleStyleSheet()
     elements = []
 
-    # Titolo
-    title_text = f"Commessa #{id} – {commessa.get('nome', '')}"
-    elements.append(Paragraph(f"<b>{title_text}</b>", styles["Title"]))
+    # --- CODICE COMMESSA A 10 CIFRE + BARCODE ---
+    codice_commessa_10 = str(commessa.get("id", id)).zfill(10)  # es. 0000000008
+
+    elements.append(Paragraph(
+        f"<b>Commessa #{commessa.get('id', id)} – {commessa.get('nome','')}</b>",
+        styles["Title"]
+    ))
+    elements.append(Spacer(1, 4))
+
+    # Testo leggibile del codice
+    elements.append(Paragraph(f"Codice commessa (per barcode): <b>{codice_commessa_10}</b>", styles["Normal"]))
     elements.append(Spacer(1, 2))
 
-    # --- CODICE A BARRE CON L'ID COMMESSA ---
-    barcode_value = str(id)
-    barcode_obj = code128.Code128(barcode_value, barHeight=12 * mm, barWidth=0.35)
-    elements.append(barcode_obj)
-    elements.append(Spacer(1, 6))
+    # Barcode grande (Code128 accetta lunghezze variabili)
+    barcode_obj = code128.Code128(
+        codice_commessa_10,
+        barHeight=18 * mm,   # altezza barre
+        barWidth=0.35 * mm   # larghezza barre (più grande = più leggibile)
+    )
+    barcode_drawing = Drawing(0, 0)
+    barcode_drawing.add(barcode_obj)
+    elements.append(barcode_drawing)
+    elements.append(Spacer(1, 8))
 
-    # Larghezze tabella info
-    info_col_widths = [80 * mm, 170 * mm]
-
-    # Info principali
+    # --- INFO PRINCIPALI ---
     dati = [
         ["Tipo Intervento", commessa.get("tipo_intervento") or "---"],
-        ["Veicolo", f"{commessa.get('marca_veicolo') or ''} {commessa.get('modello_veicolo') or ''}".strip()],
+        ["Veicolo", f"{commessa.get('marca_veicolo') or ''} {commessa.get('modello_veicolo') or ''}"],
         ["Dimensioni", commessa.get("dimensioni") or "---"],
         ["Data Conferma", str(commessa.get("data_conferma") or "---")],
         ["Data Arrivo Materiali", str(commessa.get("data_arrivo_materiali") or "---")],
@@ -801,7 +812,7 @@ def stampa_commessa(id):
         ["Ore Necessarie", commessa.get("ore_necessarie") or 0],
     ]
 
-    table_info = Table(dati, colWidths=info_col_widths)
+    table_info = Table(dati, colWidths=[90 * mm, 150 * mm])
     table_info.setStyle(TableStyle([
         ("GRID", (0, 0), (-1, -1), 0.3, colors.grey),
         ("FONTNAME", (0, 0), (-1, -1), "Helvetica"),
@@ -811,7 +822,7 @@ def stampa_commessa(id):
     elements.append(table_info)
     elements.append(Spacer(1, 6))
 
-    # Note importanti
+    # --- NOTE IMPORTANTI ---
     note_text = commessa.get("note_importanti")
     if note_text:
         elements.append(Paragraph("Note importanti", styles["Heading3"]))
@@ -819,11 +830,9 @@ def stampa_commessa(id):
         elements.append(Paragraph(note_clean, styles["Normal"]))
         elements.append(Spacer(1, 6))
 
-    # Totali
-    tot_materiali = Decimal("0.00")
-    tot_ore_euro = Decimal("0.00")
+    # --- MATERIALI ---
+    tot_materiali = Decimal("0")
 
-    # ---- MATERIALI ----
     if materiali:
         mat_data = [["Codice", "Descrizione", "Q.tà", "Costo €", "Totale €"]]
         for m in materiali:
@@ -840,15 +849,7 @@ def stampa_commessa(id):
                 f"{tot:.2f}",
             ])
 
-        mat_col_widths = [
-            30 * mm,   # Codice
-            140 * mm,  # Descrizione
-            20 * mm,   # Q.tà
-            30 * mm,   # Costo
-            30 * mm,   # Totale
-        ]
-
-        t_mat = Table(mat_data, colWidths=mat_col_widths)
+        t_mat = Table(mat_data, colWidths=[25 * mm, 110 * mm, 15 * mm, 20 * mm, 20 * mm])
         t_mat.setStyle(TableStyle([
             ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
             ("GRID", (0, 0), (-1, -1), 0.25, colors.black),
@@ -858,14 +859,16 @@ def stampa_commessa(id):
         elements.append(t_mat)
         elements.append(Spacer(1, 6))
 
-    # ---- ORE LAVORATE ----
+    # --- ORE LAVORATE ---
+    tot_ore_lavoro = Decimal("0")
+
     if ore_lavorate:
         ore_data = [["Operatore", "Ore", "€/h", "Totale €"]]
         for r in ore_lavorate:
             ore = Decimal(str(r.get("ore") or 0))
             costo = Decimal(str(r.get("costo_orario") or 0))
             tot = ore * costo
-            tot_ore_euro += tot
+            tot_ore_lavoro += tot
 
             ore_data.append([
                 r.get("operatore") or "---",
@@ -874,14 +877,7 @@ def stampa_commessa(id):
                 f"{tot:.2f}",
             ])
 
-        ore_col_widths = [
-            120 * mm,  # Operatore
-            30 * mm,   # Ore
-            30 * mm,   # €/h
-            30 * mm,   # Totale
-        ]
-
-        t_ore = Table(ore_data, colWidths=ore_col_widths)
+        t_ore = Table(ore_data, colWidths=[90 * mm, 20 * mm, 20 * mm, 20 * mm])
         t_ore.setStyle(TableStyle([
             ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
             ("GRID", (0, 0), (-1, -1), 0.25, colors.black),
@@ -889,26 +885,29 @@ def stampa_commessa(id):
         ]))
         elements.append(Paragraph("Ore Lavorate", styles["Heading3"]))
         elements.append(t_ore)
-        elements.append(Spacer(1, 8))
+        elements.append(Spacer(1, 6))
 
-    # ---- RIEPILOGO TOTALI COMMESSA ----
-    totale_commessa = tot_materiali + tot_ore_euro
+    # --- RIEPILOGO TOTALI ---
+    if materiali or ore_lavorate:
+        totale_generale = tot_materiali + tot_ore_lavoro
 
-    summary_data = [
-        ["Totale Materiali (€)", f"{tot_materiali:.2f}"],
-        ["Totale Ore Lavoro (€)", f"{tot_ore_euro:.2f}"],
-        ["Totale Complessivo Commessa (€)", f"{totale_commessa:.2f}"],
-    ]
+        tot_data = [
+            ["Totale Materiali", f"{tot_materiali:.2f} €"],
+            ["Totale Ore Lavoro", f"{tot_ore_lavoro:.2f} €"],
+            ["Totale Generale", f"{totale_generale:.2f} €"],
+        ]
 
-    summary_table = Table(summary_data, colWidths=[80 * mm, 40 * mm])
-    summary_table.setStyle(TableStyle([
-        ("GRID", (0, 0), (-1, -1), 0.4, colors.black),
-        ("BACKGROUND", (0, 0), (-1, -1), colors.whitesmoke),
-        ("FONTNAME", (0, 0), (-1, -1), "Helvetica-Bold"),
-        ("FONTSIZE", (0, 0), (-1, -1), 8),
-        ("ALIGN", (1, 0), (1, -1), "RIGHT"),
-    ]))
-    elements.append(summary_table)
+        t_tot = Table(tot_data, colWidths=[60 * mm, 40 * mm])
+        t_tot.setStyle(TableStyle([
+            ("GRID", (0, 0), (-1, -1), 0.25, colors.black),
+            ("BACKGROUND", (0, 0), (-1, -1), colors.whitesmoke),
+            ("FONTSIZE", (0, 0), (-1, -1), 8),
+            ("FONTNAME", (0, 0), (-1, -1), "Helvetica-Bold"),
+        ]))
+
+        elements.append(Spacer(1, 4))
+        elements.append(Paragraph("Riepilogo costi", styles["Heading3"]))
+        elements.append(t_tot)
 
     pdf.build(elements)
     buffer.seek(0)

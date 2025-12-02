@@ -141,24 +141,30 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // 2) Associazione codice a barre -> selezione commessa
     if (barcodeInput && commessaSelect) {
+
         const applicaBarcode = () => {
-            const code = barcodeInput.value.trim();
-            if (!code) return;
+            const raw = barcodeInput.value.trim();
+            if (!raw) return;
+
+            // prendo solo le cifre e tolgo gli zeri iniziali
+            const numeric = raw.replace(/\D/g, "");
+            if (!numeric) return;
+
+            const idCommessa = String(parseInt(numeric, 10));  // "0000000008" -> "8"
 
             let trovato = false;
             for (const opt of commessaSelect.options) {
-                if (opt.value === code) {
-                    commessaSelect.value = code;
+                if (opt.value === idCommessa) {
+                    commessaSelect.value = idCommessa;
                     trovato = true;
                     break;
                 }
             }
 
             if (!trovato) {
-                alert("Nessuna commessa con ID " + code + " trovata.");
+                alert("Nessuna commessa con ID " + idCommessa + " trovata.");
             }
 
-            // pulisco e metto il focus sulla select
             barcodeInput.value = "";
             commessaSelect.focus();
         };
@@ -171,7 +177,6 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         });
 
-        // backup: se cambia il campo (senza Enter) applico comunque
         barcodeInput.addEventListener("change", applicaBarcode);
     }
 });
