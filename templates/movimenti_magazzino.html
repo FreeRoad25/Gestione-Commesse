@@ -7,12 +7,20 @@
 
     <!-- 🔍 Barra di ricerca -->
     <div class="search-panel">
-        <input type="text" id="searchArticolo" placeholder="🔍 Cerca per codice o descrizione..." onkeyup="filtraTabella()">
+        <input
+            type="text"
+            id="searchArticolo"
+            placeholder="🔍 Cerca per codice o descrizione..."
+            value="{{ ricerca or '' }}"
+            onkeyup="filtraTabella()"
+        >
+
         <select id="searchTipo" onchange="filtraTabella()">
-            <option value="">-- Tutti i movimenti --</option>
-            <option value="Carico">Carico</option>
-            <option value="Scarico">Scarico</option>
+            <option value="" {% if not filtro_mov %}selected{% endif %}>-- Tutti i movimenti --</option>
+            <option value="Carico"  {% if filtro_mov == 'Carico'  %}selected{% endif %}>Carico</option>
+            <option value="Scarico" {% if filtro_mov == 'Scarico' %}selected{% endif %}>Scarico</option>
         </select>
+
         <button class="btn btn-reset" onclick="resetFiltri()">🔄 Reset</button>
     </div>
 
@@ -26,6 +34,7 @@
                     <th>Descrizione</th>
                     <th>Tipo Movimento</th>
                     <th>Quantità</th>
+                    <th>Commessa</th>
                     <th>Data</th>
                 </tr>
             </thead>
@@ -38,7 +47,16 @@
                     <td>{{ mov.tipo_movimento }}</td>
                     <td>{{ mov.quantita }}</td>
 
-                    <!-- 🟦 CORRETTO PER POSTGRES -->
+                    <!-- Commessa associata (solo per scarichi legati a commessa) -->
+                    <td>
+                        {% if mov.id_commessa %}
+                            Commessa {{ mov.id_commessa }} — {{ mov.nome_commessa }}
+                        {% else %}
+                            —
+                        {% endif %}
+                    </td>
+
+                    <!-- Data (Postgres) -->
                     <td>
                         {% if mov.data_movimento %}
                             {{ mov.data_movimento.strftime("%Y-%m-%d") }}
@@ -156,8 +174,8 @@ function filtraTabella() {
     const tipo = document.getElementById("searchTipo").value;
 
     const params = new URLSearchParams();
-    if (articolo) params.append("q", articolo);
-    if (tipo) params.append("tipo", tipo);
+    if (articolo) params.append("ricerca", articolo);
+    if (tipo)     params.append("filtro_mov", tipo);
 
     window.location.href = "/movimenti_magazzino?" + params.toString();
 }

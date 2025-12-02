@@ -1549,42 +1549,59 @@ def carico_magazzino():
 
 @app.route("/movimenti_magazzino")
 def movimenti_magazzino():
-    conn = get_db_connection()
-    c = conn.cursor()
+    import psycopg2.extras
 
-    q = request.args.get("q", "")
-    tipo = request.args.get("tipo", "")
+    ricerca = request.args.get("ricerca", "").strip()
+    filtro_mov = request.args.get("filtro_mov", "").strip()  # es. 'Scarico', 'Carico', ecc.
+
+    conn = get_db_connection()
+    c = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
     query = """
-        SELECT 
+        SELECT
             m.id,
             a.codice,
             a.descrizione,
             m.tipo_movimento,
             m.quantita,
-            m.data_movimento
+            m.data_movimento,
+            -- commessa associata (aperta o consegnata)
+            COALESCE(c.id, cc.id)   AS id_commessa,
+            COALESCE(c.nome, cc.nome) AS nome_commessa
         FROM movimenti_magazzino m
-        LEFT JOIN articoli a ON m.id_articolo = a.id
-        WHERE 1=1
+        JOIN articoli a
+            ON m.id_articolo = a.id
+        LEFT JOIN commesse c
+            ON m.id_commessa = c.id
+        LEFT JOIN commesse_consegnate cc
+            ON m.id_commessa = cc.id
+        WHERE 1 = 1
     """
 
     params = []
 
-    if q:
+    if ricerca:
         query += " AND (a.codice ILIKE %s OR a.descrizione ILIKE %s)"
-        params.extend([f"%{q}%", f"%{q}%"])
+        txt = f"%{ricerca}%"
+        params.extend([txt, txt])
 
-    if tipo:
+    if filtro_mov:
         query += " AND m.tipo_movimento = %s"
-        params.append(tipo)
+        params.append(filtro_mov)
 
-    query += " ORDER BY m.data_movimento DESC"
+    query += " ORDER BY m.data_movimento DESC, m.id DESC"
 
-    c.execute(query, params)
+    c.execute(query, tuple(params))
     movimenti = c.fetchall()
     conn.close()
 
-    return render_template("movimenti_magazzino.html", movimenti=movimenti)
+    return render_template(
+        "movimenti_magazzino.html",
+        movimenti=movimenti,
+        ricerca=ricerca,
+        filtro_mov=filtro_mov
+    )
+
 
 
 
