@@ -699,20 +699,21 @@ def modifica_commessa(id):
 def stampa_commessa(id):
     from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
     from reportlab.lib import colors
-    from reportlab.lib.pagesizes import A4, landscape
+    from reportlab.lib.pagesizes import A4
     from reportlab.lib.styles import getSampleStyleSheet
+    from reportlab.lib.units import mm
     from decimal import Decimal
     from flask import Response
     from io import BytesIO
+    import psycopg2.extras
 
     conn = get_db_connection()
-    c = conn.cursor()
+    c = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
-    # Commessa aperta
+    # --- COMMESSA APERTA O CONSEGNATA ---
     c.execute("SELECT * FROM commesse WHERE id = %s", (id,))
     commessa = c.fetchone()
 
-    # Se non trovata, cerco tra le consegnate
     if not commessa:
         c.execute("SELECT * FROM commesse_consegnate WHERE id = %s", (id,))
         commessa = c.fetchone()
@@ -721,16 +722,35 @@ def stampa_commessa(id):
         conn.close()
         return "Commessa non trovata", 404
 
-    # Materiali usati
+    # --- MATERIALI: prima provo commesse_materiali, se vuoto uso movimenti_magazzino ---
     c.execute("""
-        SELECT a.codice, a.descrizione, cm.quantita, a.costo_netto
-        FROM commesse_materiali cm
-        JOIN articoli a ON cm.id_articolo = a.id
-        WHERE cm.id_commessa = %s
+        SELECT COUNT(*) AS n
+        FROM commesse_materiali
+        WHERE id_commessa = %s
     """, (id,))
+    row_cnt = c.fetchone()
+    use_commesse_materiali = row_cnt and row_cnt["n"] > 0
+
+    if use_commesse_materiali:
+        # vecchio metodo: tabella commesse_materiali
+        c.execute("""
+            SELECT a.codice, a.descrizione, cm.quantita, a.costo_netto
+            FROM commesse_materiali cm
+            JOIN articoli a ON cm.id_articolo = a.id
+            WHERE cm.id_commessa = %s
+        """, (id,))
+    else:
+        # nuovo metodo: usa gli scarichi di magazzino associati alla commessa
+        c.execute("""
+            SELECT a.codice, a.descrizione, m.quantita, a.costo_netto
+            FROM movimenti_magazzino m
+            JOIN articoli a ON m.id_articolo = a.id
+            WHERE m.id_commessa = %s
+              AND m.tipo_movimento = 'Scarico'
+        """, (id,))
     materiali = c.fetchall()
 
-    # Ore lavorate
+    # --- ORE LAVORATE ---
     c.execute("""
         SELECT o.nome AS operatore, ol.ore, COALESCE(o.costo_orario, 0) AS costo_orario
         FROM ore_lavorate ol
@@ -741,110 +761,101 @@ def stampa_commessa(id):
 
     conn.close()
 
+    # --- COSTRUZIONE PDF ---
     buffer = BytesIO()
     pdf = SimpleDocTemplate(
         buffer,
-        pagesize=landscape(A4),   # A4 ORIZZONTALE
-        leftMargin=30,
-        rightMargin=30,
-        topMargin=40,
-        bottomMargin=40,
+        pagesize=A4,
+        leftMargin=15 * mm,
+        rightMargin=15 * mm,
+        topMargin=15 * mm,
+        bottomMargin=15 * mm,
     )
-
     styles = getSampleStyleSheet()
     elements = []
 
     # Titolo
-    elements.append(Paragraph(
-        f"<b>Commessa #{id} – {commessa['nome']}</b>",
-        styles["Title"]
-    ))
-    elements.append(Spacer(1, 12))
+    elements.append(Paragraph(f"<b>Commessa #{id} – {commessa.get('nome','')}</b>", styles["Title"]))
+    elements.append(Spacer(1, 6))
 
-    # Tabella info principali
+    # Info principali (ho incluso anche dimensioni)
     dati = [
-        ["Tipo Intervento", commessa["tipo_intervento"] or "---"],
-        ["Veicolo", f"{commessa['marca_veicolo'] or ''} {commessa['modello_veicolo'] or ''}"],
-        ["Data Conferma", str(commessa["data_conferma"] or "---")],
-        ["Data Arrivo Materiali", str(commessa["data_arrivo_materiali"] or "---")],
-        ["Data Inizio", str(commessa["data_inizio"] or "---")],
-        ["Data Consegna", str(commessa["data_consegna"] or "---")],
-        ["Ore Necessarie", commessa["ore_necessarie"] or 0],
+        ["Tipo Intervento", commessa.get("tipo_intervento") or "---"],
+        ["Veicolo", f"{commessa.get('marca_veicolo') or ''} {commessa.get('modello_veicolo') or ''}"],
+        ["Dimensioni", commessa.get("dimensioni") or "---"],
+        ["Data Conferma", str(commessa.get("data_conferma") or "---")],
+        ["Data Arrivo Materiali", str(commessa.get("data_arrivo_materiali") or "---")],
+        ["Data Inizio", str(commessa.get("data_inizio") or "---")],
+        ["Data Consegna", str(commessa.get("data_consegna") or "---")],
+        ["Ore Necessarie", commessa.get("ore_necessarie") or 0],
     ]
 
-    table_info = Table(dati, colWidths=[200, 440])
+    table_info = Table(dati, colWidths=[90 * mm, 90 * mm])
     table_info.setStyle(TableStyle([
-        ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+        ("GRID", (0, 0), (-1, -1), 0.3, colors.grey),
         ("FONTNAME", (0, 0), (-1, -1), "Helvetica"),
-        ("FONTSIZE", (0, 0), (-1, -1), 9),
+        ("FONTSIZE", (0, 0), (-1, -1), 8),
+        ("BACKGROUND", (0, 0), (0, -1), colors.whitesmoke),
     ]))
     elements.append(table_info)
-    elements.append(Spacer(1, 15))
+    elements.append(Spacer(1, 6))
 
-    # NOTE IMPORTANTI (come prima)
-    note_text = None
-    try:
-        note_text = commessa.get("note_importanti")
-    except AttributeError:
-        try:
-            note_text = commessa["note_importanti"]
-        except (KeyError, TypeError):
-            note_text = None
-
+    # Note importanti
+    note_text = commessa.get("note_importanti")
     if note_text:
-        elements.append(Paragraph("Note importanti", styles["Heading2"]))
+        elements.append(Paragraph("Note importanti", styles["Heading3"]))
         note_clean = str(note_text).replace("\n", "<br/>")
         elements.append(Paragraph(note_clean, styles["Normal"]))
-        elements.append(Spacer(1, 15))
+        elements.append(Spacer(1, 6))
 
-    # MATERIALI
+    # Materiali
     if materiali:
         mat_data = [["Codice", "Descrizione", "Q.tà", "Costo €", "Totale €"]]
         for m in materiali:
-            q = Decimal(str(m["quantita"] or 0))
-            cst = Decimal(str(m["costo_netto"] or 0))
+            q = Decimal(str(m.get("quantita") or 0))
+            cst = Decimal(str(m.get("costo_netto") or 0))
             tot = q * cst
 
             mat_data.append([
-                m["codice"],
-                m["descrizione"],
+                m.get("codice") or "",
+                m.get("descrizione") or "",
                 float(q),
                 f"{cst:.2f}",
                 f"{tot:.2f}",
             ])
 
-        t_mat = Table(mat_data, colWidths=[90, 330, 50, 70, 70])
+        t_mat = Table(mat_data, colWidths=[25 * mm, 75 * mm, 15 * mm, 20 * mm, 20 * mm])
         t_mat.setStyle(TableStyle([
             ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
-            ("GRID", (0, 0), (-1, -1), 0.4, colors.black),
-            ("FONTSIZE", (0, 0), (-1, -1), 8),
+            ("GRID", (0, 0), (-1, -1), 0.25, colors.black),
+            ("FONTSIZE", (0, 0), (-1, -1), 7),
         ]))
-        elements.append(Paragraph("Materiali Utilizzati", styles["Heading2"]))
+        elements.append(Paragraph("Materiali Utilizzati", styles["Heading3"]))
         elements.append(t_mat)
+        elements.append(Spacer(1, 6))
 
-    # ORE LAVORATE
+    # Ore lavorate
     if ore_lavorate:
         ore_data = [["Operatore", "Ore", "€/h", "Totale €"]]
         for r in ore_lavorate:
-            ore = Decimal(str(r["ore"] or 0))
-            costo = Decimal(str(r["costo_orario"] or 0))
+            ore = Decimal(str(r.get("ore") or 0))
+            costo = Decimal(str(r.get("costo_orario") or 0))
             tot = ore * costo
 
             ore_data.append([
-                r["operatore"] or "---",
+                r.get("operatore") or "---",
                 float(ore),
                 f"{costo:.2f}",
                 f"{tot:.2f}",
             ])
 
-        t_ore = Table(ore_data, colWidths=[260, 60, 60, 60])
+        t_ore = Table(ore_data, colWidths=[80 * mm, 20 * mm, 20 * mm, 20 * mm])
         t_ore.setStyle(TableStyle([
             ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
-            ("GRID", (0, 0), (-1, -1), 0.4, colors.black),
-            ("FONTSIZE", (0, 0), (-1, -1), 8),
+            ("GRID", (0, 0), (-1, -1), 0.25, colors.black),
+            ("FONTSIZE", (0, 0), (-1, -1), 7),
         ]))
-        elements.append(Spacer(1, 15))
-        elements.append(Paragraph("Ore Lavorate", styles["Heading2"]))
+        elements.append(Paragraph("Ore Lavorate", styles["Heading3"]))
         elements.append(t_ore)
 
     pdf.build(elements)
@@ -853,8 +864,9 @@ def stampa_commessa(id):
     return Response(
         buffer.getvalue(),
         mimetype="application/pdf",
-        headers={"Content-Disposition": f"inline; filename=commessa_{id}.pdf"},
+        headers={"Content-Disposition": f"inline; filename=commessa_{id}.pdf"}
     )
+
 
 
 
