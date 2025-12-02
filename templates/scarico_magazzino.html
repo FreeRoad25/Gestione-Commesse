@@ -6,46 +6,48 @@
     <h1>🔽 Scarico Magazzino</h1>
 
     <form action="{{ url_for('scarico_magazzino') }}" method="POST" class="mag-form">
-        
-        <!-- 🔹 Filtro articoli (descrizione o barcode) -->
-        <label>Cerca articolo (descrizione o codice a barre):</label>
-        <input type="text"
-               id="filtro_articolo"
-               placeholder="Digita o scansiona per filtrare la lista..."
-               onkeyup="filtraArticoli()">
 
-        <!-- 🔹 Selezione articolo -->
-        <label>Articolo:</label>
+        <!-- 🔎 Ricerca -->
+        <label for="search_articolo">Cerca articolo (descrizione, codice o codice a barre):</label>
+        <input type="text"
+               id="search_articolo"
+               placeholder="Digita parte di descrizione, codice o barcode">
+
+        <!-- Articolo -->
+        <label for="id_articolo">Articolo:</label>
         <select name="id_articolo" id="id_articolo" required>
             <option value="">— Seleziona articolo —</option>
             {% for art in articoli %}
-                <option value="{{ art.id }}">
-                    {% if art.codice_barre %}{{ art.codice_barre }} — {% endif %}{{ art.descrizione }}
+                <option value="{{ art.id }}"
+                        data-descrizione="{{ art.descrizione|upper }}"
+                        data-codice="{{ (art.codice or '')|upper }}"
+                        data-barcode="{{ (art.codice_barre or '')|upper }}">
+                    {{ art.codice }} — {{ art.descrizione }}
                 </option>
             {% endfor %}
         </select>
 
-        <!-- 🔹 Quantità -->
+        <!-- Quantità -->
         <label>Quantità da scaricare:</label>
         <input type="number" step="0.01" name="quantita" placeholder="Inserisci quantità" required>
 
-        <!-- 🔹 Commessa -->
+        <!-- Commessa -->
         <label>Commessa:</label>
-        <select name="id_commessa" required>
+        <select name="id_commessa" id="id_commessa" required>
             <option value="">— Seleziona commessa —</option>
             {% for com in commesse %}
                 <option value="{{ com.id }}"
-                    {% if id_commessa_prefill and com.id == id_commessa_prefill|int %}selected{% endif %}>
+                        {% if id_commessa_default and id_commessa_default|string == com.id|string %}selected{% endif %}>
                     Commessa {{ com.id }} — {{ com.nome }}
                 </option>
             {% endfor %}
         </select>
 
-        <!-- 🔹 Note -->
+        <!-- Note -->
         <label>Note:</label>
         <textarea name="note" placeholder="Annotazioni (facoltativo)"></textarea>
 
-        <!-- 🔹 Pulsante conferma -->
+        <!-- Pulsante -->
         <button type="submit" class="btn-confirm">✅ Conferma Scarico</button>
     </form>
 </div>
@@ -98,27 +100,46 @@ h1 {
 </style>
 
 <script>
-function filtraArticoli() {
-    const filtro = document.getElementById('filtro_articolo').value.toLowerCase();
-    const select = document.getElementById('id_articolo');
-    const options = select.options;
+// Filtro client-side per descrizione, codice e barcode
+document.addEventListener("DOMContentLoaded", function () {
+    const searchInput = document.getElementById("search_articolo");
+    const selectArticolo = document.getElementById("id_articolo");
 
-    for (let i = 0; i < options.length; i++) {
-        const opt = options[i];
+    searchInput.addEventListener("input", function () {
+        const term = this.value.trim().toUpperCase();
+        let firstMatchValue = "";
 
-        if (i === 0) {
-            // la prima opzione ("— Seleziona —") resta sempre visibile
-            opt.style.display = '';
-            continue;
+        for (const opt of selectArticolo.options) {
+            // salta il placeholder
+            if (!opt.value) {
+                opt.hidden = false;
+                continue;
+            }
+
+            const testo = [
+                opt.dataset.descrizione || "",
+                opt.dataset.codice || "",
+                opt.dataset.barcode || ""
+            ].join(" ");
+
+            if (!term || testo.indexOf(term) !== -1) {
+                opt.hidden = false;
+                if (!firstMatchValue) {
+                    firstMatchValue = opt.value;
+                }
+            } else {
+                opt.hidden = true;
+            }
         }
 
-        const testo = opt.text.toLowerCase();
-        if (!filtro || testo.includes(filtro)) {
-            opt.style.display = '';
+        // seleziono il primo risultato valido (se esiste)
+        if (firstMatchValue) {
+            selectArticolo.value = firstMatchValue;
         } else {
-            opt.style.display = 'none';
+            selectArticolo.value = "";
         }
-    }
-}
+    });
+});
 </script>
 {% endblock %}
+
