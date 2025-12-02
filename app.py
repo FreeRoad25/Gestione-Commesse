@@ -765,7 +765,7 @@ def stampa_commessa(id):
     buffer = BytesIO()
     pdf = SimpleDocTemplate(
         buffer,
-        pagesize=landscape(A4),        # <- ORIZZONTALE
+        pagesize=landscape(A4),
         leftMargin=15 * mm,
         rightMargin=15 * mm,
         topMargin=15 * mm,
@@ -781,9 +781,8 @@ def stampa_commessa(id):
     ))
     elements.append(Spacer(1, 6))
 
-    # Larghezza utile stimata in orizzontale (A4: 297mm - 30mm margini ≃ 267mm)
-    # Uso 250mm per avere un po' di aria ai lati
-    info_col_widths = [80 * mm, 170 * mm]   # 80 + 170 = 250mm
+    # Larghezze tabella info
+    info_col_widths = [80 * mm, 170 * mm]
 
     # Info principali
     dati = [
@@ -815,6 +814,10 @@ def stampa_commessa(id):
         elements.append(Paragraph(note_clean, styles["Normal"]))
         elements.append(Spacer(1, 6))
 
+    # Totali che ci servono in fondo
+    tot_materiali = Decimal("0.00")
+    tot_ore_euro = Decimal("0.00")
+
     # ---- MATERIALI ----
     if materiali:
         mat_data = [["Codice", "Descrizione", "Q.tà", "Costo €", "Totale €"]]
@@ -822,6 +825,9 @@ def stampa_commessa(id):
             q = Decimal(str(m.get("quantita") or 0))
             cst = Decimal(str(m.get("costo_netto") or 0))
             tot = q * cst
+
+            # accumula totale materiali
+            tot_materiali += tot
 
             mat_data.append([
                 m.get("codice") or "",
@@ -831,14 +837,13 @@ def stampa_commessa(id):
                 f"{tot:.2f}",
             ])
 
-        # sfrutto molto di più la larghezza: descrizione bella larga
         mat_col_widths = [
             30 * mm,   # Codice
             140 * mm,  # Descrizione
             20 * mm,   # Q.tà
             30 * mm,   # Costo
             30 * mm,   # Totale
-        ]  # totale ≃ 250mm
+        ]
 
         t_mat = Table(mat_data, colWidths=mat_col_widths)
         t_mat.setStyle(TableStyle([
@@ -858,6 +863,9 @@ def stampa_commessa(id):
             costo = Decimal(str(r.get("costo_orario") or 0))
             tot = ore * costo
 
+            # accumula totale ore in €
+            tot_ore_euro += tot
+
             ore_data.append([
                 r.get("operatore") or "---",
                 float(ore),
@@ -866,7 +874,7 @@ def stampa_commessa(id):
             ])
 
         ore_col_widths = [
-            120 * mm,  # Operatore più largo
+            120 * mm,  # Operatore
             30 * mm,   # Ore
             30 * mm,   # €/h
             30 * mm,   # Totale
@@ -880,6 +888,26 @@ def stampa_commessa(id):
         ]))
         elements.append(Paragraph("Ore Lavorate", styles["Heading3"]))
         elements.append(t_ore)
+        elements.append(Spacer(1, 8))
+
+    # ---- RIEPILOGO TOTALI COMMESSA ----
+    totale_commessa = tot_materiali + tot_ore_euro
+
+    summary_data = [
+        ["Totale Materiali (€)", f"{tot_materiali:.2f}"],
+        ["Totale Ore Lavoro (€)", f"{tot_ore_euro:.2f}"],
+        ["Totale Complessivo Commessa (€)", f"{totale_commessa:.2f}"],
+    ]
+
+    summary_table = Table(summary_data, colWidths=[80 * mm, 40 * mm])
+    summary_table.setStyle(TableStyle([
+        ("GRID", (0, 0), (-1, -1), 0.4, colors.black),
+        ("BACKGROUND", (0, 0), (-1, -1), colors.whitesmoke),
+        ("FONTNAME", (0, 0), (-1, -1), "Helvetica-Bold"),
+        ("FONTSIZE", (0, 0), (-1, -1), 8),
+        ("ALIGN", (1, 0), (1, -1), "RIGHT"),
+    ]))
+    elements.append(summary_table)
 
     pdf.build(elements)
     buffer.seek(0)
@@ -889,6 +917,7 @@ def stampa_commessa(id):
         mimetype="application/pdf",
         headers={"Content-Disposition": f"inline; filename=commessa_{id}.pdf"}
     )
+
 
 
 
