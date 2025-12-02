@@ -440,49 +440,15 @@ from flask_login import login_required
 
 @app.route("/aggiungi_commessa", methods=["GET", "POST"])
 def aggiungi_commessa():
-    conn = get_db_connection()
     import psycopg2.extras
+
+    conn = get_db_connection()
     c = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
     if request.method == "POST":
         nome = request.form.get("nome")
-
-        # ---------------- TIPO INTERVENTO ----------------
-        tipo_sel = request.form.get("tipo_intervento") or ""
-        nuovo_intervento = (request.form.get("nuovo_intervento") or "").strip()
-
-        if tipo_sel == "Altro" and nuovo_intervento:
-            # Se l'utente ha scritto un nuovo tipo, lo salvo nella tabella tipi_intervento (se non esiste)
-            c.execute(
-                "SELECT 1 FROM tipi_intervento WHERE LOWER(nome) = LOWER(%s) LIMIT 1",
-                (nuovo_intervento,)
-            )
-            esiste = c.fetchone()
-            if not esiste:
-                c.execute("INSERT INTO tipi_intervento (nome) VALUES (%s)", (nuovo_intervento,))
-            tipo_intervento = nuovo_intervento
-        else:
-            tipo_intervento = tipo_sel
-        # -------------------------------------------------
-
-        # -------------------- MARCA ----------------------
-        marca_sel = request.form.get("marca_veicolo") or ""
-        nuova_marca = (request.form.get("nuova_marca") or "").strip()
-
-        if marca_sel == "nuova" and nuova_marca:
-            # Salvo la nuova marca nella tabella marche se non esiste
-            c.execute(
-                "SELECT 1 FROM marche WHERE LOWER(nome) = LOWER(%s) LIMIT 1",
-                (nuova_marca,)
-            )
-            esiste_marca = c.fetchone()
-            if not esiste_marca:
-                c.execute("INSERT INTO marche (nome) VALUES (%s)", (nuova_marca,))
-            marca_veicolo = nuova_marca
-        else:
-            marca_veicolo = marca_sel
-        # -------------------------------------------------
-
+        tipo_intervento = request.form.get("tipo_intervento")
+        marca_veicolo = request.form.get("marca_veicolo")
         modello_veicolo = request.form.get("modello_veicolo")
         dimensioni = request.form.get("dimensioni")
         data_conferma = request.form.get("data_conferma")
@@ -495,46 +461,53 @@ def aggiungi_commessa():
         ore_rimanenti = ore_necessarie
 
         try:
-            c.execute(
-                """
+            c.execute("""
                 INSERT INTO commesse
-                (nome, tipo_intervento, marca_veicolo, modello_veicolo, dimensioni,
-                 data_conferma, data_arrivo_materiali, data_inizio,
-                 ore_necessarie, ore_eseguite, ore_rimanenti, data_consegna,
-                 foto, allegato, note_importanti)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                """,
-                (
-                    nome,
-                    tipo_intervento,
-                    marca_veicolo,
-                    modello_veicolo,
-                    dimensioni,
-                    data_conferma,
-                    data_arrivo_materiali,
-                    data_inizio,
-                    ore_necessarie,
-                    ore_eseguite,
-                    ore_rimanenti,
-                    None,
-                    None,
-                    None,
-                    note_importanti,
-                ),
-            )
+                    (nome, tipo_intervento, marca_veicolo, modello_veicolo, dimensioni,
+                     data_conferma, data_arrivo_materiali, data_inizio,
+                     ore_necessarie, ore_eseguite, ore_rimanenti, data_consegna,
+                     foto, allegato, note_importanti)
+                VALUES
+                    (%s, %s, %s, %s, %s,
+                     %s, %s, %s,
+                     %s, %s, %s, %s,
+                     %s, %s, %s)
+                RETURNING id
+            """, (
+                nome,
+                tipo_intervento,
+                marca_veicolo,
+                modello_veicolo,
+                dimensioni,
+                data_conferma,
+                data_arrivo_materiali,
+                data_inizio,
+                ore_necessarie,
+                ore_eseguite,
+                ore_rimanenti,
+                None,      # data_consegna
+                None,      # foto
+                None,      # allegato
+                note_importanti
+            ))
+
+            # ID della nuova commessa
+            new_id_row = c.fetchone()
+            new_id = new_id_row["id"]
 
             conn.commit()
-            return redirect(url_for("lista_commesse"))
+            conn.close()
+
+            # dopo il salvataggio apro direttamente la stampa (con barcode)
+            return redirect(url_for("stampa_commessa", id=new_id))
 
         except Exception as e:
             conn.rollback()
+            conn.close()
             print("ERRORE INSERT COMMESSA:", e)
             return f"Errore salvataggio commessa: {str(e)}", 500
 
-        finally:
-            conn.close()
-
-    # ------- GET -------
+    # -------- GET (mostra form) --------
     c.execute("SELECT nome FROM tipi_intervento ORDER BY nome ASC")
     tipi_intervento = [row["nome"] for row in c.fetchall()]
 
@@ -548,6 +521,8 @@ def aggiungi_commessa():
         tipi_intervento=tipi_intervento,
         marche=marche
     )
+
+
 
 
 
@@ -702,6 +677,7 @@ def stampa_commessa(id):
     from reportlab.lib.pagesizes import A4, landscape
     from reportlab.lib.styles import getSampleStyleSheet
     from reportlab.lib.units import mm
+    from reportlab.graphics.barcode import code128
     from decimal import Decimal
     from flask import Response
     from io import BytesIO
@@ -775,10 +751,14 @@ def stampa_commessa(id):
     elements = []
 
     # Titolo
-    elements.append(Paragraph(
-        f"<b>Commessa #{id} – {commessa.get('nome', '')}</b>",
-        styles["Title"]
-    ))
+    title_text = f"Commessa #{id} – {commessa.get('nome', '')}"
+    elements.append(Paragraph(f"<b>{title_text}</b>", styles["Title"]))
+    elements.append(Spacer(1, 2))
+
+    # --- CODICE A BARRE CON L'ID COMMESSA ---
+    barcode_value = str(id)
+    barcode_obj = code128.Code128(barcode_value, barHeight=12 * mm, barWidth=0.35)
+    elements.append(barcode_obj)
     elements.append(Spacer(1, 6))
 
     # Larghezze tabella info
@@ -814,7 +794,7 @@ def stampa_commessa(id):
         elements.append(Paragraph(note_clean, styles["Normal"]))
         elements.append(Spacer(1, 6))
 
-    # Totali che ci servono in fondo
+    # Totali
     tot_materiali = Decimal("0.00")
     tot_ore_euro = Decimal("0.00")
 
@@ -825,8 +805,6 @@ def stampa_commessa(id):
             q = Decimal(str(m.get("quantita") or 0))
             cst = Decimal(str(m.get("costo_netto") or 0))
             tot = q * cst
-
-            # accumula totale materiali
             tot_materiali += tot
 
             mat_data.append([
@@ -862,8 +840,6 @@ def stampa_commessa(id):
             ore = Decimal(str(r.get("ore") or 0))
             costo = Decimal(str(r.get("costo_orario") or 0))
             tot = ore * costo
-
-            # accumula totale ore in €
             tot_ore_euro += tot
 
             ore_data.append([
@@ -917,6 +893,7 @@ def stampa_commessa(id):
         mimetype="application/pdf",
         headers={"Content-Disposition": f"inline; filename=commessa_{id}.pdf"}
     )
+
 
 
 
