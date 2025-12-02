@@ -699,7 +699,7 @@ def modifica_commessa(id):
 def stampa_commessa(id):
     from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
     from reportlab.lib import colors
-    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.pagesizes import A4, landscape
     from reportlab.lib.styles import getSampleStyleSheet
     from reportlab.lib.units import mm
     from decimal import Decimal
@@ -761,11 +761,11 @@ def stampa_commessa(id):
 
     conn.close()
 
-    # --- COSTRUZIONE PDF ---
+    # --- COSTRUZIONE PDF (A4 ORIZZONTALE) ---
     buffer = BytesIO()
     pdf = SimpleDocTemplate(
         buffer,
-        pagesize=A4,
+        pagesize=landscape(A4),        # <- ORIZZONTALE
         leftMargin=15 * mm,
         rightMargin=15 * mm,
         topMargin=15 * mm,
@@ -775,13 +775,20 @@ def stampa_commessa(id):
     elements = []
 
     # Titolo
-    elements.append(Paragraph(f"<b>Commessa #{id} – {commessa.get('nome','')}</b>", styles["Title"]))
+    elements.append(Paragraph(
+        f"<b>Commessa #{id} – {commessa.get('nome', '')}</b>",
+        styles["Title"]
+    ))
     elements.append(Spacer(1, 6))
 
-    # Info principali (ho incluso anche dimensioni)
+    # Larghezza utile stimata in orizzontale (A4: 297mm - 30mm margini ≃ 267mm)
+    # Uso 250mm per avere un po' di aria ai lati
+    info_col_widths = [80 * mm, 170 * mm]   # 80 + 170 = 250mm
+
+    # Info principali
     dati = [
         ["Tipo Intervento", commessa.get("tipo_intervento") or "---"],
-        ["Veicolo", f"{commessa.get('marca_veicolo') or ''} {commessa.get('modello_veicolo') or ''}"],
+        ["Veicolo", f"{commessa.get('marca_veicolo') or ''} {commessa.get('modello_veicolo') or ''}".strip()],
         ["Dimensioni", commessa.get("dimensioni") or "---"],
         ["Data Conferma", str(commessa.get("data_conferma") or "---")],
         ["Data Arrivo Materiali", str(commessa.get("data_arrivo_materiali") or "---")],
@@ -790,7 +797,7 @@ def stampa_commessa(id):
         ["Ore Necessarie", commessa.get("ore_necessarie") or 0],
     ]
 
-    table_info = Table(dati, colWidths=[90 * mm, 90 * mm])
+    table_info = Table(dati, colWidths=info_col_widths)
     table_info.setStyle(TableStyle([
         ("GRID", (0, 0), (-1, -1), 0.3, colors.grey),
         ("FONTNAME", (0, 0), (-1, -1), "Helvetica"),
@@ -808,7 +815,7 @@ def stampa_commessa(id):
         elements.append(Paragraph(note_clean, styles["Normal"]))
         elements.append(Spacer(1, 6))
 
-    # Materiali
+    # ---- MATERIALI ----
     if materiali:
         mat_data = [["Codice", "Descrizione", "Q.tà", "Costo €", "Totale €"]]
         for m in materiali:
@@ -824,7 +831,16 @@ def stampa_commessa(id):
                 f"{tot:.2f}",
             ])
 
-        t_mat = Table(mat_data, colWidths=[25 * mm, 75 * mm, 15 * mm, 20 * mm, 20 * mm])
+        # sfrutto molto di più la larghezza: descrizione bella larga
+        mat_col_widths = [
+            30 * mm,   # Codice
+            140 * mm,  # Descrizione
+            20 * mm,   # Q.tà
+            30 * mm,   # Costo
+            30 * mm,   # Totale
+        ]  # totale ≃ 250mm
+
+        t_mat = Table(mat_data, colWidths=mat_col_widths)
         t_mat.setStyle(TableStyle([
             ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
             ("GRID", (0, 0), (-1, -1), 0.25, colors.black),
@@ -834,7 +850,7 @@ def stampa_commessa(id):
         elements.append(t_mat)
         elements.append(Spacer(1, 6))
 
-    # Ore lavorate
+    # ---- ORE LAVORATE ----
     if ore_lavorate:
         ore_data = [["Operatore", "Ore", "€/h", "Totale €"]]
         for r in ore_lavorate:
@@ -849,7 +865,14 @@ def stampa_commessa(id):
                 f"{tot:.2f}",
             ])
 
-        t_ore = Table(ore_data, colWidths=[80 * mm, 20 * mm, 20 * mm, 20 * mm])
+        ore_col_widths = [
+            120 * mm,  # Operatore più largo
+            30 * mm,   # Ore
+            30 * mm,   # €/h
+            30 * mm,   # Totale
+        ]
+
+        t_ore = Table(ore_data, colWidths=ore_col_widths)
         t_ore.setStyle(TableStyle([
             ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
             ("GRID", (0, 0), (-1, -1), 0.25, colors.black),
@@ -866,6 +889,7 @@ def stampa_commessa(id):
         mimetype="application/pdf",
         headers={"Content-Disposition": f"inline; filename=commessa_{id}.pdf"}
     )
+
 
 
 
