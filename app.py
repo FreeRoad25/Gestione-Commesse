@@ -1156,62 +1156,7 @@ def consegna_veicolo():
 
 
 
-@app.route("/fix_commesse_consegnate_schema")
-def fix_commesse_consegnate_schema():
-    conn = get_db_connection()
-    c = conn.cursor()
-    try:
-        # Aggiungo le colonne che servono, solo se non esistono
-        c.execute("""
-            ALTER TABLE commesse_consegnate
-                ADD COLUMN IF NOT EXISTS data_conferma date;
-        """)
-        c.execute("""
-            ALTER TABLE commesse_consegnate
-                ADD COLUMN IF NOT EXISTS data_arrivo_materiali date;
-        """)
-        c.execute("""
-            ALTER TABLE commesse_consegnate
-                ADD COLUMN IF NOT EXISTS data_inizio date;
-        """)
-        c.execute("""
-            ALTER TABLE commesse_consegnate
-                ADD COLUMN IF NOT EXISTS ore_necessarie numeric;
-        """)
-        c.execute("""
-            ALTER TABLE commesse_consegnate
-                ADD COLUMN IF NOT EXISTS ore_eseguite numeric;
-        """)
-        c.execute("""
-            ALTER TABLE commesse_consegnate
-                ADD COLUMN IF NOT EXISTS ore_rimanenti numeric;
-        """)
-        c.execute("""
-            ALTER TABLE commesse_consegnate
-                ADD COLUMN IF NOT EXISTS marca_veicolo text;
-        """)
-        c.execute("""
-            ALTER TABLE commesse_consegnate
-                ADD COLUMN IF NOT EXISTS modello_veicolo text;
-        """)
-        c.execute("""
-            ALTER TABLE commesse_consegnate
-                ADD COLUMN IF NOT EXISTS dimensioni text;
-        """)
-        c.execute("""
-            ALTER TABLE commesse_consegnate
-                ADD COLUMN IF NOT EXISTS note_importanti text;
-        """)
 
-        conn.commit()
-        return "Schema commesse_consegnate aggiornato correttamente."
-
-    except Exception as e:
-        conn.rollback()
-        return f"Errore aggiornamento schema: {e}", 500
-
-    finally:
-        conn.close()
 
 
 
