@@ -1154,66 +1154,69 @@ def consegna_veicolo():
 
 
 
+from datetime import date
+
 @app.route("/conferma_consegna/<int:id>", methods=["GET", "POST"])
 def conferma_consegna(id):
     conn = get_db_connection()
-    # uso RealDictCursor per avere i campi accessibili per nome
-    c = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-
+    c = conn.cursor()
     try:
-        # 1) leggo la commessa aperta
+        # 1) verifico che la commessa esista
         c.execute("SELECT * FROM commesse WHERE id = %s", (id,))
         commessa = c.fetchone()
-
         if not commessa:
-            conn.close()
             return "Commessa non trovata", 404
 
-        # 2) se è GET mostro solo la pagina di conferma
+        # 2) GET: mostro solo la pagina di conferma
         if request.method == "GET":
+            # commessa resta la tupla originale, così il template non cambia
             return render_template("conferma_consegna.html", commessa=commessa)
 
         # 3) POST: sposto la commessa in commesse_consegnate
         saldata = request.form.get("saldata", "No")
         data_consegna = date.today()
 
-        # leggo tutte le colonne presenti in commesse_consegnate
+        # leggo le colonne delle due tabelle
+        c.execute("""
+            SELECT column_name
+            FROM information_schema.columns
+            WHERE table_name = 'commesse'
+            ORDER BY ordinal_position
+        """)
+        cols_commesse = [row[0] for row in c.fetchall()]
+
         c.execute("""
             SELECT column_name
             FROM information_schema.columns
             WHERE table_name = 'commesse_consegnate'
             ORDER BY ordinal_position
         """)
-        dest_cols = [row["column_name"] for row in c.fetchall()]
+        cols_consegnate = [row[0] for row in c.fetchall()]
 
-        cols = []
-        values = []
+        # colonne in comune da copiare (escludo id e i campi gestiti a parte)
+        copy_cols = [
+            col for col in cols_commesse
+            if col in cols_consegnate and col not in ("id", "data_consegna", "saldata")
+        ]
 
-        for col in dest_cols:
-            if col == "id":
-                # id è serial, lo lascia gestire a Postgres
-                continue
+        if not copy_cols:
+            raise Exception("Nessuna colonna in comune tra commesse e commesse_consegnate")
 
-            if col == "data_consegna":
-                cols.append(col)
-                values.append(data_consegna)
-            elif col == "saldata":
-                cols.append(col)
-                values.append(saldata)
-            else:
-                # se la colonna esiste nella tabella commesse, la copio
-                if col in commessa:
-                    cols.append(col)
-                    values.append(commessa[col])
-                # se non esiste, la lascio al valore di default del DB
+        # costruisco INSERT ... SELECT
+        cols_insert = copy_cols + ["data_consegna", "saldata"]
+        cols_insert_sql = ", ".join(cols_insert)
+        select_sql = ", ".join(copy_cols)
 
-        if cols:
-            placeholders = ", ".join(["%s"] * len(cols))
-            collist = ", ".join(cols)
-            sql = f"INSERT INTO commesse_consegnate ({collist}) VALUES ({placeholders})"
-            c.execute(sql, values)
+        sql = f"""
+            INSERT INTO commesse_consegnate ({cols_insert_sql})
+            SELECT {select_sql}, %s AS data_consegna, %s AS saldata
+            FROM commesse
+            WHERE id = %s
+        """
 
-        # 4) elimino la commessa dalla tabella principale
+        c.execute(sql, (data_consegna, saldata, id))
+
+        # 4) cancello la commessa dalla tabella principale
         c.execute("DELETE FROM commesse WHERE id = %s", (id,))
 
         conn.commit()
@@ -1226,6 +1229,7 @@ def conferma_consegna(id):
 
     finally:
         conn.close()
+
 
 
 
