@@ -1153,58 +1153,80 @@ def consegna_veicolo():
 
 
 
+
 @app.route("/conferma_consegna/<int:id>", methods=["GET", "POST"])
 def conferma_consegna(id):
     conn = get_db_connection()
-    # cursore che restituisce dict -> puoi usare commessa["nome"]
+    # uso RealDictCursor per avere i campi accessibili per nome
     c = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
-    # leggo la commessa aperta
-    c.execute("SELECT * FROM commesse WHERE id = %s", (id,))
-    commessa = c.fetchone()
+    try:
+        # 1) leggo la commessa aperta
+        c.execute("SELECT * FROM commesse WHERE id = %s", (id,))
+        commessa = c.fetchone()
 
-    if not commessa:
-        conn.close()
-        return "Commessa non trovata", 404
+        if not commessa:
+            conn.close()
+            return "Commessa non trovata", 404
 
-    if request.method == "POST":
+        # 2) se è GET mostro solo la pagina di conferma
+        if request.method == "GET":
+            return render_template("conferma_consegna.html", commessa=commessa)
+
+        # 3) POST: sposto la commessa in commesse_consegnate
         saldata = request.form.get("saldata", "No")
-        # data di oggi come oggetto date (va benissimo per una colonna DATE)
         data_consegna = date.today()
 
-        # inserisco nella tabella delle commesse consegnate
+        # leggo tutte le colonne presenti in commesse_consegnate
         c.execute("""
-            INSERT INTO commesse_consegnate
-            (nome, tipo_intervento, data_conferma, data_arrivo_materiali, data_inizio,
-             ore_necessarie, ore_eseguite, ore_rimanenti,
-             marca_veicolo, modello_veicolo, dimensioni,
-             data_consegna, saldata)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-        """, (
-            commessa["nome"],
-            commessa["tipo_intervento"],
-            commessa["data_conferma"],
-            commessa["data_arrivo_materiali"],
-            commessa["data_inizio"],
-            commessa["ore_necessarie"],
-            commessa["ore_eseguite"],
-            commessa["ore_rimanenti"],
-            commessa["marca_veicolo"],
-            commessa["modello_veicolo"],
-            commessa["dimensioni"],
-            data_consegna,
-            saldata
-        ))
+            SELECT column_name
+            FROM information_schema.columns
+            WHERE table_name = 'commesse_consegnate'
+            ORDER BY ordinal_position
+        """)
+        dest_cols = [row["column_name"] for row in c.fetchall()]
 
-        # cancello la commessa dalla tabella delle aperte
+        cols = []
+        values = []
+
+        for col in dest_cols:
+            if col == "id":
+                # id è serial, lo lascia gestire a Postgres
+                continue
+
+            if col == "data_consegna":
+                cols.append(col)
+                values.append(data_consegna)
+            elif col == "saldata":
+                cols.append(col)
+                values.append(saldata)
+            else:
+                # se la colonna esiste nella tabella commesse, la copio
+                if col in commessa:
+                    cols.append(col)
+                    values.append(commessa[col])
+                # se non esiste, la lascio al valore di default del DB
+
+        if cols:
+            placeholders = ", ".join(["%s"] * len(cols))
+            collist = ", ".join(cols)
+            sql = f"INSERT INTO commesse_consegnate ({collist}) VALUES ({placeholders})"
+            c.execute(sql, values)
+
+        # 4) elimino la commessa dalla tabella principale
         c.execute("DELETE FROM commesse WHERE id = %s", (id,))
 
         conn.commit()
-        conn.close()
         return redirect(url_for("consegna_veicolo"))
 
-    conn.close()
-    return render_template("conferma_consegna.html", commessa=commessa)
+    except Exception as e:
+        conn.rollback()
+        print("ERRORE CONFERMA CONSEGNA:", e)
+        return f"Errore conferma consegna: {e}", 500
+
+    finally:
+        conn.close()
+
 
 
 
