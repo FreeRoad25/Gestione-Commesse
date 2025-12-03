@@ -8,6 +8,8 @@ from dotenv import load_dotenv
 from crea_tabelle_pg import create_tables
 from datetime import date  # una sola volta in alto al file, se non c'è già
 
+
+
 load_dotenv()
 DB_HOST = os.getenv("DB_HOST")
 DB_PORT = os.getenv("DB_PORT", "5432")
@@ -1149,11 +1151,15 @@ def consegna_veicolo():
     return render_template("consegna_veicolo.html", commesse=commesse)
 
 
+
+
 @app.route("/conferma_consegna/<int:id>", methods=["GET", "POST"])
 def conferma_consegna(id):
     conn = get_db_connection()
-    c = conn.cursor()
+    # cursore che restituisce dict -> puoi usare commessa["nome"]
+    c = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
+    # leggo la commessa aperta
     c.execute("SELECT * FROM commesse WHERE id = %s", (id,))
     commessa = c.fetchone()
 
@@ -1163,13 +1169,16 @@ def conferma_consegna(id):
 
     if request.method == "POST":
         saldata = request.form.get("saldata", "No")
-        data_consegna = date.today().isoformat()
+        # data di oggi come oggetto date (va benissimo per una colonna DATE)
+        data_consegna = date.today()
 
+        # inserisco nella tabella delle commesse consegnate
         c.execute("""
             INSERT INTO commesse_consegnate
             (nome, tipo_intervento, data_conferma, data_arrivo_materiali, data_inizio,
-             ore_necessarie, ore_eseguite, ore_rimanenti, marca_veicolo, modello_veicolo,
-             dimensioni, data_consegna, saldata)
+             ore_necessarie, ore_eseguite, ore_rimanenti,
+             marca_veicolo, modello_veicolo, dimensioni,
+             data_consegna, saldata)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """, (
             commessa["nome"],
@@ -1187,13 +1196,16 @@ def conferma_consegna(id):
             saldata
         ))
 
+        # cancello la commessa dalla tabella delle aperte
         c.execute("DELETE FROM commesse WHERE id = %s", (id,))
+
         conn.commit()
         conn.close()
         return redirect(url_for("consegna_veicolo"))
 
     conn.close()
     return render_template("conferma_consegna.html", commessa=commessa)
+
 
 
 @app.route("/archivio_consegnati")
