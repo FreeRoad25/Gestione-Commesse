@@ -1154,81 +1154,115 @@ def consegna_veicolo():
 
 
 
-from datetime import date
+
+
+
+
 
 @app.route("/conferma_consegna/<int:id>", methods=["GET", "POST"])
 def conferma_consegna(id):
+    """
+    - GET  -> mostra la pagina di conferma consegna per la commessa id
+    - POST -> sposta la commessa da 'commesse' a 'commesse_consegnate'
+    """
+
+    # --- POST: conferma consegna ---
+    if request.method == "POST":
+        conn = get_db_connection()
+        c = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+        try:
+            # ricarico la commessa dal DB
+            c.execute("SELECT * FROM commesse WHERE id = %s", (id,))
+            commessa = c.fetchone()
+
+            if not commessa:
+                conn.close()
+                return "Commessa non trovata", 404
+
+            saldata = request.form.get("saldata") or "No"
+            data_consegna = date.today()
+
+            # inserisco nella tabella commesse_consegnate
+            c.execute(
+                """
+                INSERT INTO commesse_consegnate
+                (
+                    nome,
+                    tipo_intervento,
+                    data_conferma,
+                    data_arrivo_materiali,
+                    data_inizio,
+                    ore_necessarie,
+                    ore_eseguite,
+                    ore_rimanenti,
+                    marca_veicolo,
+                    modello_veicolo,
+                    dimensioni,
+                    data_consegna,
+                    saldata
+                )
+                VALUES
+                (
+                    %(nome)s,
+                    %(tipo_intervento)s,
+                    %(data_conferma)s,
+                    %(data_arrivo_materiali)s,
+                    %(data_inizio)s,
+                    %(ore_necessarie)s,
+                    %(ore_eseguite)s,
+                    %(ore_rimanenti)s,
+                    %(marca_veicolo)s,
+                    %(modello_veicolo)s,
+                    %(dimensioni)s,
+                    %(data_consegna)s,
+                    %(saldata)s
+                )
+                """,
+                {
+                    "nome": commessa.get("nome"),
+                    "tipo_intervento": commessa.get("tipo_intervento"),
+                    "data_conferma": commessa.get("data_conferma"),
+                    "data_arrivo_materiali": commessa.get("data_arrivo_materiali"),
+                    "data_inizio": commessa.get("data_inizio"),
+                    "ore_necessarie": commessa.get("ore_necessarie"),
+                    "ore_eseguite": commessa.get("ore_eseguite"),
+                    "ore_rimanenti": commessa.get("ore_rimanenti"),
+                    "marca_veicolo": commessa.get("marca_veicolo"),
+                    "modello_veicolo": commessa.get("modello_veicolo"),
+                    "dimensioni": commessa.get("dimensioni"),
+                    "data_consegna": data_consegna,
+                    "saldata": saldata,
+                },
+            )
+
+            # cancello la commessa dalla tabella principale
+            c.execute("DELETE FROM commesse WHERE id = %s", (id,))
+
+            conn.commit()
+            conn.close()
+
+            # dopo la conferma ti porto alla pagina delle consegne
+            return redirect(url_for("consegna_veicolo"))
+
+        except Exception as e:
+            conn.rollback()
+            conn.close()
+            print("ERRORE CONFERMA CONSEGNA:", repr(e))
+            return f"Errore conferma consegna: {e}", 500
+
+    # --- GET: mostro pagina di conferma ---
     conn = get_db_connection()
-    c = conn.cursor()
-    try:
-        # 1) verifico che la commessa esista
-        c.execute("SELECT * FROM commesse WHERE id = %s", (id,))
-        commessa = c.fetchone()
-        if not commessa:
-            return "Commessa non trovata", 404
+    c = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    c.execute("SELECT * FROM commesse WHERE id = %s", (id,))
+    commessa = c.fetchone()
+    conn.close()
 
-        # 2) GET: mostro solo la pagina di conferma
-        if request.method == "GET":
-            # commessa resta la tupla originale, così il template non cambia
-            return render_template("conferma_consegna.html", commessa=commessa)
+    if not commessa:
+        return "Commessa non trovata", 404
 
-        # 3) POST: sposto la commessa in commesse_consegnate
-        saldata = request.form.get("saldata", "No")
-        data_consegna = date.today()
+    return render_template("conferma_consegna.html", commessa=commessa)
 
-        # leggo le colonne delle due tabelle
-        c.execute("""
-            SELECT column_name
-            FROM information_schema.columns
-            WHERE table_name = 'commesse'
-            ORDER BY ordinal_position
-        """)
-        cols_commesse = [row[0] for row in c.fetchall()]
-
-        c.execute("""
-            SELECT column_name
-            FROM information_schema.columns
-            WHERE table_name = 'commesse_consegnate'
-            ORDER BY ordinal_position
-        """)
-        cols_consegnate = [row[0] for row in c.fetchall()]
-
-        # colonne in comune da copiare (escludo id e i campi gestiti a parte)
-        copy_cols = [
-            col for col in cols_commesse
-            if col in cols_consegnate and col not in ("id", "data_consegna", "saldata")
-        ]
-
-        if not copy_cols:
-            raise Exception("Nessuna colonna in comune tra commesse e commesse_consegnate")
-
-        # costruisco INSERT ... SELECT
-        cols_insert = copy_cols + ["data_consegna", "saldata"]
-        cols_insert_sql = ", ".join(cols_insert)
-        select_sql = ", ".join(copy_cols)
-
-        sql = f"""
-            INSERT INTO commesse_consegnate ({cols_insert_sql})
-            SELECT {select_sql}, %s AS data_consegna, %s AS saldata
-            FROM commesse
-            WHERE id = %s
-        """
-
-        c.execute(sql, (data_consegna, saldata, id))
-
-        # 4) cancello la commessa dalla tabella principale
-        c.execute("DELETE FROM commesse WHERE id = %s", (id,))
-
-        conn.commit()
-        return redirect(url_for("consegna_veicolo"))
-
-    except Exception as e:
-        conn.rollback()
-        print("ERRORE CONFERMA CONSEGNA:", e)
-        return f"Errore conferma consegna: {e}", 500
-
-    finally:
-        conn.close()
 
 
 
