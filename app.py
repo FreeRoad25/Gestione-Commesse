@@ -1155,78 +1155,85 @@ def consegna_veicolo():
 
 @app.route("/conferma_consegna/<int:id>", methods=["GET", "POST"])
 def conferma_consegna(id):
-    try:
-        conn = get_db_connection()
-        c = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    import psycopg2.extras
 
-        # prendo la commessa aperta
-        c.execute("SELECT * FROM commesse WHERE id = %s", (id,))
-        commessa = c.fetchone()
+    conn = get_db_connection()
+    # uso RealDictCursor per avere commessa["nome"], commessa["tipo_intervento"], ecc.
+    c = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
-        if not commessa:
-            conn.close()
-            return "Commessa non trovata", 404
+    # 1) Leggo la commessa ancora aperta
+    c.execute("SELECT * FROM commesse WHERE id = %s", (id,))
+    commessa = c.fetchone()
 
-        # --- POST: conferma consegna ---
-        if request.method == "POST":
-            saldata = request.form.get("saldata", "No")
-            data_consegna = date.today()
+    if not commessa:
+        conn.close()
+        return "Commessa non trovata", 404
 
-            # 1) copio la commessa in commesse_consegnate
+    # 2) POST: conferma consegna
+    if request.method == "POST":
+        saldata = request.form.get("saldata", "No")  # "Si" oppure "No"
+        data_consegna = date.today()                 # tipo DATE in PostgreSQL
+
+        try:
+            # --- Inserisco nell'archivio commesse_consegnate ---
             c.execute("""
                 INSERT INTO commesse_consegnate
-                (
-                    nome,
-                    tipo_intervento,
-                    data_arrivo_materiali,
-                    data_inizio,
-                    ore_necessarie,
-                    ore_eseguite,
-                    ore_rimanenti,
-                    marca_veicolo,
-                    modello_veicolo,
-                    dimensioni,
-                    data_consegna,
-                    saldata
-                )
-                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
-            """, (
-                commessa["nome"],
-                commessa["tipo_intervento"],
-                commessa["data_arrivo_materiali"],
-                commessa["data_inizio"],
-                commessa["ore_necessarie"],
-                commessa["ore_eseguite"],
-                commessa["ore_rimanenti"],
-                commessa["marca_veicolo"],
-                commessa["modello_veicolo"],
-                commessa["dimensioni"],
-                data_consegna,
-                saldata
-            ))
+                    (nome,
+                     tipo_intervento,
+                     data_conferma,
+                     data_arrivo_materiali,
+                     data_inizio,
+                     ore_necessarie,
+                     ore_eseguite,
+                     ore_rimanenti,
+                     marca_veicolo,
+                     modello_veicolo,
+                     dimensioni,
+                     data_consegna,
+                     saldata)
+                VALUES
+                    (%(nome)s,
+                     %(tipo_intervento)s,
+                     %(data_conferma)s,
+                     %(data_arrivo_materiali)s,
+                     %(data_inizio)s,
+                     %(ore_necessarie)s,
+                     %(ore_eseguite)s,
+                     %(ore_rimanenti)s,
+                     %(marca_veicolo)s,
+                     %(modello_veicolo)s,
+                     %(dimensioni)s,
+                     %(data_consegna)s,
+                     %(saldata)s)
+            """, {
+                **commessa,              # prende tutti i campi della commessa
+                "data_consegna": data_consegna,
+                "saldata": saldata,
+            })
 
-            # 2) elimino le ore collegate (altrimenti FK blocca il delete)
+            # --- Pulizia dati collegati per evitare errori di foreign key ---
             c.execute("DELETE FROM ore_lavorate WHERE id_commessa = %s", (id,))
+            c.execute("DELETE FROM movimenti_magazzino WHERE id_commessa = %s", (id,))
+            c.execute("DELETE FROM commesse_materiali WHERE id_commessa = %s", (id,))
 
-            # 3) (opzionale) se vuoi anche togliere il link ai movimenti magazzino:
-            # c.execute("UPDATE movimenti_magazzino SET id_commessa = NULL WHERE id_commessa = %s", (id,))
-
-            # 4) cancello la commessa aperta
+            # --- Cancello la commessa dalla tabella principale ---
             c.execute("DELETE FROM commesse WHERE id = %s", (id,))
 
             conn.commit()
+
+        except Exception as e:
+            conn.rollback()
             conn.close()
+            print("ERRORE CONFERMA CONSEGNA:", e)
+            return f"Errore conferma consegna: {e}", 500
 
-            # POST → redirect alla pagina di pianificazione (NIENTE LOOP)
-            return redirect(url_for("consegna"))
-
-        # --- GET: mostro la pagina di conferma ---
         conn.close()
-        return render_template("conferma_consegna.html", commessa=commessa)
+        # niente loop: dopo la conferma torno alla pagina di consegna veicoli
+        return redirect(url_for("consegna_veicolo"))
 
-    except Exception as e:
-        print("ERRORE CONFERMA CONSEGNA:", e)
-        return f"Errore conferma consegna: {e}", 500
+    # 3) GET: mostro solo la pagina di conferma
+    conn.close()
+    return render_template("conferma_consegna.html", commessa=commessa)
 
 
 
