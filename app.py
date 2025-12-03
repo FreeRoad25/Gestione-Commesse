@@ -1152,117 +1152,72 @@ def consegna_veicolo():
 
 
 
-
-
-
-
-
-
-
-
 @app.route("/conferma_consegna/<int:id>", methods=["GET", "POST"])
 def conferma_consegna(id):
-    """
-    - GET  -> mostra la pagina di conferma consegna per la commessa id
-    - POST -> sposta la commessa da 'commesse' a 'commesse_consegnate'
-    """
+    conn = get_db_connection()
+    c = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
-    # --- POST: conferma consegna ---
+    # Leggo la commessa
+    c.execute("SELECT * FROM commesse WHERE id = %s", (id,))
+    commessa = c.fetchone()
+
+    if not commessa:
+        conn.close()
+        return "Commessa non trovata", 404
+
     if request.method == "POST":
-        conn = get_db_connection()
-        c = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        saldata = request.form.get("saldata", "No")
+        data_consegna = date.today()  # oggetto date
 
         try:
-            # ricarico la commessa dal DB
-            c.execute("SELECT * FROM commesse WHERE id = %s", (id,))
-            commessa = c.fetchone()
-
-            if not commessa:
-                conn.close()
-                return "Commessa non trovata", 404
-
-            saldata = request.form.get("saldata") or "No"
-            data_consegna = date.today()
-
-            # inserisco nella tabella commesse_consegnate
-            c.execute(
-                """
+            # 1) Salvo nell'archivio commesse_consegnate
+            c.execute("""
                 INSERT INTO commesse_consegnate
-                (
-                    nome,
-                    tipo_intervento,
-                    data_conferma,
-                    data_arrivo_materiali,
-                    data_inizio,
-                    ore_necessarie,
-                    ore_eseguite,
-                    ore_rimanenti,
-                    marca_veicolo,
-                    modello_veicolo,
-                    dimensioni,
-                    data_consegna,
-                    saldata
-                )
-                VALUES
-                (
-                    %(nome)s,
-                    %(tipo_intervento)s,
-                    %(data_conferma)s,
-                    %(data_arrivo_materiali)s,
-                    %(data_inizio)s,
-                    %(ore_necessarie)s,
-                    %(ore_eseguite)s,
-                    %(ore_rimanenti)s,
-                    %(marca_veicolo)s,
-                    %(modello_veicolo)s,
-                    %(dimensioni)s,
-                    %(data_consegna)s,
-                    %(saldata)s
-                )
-                """,
-                {
-                    "nome": commessa.get("nome"),
-                    "tipo_intervento": commessa.get("tipo_intervento"),
-                    "data_conferma": commessa.get("data_conferma"),
-                    "data_arrivo_materiali": commessa.get("data_arrivo_materiali"),
-                    "data_inizio": commessa.get("data_inizio"),
-                    "ore_necessarie": commessa.get("ore_necessarie"),
-                    "ore_eseguite": commessa.get("ore_eseguite"),
-                    "ore_rimanenti": commessa.get("ore_rimanenti"),
-                    "marca_veicolo": commessa.get("marca_veicolo"),
-                    "modello_veicolo": commessa.get("modello_veicolo"),
-                    "dimensioni": commessa.get("dimensioni"),
-                    "data_consegna": data_consegna,
-                    "saldata": saldata,
-                },
-            )
+                (nome, tipo_intervento, data_conferma, data_arrivo_materiali, data_inizio,
+                 ore_necessarie, ore_eseguite, ore_rimanenti,
+                 marca_veicolo, modello_veicolo, dimensioni,
+                 data_consegna, saldata)
+                VALUES (%s, %s, %s, %s, %s,
+                        %s, %s, %s,
+                        %s, %s, %s,
+                        %s, %s)
+            """, (
+                commessa["nome"],
+                commessa["tipo_intervento"],
+                commessa["data_conferma"],
+                commessa["data_arrivo_materiali"],
+                commessa["data_inizio"],
+                commessa["ore_necessarie"],
+                commessa["ore_eseguite"],
+                commessa["ore_rimanenti"],
+                commessa["marca_veicolo"],
+                commessa["modello_veicolo"],
+                commessa["dimensioni"],
+                data_consegna,
+                saldata
+            ))
 
-            # cancello la commessa dalla tabella principale
-            c.execute("DELETE FROM commesse WHERE id = %s", (id,))
+            # 2) Aggiorno la commessa come consegnata (NON la cancello)
+            c.execute("""
+                UPDATE commesse
+                SET data_consegna = %s
+                WHERE id = %s
+            """, (data_consegna, id))
 
             conn.commit()
             conn.close()
-
-            # dopo la conferma ti porto alla pagina delle consegne
             return redirect(url_for("consegna_veicolo"))
 
         except Exception as e:
             conn.rollback()
             conn.close()
-            print("ERRORE CONFERMA CONSEGNA:", repr(e))
+            print("ERRORE CONFERMA CONSEGNA:", e)
             return f"Errore conferma consegna: {e}", 500
 
-    # --- GET: mostro pagina di conferma ---
-    conn = get_db_connection()
-    c = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    c.execute("SELECT * FROM commesse WHERE id = %s", (id,))
-    commessa = c.fetchone()
+    # GET: mostro la pagina di conferma
     conn.close()
-
-    if not commessa:
-        return "Commessa non trovata", 404
-
     return render_template("conferma_consegna.html", commessa=commessa)
+
 
 
 
