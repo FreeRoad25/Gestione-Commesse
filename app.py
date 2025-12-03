@@ -1152,39 +1152,47 @@ def consegna_veicolo():
 
 
 
+
 @app.route("/conferma_consegna/<int:id>", methods=["GET", "POST"])
 def conferma_consegna(id):
-    conn = get_db_connection()
-    c = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    try:
+        conn = get_db_connection()
+        c = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
-    # Leggo la commessa
-    c.execute("SELECT * FROM commesse WHERE id = %s", (id,))
-    commessa = c.fetchone()
+        # prendo la commessa aperta
+        c.execute("SELECT * FROM commesse WHERE id = %s", (id,))
+        commessa = c.fetchone()
 
-    if not commessa:
-        conn.close()
-        return "Commessa non trovata", 404
+        if not commessa:
+            conn.close()
+            return "Commessa non trovata", 404
 
-    if request.method == "POST":
-        saldata = request.form.get("saldata", "No")
-        data_consegna = date.today()  # oggetto date
+        # --- POST: conferma consegna ---
+        if request.method == "POST":
+            saldata = request.form.get("saldata", "No")
+            data_consegna = date.today()
 
-        try:
-            # 1) Salvo nell'archivio commesse_consegnate
+            # 1) copio la commessa in commesse_consegnate
             c.execute("""
                 INSERT INTO commesse_consegnate
-                (nome, tipo_intervento, data_conferma, data_arrivo_materiali, data_inizio,
-                 ore_necessarie, ore_eseguite, ore_rimanenti,
-                 marca_veicolo, modello_veicolo, dimensioni,
-                 data_consegna, saldata)
-                VALUES (%s, %s, %s, %s, %s,
-                        %s, %s, %s,
-                        %s, %s, %s,
-                        %s, %s)
+                (
+                    nome,
+                    tipo_intervento,
+                    data_arrivo_materiali,
+                    data_inizio,
+                    ore_necessarie,
+                    ore_eseguite,
+                    ore_rimanenti,
+                    marca_veicolo,
+                    modello_veicolo,
+                    dimensioni,
+                    data_consegna,
+                    saldata
+                )
+                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
             """, (
                 commessa["nome"],
                 commessa["tipo_intervento"],
-                commessa["data_conferma"],
                 commessa["data_arrivo_materiali"],
                 commessa["data_inizio"],
                 commessa["ore_necessarie"],
@@ -1197,26 +1205,29 @@ def conferma_consegna(id):
                 saldata
             ))
 
-            # 2) Aggiorno la commessa come consegnata (NON la cancello)
-            c.execute("""
-                UPDATE commesse
-                SET data_consegna = %s
-                WHERE id = %s
-            """, (data_consegna, id))
+            # 2) elimino le ore collegate (altrimenti FK blocca il delete)
+            c.execute("DELETE FROM ore_lavorate WHERE id_commessa = %s", (id,))
+
+            # 3) (opzionale) se vuoi anche togliere il link ai movimenti magazzino:
+            # c.execute("UPDATE movimenti_magazzino SET id_commessa = NULL WHERE id_commessa = %s", (id,))
+
+            # 4) cancello la commessa aperta
+            c.execute("DELETE FROM commesse WHERE id = %s", (id,))
 
             conn.commit()
             conn.close()
-            return redirect(url_for("consegna_veicolo"))
 
-        except Exception as e:
-            conn.rollback()
-            conn.close()
-            print("ERRORE CONFERMA CONSEGNA:", e)
-            return f"Errore conferma consegna: {e}", 500
+            # POST → redirect alla pagina di pianificazione (NIENTE LOOP)
+            return redirect(url_for("consegna"))
 
-    # GET: mostro la pagina di conferma
-    conn.close()
-    return render_template("conferma_consegna.html", commessa=commessa)
+        # --- GET: mostro la pagina di conferma ---
+        conn.close()
+        return render_template("conferma_consegna.html", commessa=commessa)
+
+    except Exception as e:
+        print("ERRORE CONFERMA CONSEGNA:", e)
+        return f"Errore conferma consegna: {e}", 500
+
 
 
 

@@ -1,28 +1,111 @@
-<!DOCTYPE html>
-<html lang="it">
-<head>
-    <meta charset="UTF-8">
-    <title>Conferma Consegna</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-</head>
-<body>
-    <div class="container">
-        <h1>Consegna Commessa</h1>
-        <p><strong>Commessa:</strong> {{ commessa['nome'] }}</p>
-        <p><strong>Tipo:</strong> {{ commessa['tipo_intervento'] }}</p>
-        <p><strong>Data conferma:</strong> {{ commessa['data_conferma'] }}</p>
+{% extends "layout.html" %}
+{% block title %}Consegna Commessa{% endblock %}
+{% block content %}
 
-        <form method="POST">
-            <label>Commessa saldata?</label>
-            <select name="saldata" required>
-                <option value="Si">Sì</option>
+<div class="consegna-overlay">
+    <div class="consegna-card">
+        <h1>Consegna Commessa</h1>
+
+        <div class="consegna-info">
+            <p><strong>Commessa:</strong> {{ commessa.nome }}</p>
+            <p><strong>Tipo:</strong> {{ commessa.tipo_intervento }}</p>
+            <p><strong>Data conferma:</strong> {{ commessa.data_conferma or "---" }}</p>
+        </div>
+
+        <form method="POST" action="{{ url_for('conferma_consegna', id=commessa.id) }}" class="consegna-form">
+            <label for="saldata"><strong>Commessa saldata?</strong></label>
+            <select name="saldata" id="saldata" required>
+                <option value="Si">Si</option>
                 <option value="No">No</option>
             </select>
-            <br><br>
-            <button type="submit" class="btn btn-success">Conferma Consegna</button>
-        </form>
 
-        <a href="{{ url_for('consegna_veicolo') }}" class="btn btn-secondary">⬅ Annulla</a>
+            <div class="consegna-buttons">
+                <button type="submit" class="btn btn-conferma">
+                    Conferma Consegna
+                </button>
+                <a href="{{ url_for('consegna') }}" class="btn btn-annulla">
+                    ← Annulla
+                </a>
+            </div>
+        </form>
     </div>
-</body>
-</html>
+</div>
+
+<style>
+.consegna-overlay {
+    min-height: calc(100vh - 60px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.consegna-card {
+    max-width: 900px;
+    width: 100%;
+    background: rgba(20, 20, 20, 0.95);
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.7);
+    padding: 30px 40px;
+    color: #f5f5f5;
+}
+
+.consegna-card h1 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    font-size: 26px;
+    color: #00bfff;
+}
+
+.consegna-info p {
+    margin: 2px 0;
+    font-size: 15px;
+}
+
+.consegna-form {
+    margin-top: 25px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.consegna-form select {
+    max-width: 160px;
+    padding: 6px 8px;
+    border-radius: 6px;
+    border: 1px solid #555;
+    background: #1f202a;
+    color: #fff;
+}
+
+.consegna-buttons {
+    margin-top: 20px;
+    display: flex;
+    gap: 12px;
+}
+
+.btn {
+    border: none;
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-size: 14px;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.btn-conferma {
+    background: #28a745;
+    color: #fff;
+}
+
+.btn-annulla {
+    background: #6c757d;
+    color: #fff;
+}
+.btn:hover {
+    opacity: 0.9;
+}
+</style>
+
+{% endblock %}
