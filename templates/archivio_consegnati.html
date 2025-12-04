@@ -24,8 +24,8 @@
 
             <tbody>
                 {% for c in commesse %}
-                {# riga rossa se Saldata è "No" #}
-                <tr {% if c.saldata == 'No' %}style="background-color:#5b2323;"{% endif %}>
+                {# usa il booleano non_saldata calcolato in SQL #}
+                <tr class="{% if c.non_saldata %}riga-non-saldata{% endif %}">
                     <td>{{ c.nome }}</td>
                     <td>{{ c.tipo_intervento }}</td>
                     <td>{{ c.data_conferma }}</td>
@@ -118,12 +118,17 @@
     width: 90px !important;
 }
 
-/* Righe alterne (solo se non c'è il rosso inline) */
+/* Righe alterne: COLORO LE CELLE, senza !important */
 .archivio-page .archivio-table tbody tr:nth-child(even) td {
-    background-color: #26283a !important;
+    background-color: #26283a;
 }
 .archivio-page .archivio-table tbody tr:nth-child(odd) td {
-    background-color: #1e202e !important;
+    background-color: #1e202e;
+}
+
+/* Righe NON SALDATE: sovrascrivo le celle con !important */
+.archivio-page .archivio-table tr.riga-non-saldata td {
+    background-color: #5b2323 !important;
 }
 
 /* Form colonna azione senza margini */
