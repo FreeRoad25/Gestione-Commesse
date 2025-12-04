@@ -1229,7 +1229,7 @@ def conferma_consegna(id):
 
         conn.close()
         # niente loop: dopo la conferma torno alla pagina di consegna veicoli
-        return redirect(url_for("consegna_veicolo"))
+        return redirect(url_for("archivio_consegnati"))
 
     # 3) GET: mostro solo la pagina di conferma
     conn.close()
