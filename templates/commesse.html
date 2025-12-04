@@ -2,7 +2,7 @@
 {% block title %}Elenco Commesse{% endblock %}
 
 {% block content %}
-<div class="container">
+<div class="container lista-commesse-page">
     <h1>📋 Elenco Commesse</h1>
 
     <!-- 🔹 Pulsante Nuova Commessa -->
@@ -42,7 +42,7 @@
     <table id="commesseTable">
         <thead>
             <tr>
-                <th>ID</th>
+                <th class="col-id">ID</th>
                 <th>Nome</th>
                 <th>Tipo Intervento</th>
                 <th>Marca</th>
@@ -50,9 +50,9 @@
                 <th class="narrow">Data Conferma</th>
                 <th class="narrow">Data Inizio</th>
                 <th class="narrow">Data Consegna</th>
-                <th class="narrow">Ore Prev.</th>
-                <th class="narrow">Ore Eseg.</th>
-                <th class="narrow">Ore Rim.</th>
+                <th class="narrow num">Ore Prev.</th>
+                <th class="narrow num">Ore Eseg.</th>
+                <th class="narrow num">Ore Rim.</th>
                 <th class="actions-col">Azioni</th>
             </tr>
         </thead>
@@ -60,17 +60,17 @@
             {% for com in commesse %}
             <!-- riga verde se i lavori sono iniziati -->
             <tr class="{% if com.data_inizio %}riga-iniziata{% endif %}">
-                <td>{{ com.id }}</td>
-                <td>{{ com.nome }}</td>
-                <td>{{ com.tipo_intervento }}</td>
-                <td>{{ com.marca_veicolo }}</td>
-                <td>{{ com.modello_veicolo }}</td>
-                <td>{{ com.data_conferma or '-' }}</td>
-                <td>{{ com.data_inizio or '-' }}</td>
-                <td>{{ com.data_consegna or '-' }}</td>
-                <td>{{ com.ore_necessarie or '-' }}</td>
-                <td>{{ com.ore_eseguite or '-' }}</td>
-                <td>
+                <td class="col-id num">{{ com.id }}</td>
+                <td class="text">{{ com.nome }}</td>
+                <td class="text">{{ com.tipo_intervento }}</td>
+                <td class="text">{{ com.marca_veicolo }}</td>
+                <td class="text">{{ com.modello_veicolo }}</td>
+                <td class="text">{{ com.data_conferma or '-' }}</td>
+                <td class="text">{{ com.data_inizio or '-' }}</td>
+                <td class="text">{{ com.data_consegna or '-' }}</td>
+                <td class="num">{{ com.ore_necessarie or '-' }}</td>
+                <td class="num">{{ com.ore_eseguite or '-' }}</td>
+                <td class="num">
                     {% if com.ore_necessarie and com.ore_eseguite %}
                         {{ com.ore_necessarie - com.ore_eseguite }}
                     {% else %}
@@ -89,6 +89,14 @@
 </div>
 
 <style>
+/* allineo top-bar, filtri e tabella dentro il contenitore grigio */
+.lista-commesse-page .top-bar,
+.lista-commesse-page .filter-box,
+.lista-commesse-page #commesseTable {
+    width: 96%;
+    margin: 0 auto;
+}
+
 /* === SEZIONE FILTRI MODERNA === */
 .filter-box {
     background: #22283a;
@@ -132,8 +140,8 @@
     transition: 0.2s;
 }
 .btn-filter { background-color: #00b4ff; color: white; }
-.btn-reset { background-color: #ffc107; color: black; }
-.btn-apply { background-color: #28a745; color: white; }
+.btn-reset  { background-color: #ffc107; color: black; }
+.btn-apply  { background-color: #28a745; color: white; }
 
 .btn-filter:hover, .btn-reset:hover, .btn-apply:hover {
     transform: scale(1.05);
@@ -150,7 +158,8 @@
     font-size: 13px;
 }
 
-.advanced-filters select, .advanced-filters input[type="date"] {
+.advanced-filters select,
+.advanced-filters input[type="date"] {
     padding: 8px;
     border-radius: 6px;
     background-color: #1e2230;
@@ -159,40 +168,64 @@
 }
 .hidden { display: none; }
 
-/* === STILE TABELLA === */
-table {
-    width: 100%;
+/* === STILE TABELLA SOLO PER QUESTA PAGINA === */
+#commesseTable {
     border-collapse: collapse;
     font-size: 12px;
     background-color: #2f3241;
     border-radius: 8px;
     overflow: hidden;
 }
-th, td {
+
+/* celle: testo di default allineato a sinistra */
+#commesseTable th,
+#commesseTable td {
     border: 1px solid #444;
     padding: 6px 6px;
-    text-align: center;
     color: #e0e0e0;
     white-space: nowrap;
+    text-align: left;
 }
-th {
+
+/* intestazioni */
+#commesseTable th {
     background-color: #00a6c7;
     color: #fff;
     font-weight: 600;
     font-size: 12px;
 }
-.narrow {
+
+/* colonne strette */
+#commesseTable th.narrow,
+#commesseTable td.narrow {
     width: 80px;
 }
+
+/* colonna ID più stretta */
+#commesseTable th.col-id,
+#commesseTable td.col-id {
+    width: 40px;
+}
+
+/* colonne numeriche a destra */
+#commesseTable th.num,
+#commesseTable td.num {
+    text-align: right;
+}
+
+/* azioni centrate */
 .actions-col {
     width: 230px;
+    text-align: center;
 }
-tr:nth-child(even) {
+
+/* righe alterne */
+#commesseTable tbody tr:nth-child(even) {
     background-color: #34374a;
 }
 
 /* riga con lavori iniziati in verde tenue */
-tr.riga-iniziata {
+#commesseTable tbody tr.riga-iniziata td {
     background-color: #245430;
 }
 
@@ -211,9 +244,10 @@ tr.riga-iniziata {
     cursor: pointer;
     transition: 0.2s;
 }
-.btn-edit { background-color: #28a745; }
-.btn-view { background-color: #00bfff; }
+.btn-edit   { background-color: #28a745; }
+.btn-view   { background-color: #00bfff; }
 .btn-delete { background-color: #dc3545; }
+
 .actions .btn:hover {
     opacity: 0.85;
     transform: scale(1.04);
@@ -233,7 +267,7 @@ tr.riga-iniziata {
     });
 
     // Filtri avanzati
-    const toggleBtn = document.getElementById("toggleAdvanced");
+    const toggleBtn  = document.getElementById("toggleAdvanced");
     const filtersBox = document.getElementById("advancedFilters");
     toggleBtn.addEventListener("click", () => {
         filtersBox.classList.toggle("hidden");
