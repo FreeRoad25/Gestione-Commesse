@@ -24,7 +24,8 @@
 
             <tbody>
                 {% for c in commesse %}
-                <tr class="{% if c.saldata == 'No' %}riga-non-saldata{% endif %}">
+                {# riga rossa se NON saldata (qualsiasi maiuscolo/minuscolo/spazi) #}
+                <tr class="{% if c.saldata and c.saldata|trim|lower == 'no' %}riga-non-saldata{% endif %}">
                     <td>{{ c.nome }}</td>
                     <td>{{ c.tipo_intervento }}</td>
                     <td>{{ c.data_conferma }}</td>
@@ -57,20 +58,20 @@
     overflow-y: auto;
 }
 
-/* Tabella compatta */
+/* Tabella molto compatta */
 #archivio-consegnati {
     width: 100% !important;
     border-collapse: collapse !important;
     border-spacing: 0 !important;
-    font-size: 13px !important;
+    font-size: 11px !important;
 }
 
-/* Celle molto basse (override di qualsiasi stile globale) */
+/* Celle ultra-basse (override di qualsiasi stile globale) */
 #archivio-consegnati th,
 #archivio-consegnati td {
-    padding: 3px 6px !important;
-    line-height: 1.1 !important;
-    height: 24px !important;
+    padding: 1px 4px !important;
+    line-height: 1 !important;
+    height: 18px !important;
     white-space: nowrap !important;
     margin: 0 !important;
     vertical-align: middle !important;
@@ -95,7 +96,7 @@
 #archivio-consegnati th.col-azione,
 #archivio-consegnati td.col-azione {
     text-align: center !important;
-    width: 110px !important;
+    width: 100px !important;
 }
 
 /* Righe alterne */
@@ -106,9 +107,9 @@
     background-color: #1e202e !important;
 }
 
-/* Righe non saldate evidenziate */
+/* Righe non saldate evidenziate in rosso */
 #archivio-consegnati tr.riga-non-saldata {
-    background-color: #4b1f1f !important;
+    background-color: #5b2323 !important;
 }
 
 /* Form della colonna azione senza margini verticali */
@@ -116,13 +117,14 @@
     margin: 0 !important;
 }
 
-/* Pulsante Cambia compatto (riduce l'altezza della riga) */
+/* Pulsante Cambia super-compatto: non deve alzare la riga */
 .archivio-page .btn-archivio {
-    padding: 2px 8px !important;
-    font-size: 11px !important;
+    padding: 0 8px !important;
+    font-size: 10px !important;
+    height: 18px !important;
+    line-height: 18px !important;
     border-radius: 6px !important;
     border: none !important;
-    line-height: 1.1 !important;
     display: inline-block !important;
 }
 </style>
