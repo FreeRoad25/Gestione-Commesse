@@ -12,7 +12,11 @@
             <p><strong>Data conferma:</strong> {{ commessa.data_conferma or "---" }}</p>
         </div>
 
-        <form method="POST" action="{{ url_for('conferma_consegna', id=commessa.id) }}" class="consegna-form">
+        <!-- POST sulla stessa commessa, con id nella action -->
+        <form method="POST"
+              action="{{ url_for('conferma_consegna', id=commessa.id) }}"
+              class="consegna-form">
+
             <label for="saldata"><strong>Commessa saldata?</strong></label>
             <select name="saldata" id="saldata" required>
                 <option value="Si">Si</option>
@@ -23,7 +27,9 @@
                 <button type="submit" class="btn btn-conferma">
                     Conferma Consegna
                 </button>
-                <a href="{{ url_for('conferma_consegna') }}" class="btn btn-annulla">
+
+                <!-- Annulla: torna alla pagina di selezione consegna veicolo -->
+                <a href="{{ url_for('consegna_veicolo') }}" class="btn btn-annulla">
                     ← Annulla
                 </a>
             </div>
@@ -103,6 +109,7 @@
     background: #6c757d;
     color: #fff;
 }
+
 .btn:hover {
     opacity: 0.9;
 }
