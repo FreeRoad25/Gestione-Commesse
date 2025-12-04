@@ -1274,24 +1274,24 @@ def archivio_consegnati():
     
 @app.route("/svuota_archivio_consegnati", methods=["POST"])
 def svuota_archivio_consegnati():
-    # opzionale: blocco se non loggato
-    if "user_id" not in session:
-        return redirect(url_for("login"))
+    # Route temporanea per pulire TUTTO l'archivio consegnati
 
     conn = get_db_connection()
     c = conn.cursor()
     try:
-        # ELIMINA TUTTE LE RIGHE DELL'ARCHIVIO
-        c.execute("DELETE FROM commesse_consegnate")
+        # Svuota completamente la tabella e azzera gli ID
+        c.execute("TRUNCATE TABLE commesse_consegnate RESTART IDENTITY CASCADE;")
         conn.commit()
     except Exception as e:
         conn.rollback()
         print("ERRORE SVUOTA ARCHIVIO CONSEGNATI:", e)
         conn.close()
-        return "Errore durante la pulizia dell'archivio", 500
+        return "Errore durante la pulizia dell'archivio: {}".format(e), 500
 
     conn.close()
     return redirect(url_for("archivio_consegnati"))
+
+ 
 
 
 
