@@ -48,15 +48,10 @@
 <style>
 /* Contenitore pagina */
 .archivio-page {
-    padding: 10px 20px;
+    padding: 10px 20px !important;
 }
 
-.archivio-page h1 {
-    margin: 0 0 10px 0;
-    font-size: 22px;
-}
-
-/* Contenitore scrollabile, per evitare che la tabella allunghi troppo la pagina */
+/* Wrapper scrollabile (se la tabella è lunga) */
 .archivio-table-wrapper {
     max-height: calc(100vh - 150px);
     overflow-y: auto;
@@ -64,63 +59,71 @@
 
 /* Tabella compatta */
 #archivio-consegnati {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 13px;
+    width: 100% !important;
+    border-collapse: collapse !important;
+    border-spacing: 0 !important;
+    font-size: 13px !important;
 }
 
-/* Celle più basse e strette */
+/* Celle molto basse (override di qualsiasi stile globale) */
 #archivio-consegnati th,
 #archivio-consegnati td {
-    padding: 4px 6px;
-    line-height: 1.2;
-    height: 28px;
-    white-space: nowrap;
-    vertical-align: middle;
+    padding: 3px 6px !important;
+    line-height: 1.1 !important;
+    height: 24px !important;
+    white-space: nowrap !important;
+    margin: 0 !important;
+    vertical-align: middle !important;
 }
 
 /* Header */
 #archivio-consegnati th {
-    background-color: #00bfff;
-    color: #fff;
-    text-align: left;
+    background-color: #00bfff !important;
+    color: #fff !important;
+    text-align: left !important;
 }
 
-/* Colonne numeriche/centrate */
+/* Colonne numeriche / centrate */
 #archivio-consegnati td.num {
-    text-align: right;
+    text-align: right !important;
 }
 #archivio-consegnati td.center {
-    text-align: center;
+    text-align: center !important;
 }
 
 /* Colonna azione più stretta */
 #archivio-consegnati th.col-azione,
 #archivio-consegnati td.col-azione {
-    text-align: center;
-    width: 110px;
+    text-align: center !important;
+    width: 110px !important;
 }
 
 /* Righe alterne */
 #archivio-consegnati tbody tr:nth-child(even) {
-    background-color: #26283a;
+    background-color: #26283a !important;
 }
 #archivio-consegnati tbody tr:nth-child(odd) {
-    background-color: #1e202e;
+    background-color: #1e202e !important;
 }
 
 /* Righe non saldate evidenziate */
 #archivio-consegnati tr.riga-non-saldata {
-    background-color: #4b1f1f;
+    background-color: #4b1f1f !important;
 }
 
-/* Pulsante Cambia compatto */
-.btn-archivio {
-    padding: 3px 10px;
-    font-size: 12px;
-    border-radius: 6px;
-    border: none;
-    cursor: pointer;
+/* Form della colonna azione senza margini verticali */
+.archivio-page td.col-azione form {
+    margin: 0 !important;
+}
+
+/* Pulsante Cambia compatto (riduce l'altezza della riga) */
+.archivio-page .btn-archivio {
+    padding: 2px 8px !important;
+    font-size: 11px !important;
+    border-radius: 6px !important;
+    border: none !important;
+    line-height: 1.1 !important;
+    display: inline-block !important;
 }
 </style>
 
