@@ -1,10 +1,23 @@
-{% extends "layout.html" %}
+{% extends "layout.html" %} 
 {% block title %}Archivio Commesse Consegnate{% endblock %}
 
 {% block content %}
 
 <div class="archivio-page">
     <h1>📁 Archivio Commesse Consegnate</h1>
+
+    <!-- Pulsante temporaneo per svuotare l'archivio -->
+    <div style="margin-bottom:8px; display:flex; justify-content:flex-end;">
+        <form method="post"
+              action="{{ url_for('svuota_archivio_consegnati') }}"
+              onsubmit="return confirm('ATTENZIONE: verranno eliminate TUTTE le commesse consegnate. Procedere?');">
+            <button type="submit"
+                    class="btn-archivio"
+                    style="background:#dc3545; color:#fff;">
+                Svuota archivio consegnati
+            </button>
+        </form>
+    </div>
 
     <div class="archivio-table-wrapper">
         <table class="table-archivio archivio-table">

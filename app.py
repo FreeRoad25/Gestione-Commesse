@@ -1271,6 +1271,27 @@ def archivio_consegnati():
     except Exception as e:
         print("ERRORE ARCHIVIO CONSEGNATI:", e)
         return "Errore caricamento archivio", 500
+    
+@app.route("/svuota_archivio_consegnati", methods=["POST"])
+def svuota_archivio_consegnati():
+    # opzionale: blocco se non loggato
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+
+    conn = get_db_connection()
+    c = conn.cursor()
+    try:
+        # ELIMINA TUTTE LE RIGHE DELL'ARCHIVIO
+        c.execute("DELETE FROM commesse_consegnate")
+        conn.commit()
+    except Exception as e:
+        conn.rollback()
+        print("ERRORE SVUOTA ARCHIVIO CONSEGNATI:", e)
+        conn.close()
+        return "Errore durante la pulizia dell'archivio", 500
+
+    conn.close()
+    return redirect(url_for("archivio_consegnati"))
 
 
 

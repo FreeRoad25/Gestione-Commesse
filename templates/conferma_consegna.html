@@ -24,6 +24,13 @@
             </select>
 
             <div class="consegna-buttons">
+                <!-- NUOVO: stampa commessa prima di confermare -->
+                <a href="{{ url_for('stampa_commessa', id=commessa.id) }}"
+                   target="_blank"
+                   class="btn btn-stampa">
+                    Stampa commessa
+                </a>
+
                 <button type="submit" class="btn btn-conferma">
                     Conferma Consegna
                 </button>
@@ -107,6 +114,12 @@
 
 .btn-annulla {
     background: #6c757d;
+    color: #fff;
+}
+
+/* NUOVO: stile per il pulsante di stampa */
+.btn-stampa {
+    background: #17a2b8;
     color: #fff;
 }
 
