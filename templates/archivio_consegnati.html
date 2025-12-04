@@ -7,7 +7,7 @@
     <h1>📁 Archivio Commesse Consegnate</h1>
 
     <div class="archivio-table-wrapper">
-        <table id="archivio-consegnati" class="table-archivio">
+        <table class="table-archivio archivio-table">
             <thead>
                 <tr>
                     <th>Nome</th>
@@ -24,19 +24,19 @@
 
             <tbody>
                 {% for c in commesse %}
-                {# riga rossa se NON saldata (No) #}
-                <tr class="{% if c.saldata == 'No' %}riga-non-saldata{% endif %}">
+                {# riga rossa se NON saldata, qualunque maiuscolo/minuscolo/spazi #}
+                <tr class="{% if c.saldata and c.saldata|trim|lower == 'no' %}riga-non-saldata{% endif %}">
                     <td>{{ c.nome }}</td>
                     <td>{{ c.tipo_intervento }}</td>
                     <td>{{ c.data_conferma }}</td>
                     <td>{{ c.data_arrivo_materiali }}</td>
                     <td>{{ c.data_consegna }}</td>
-                    <td class="num">{{ c.ore_previste }}</td>
-                    <td class="num">{{ c.ore_lavorate }}</td>
+                    <td class="num">{{ c.ore_necessarie }}</td>
+                    <td class="num">{{ c.ore_eseguite }}</td>
                     <td class="center">{{ c.saldata }}</td>
                     <td class="col-azione">
                         <form action="{{ url_for('toggle_saldata', id=c.id) }}" method="POST">
-                            <button class="btn btn-archivio">Cambia</button>
+                            <button type="submit" class="btn-archivio">Cambia</button>
                         </form>
                     </td>
                 </tr>
@@ -47,6 +47,26 @@
 </div>
 
 <style>
+/* Forzo gli elementi ad essere una TABELL A pura, ignorando eventuali flex ecc. */
+.archivio-page table.archivio-table {
+    display: table !important;
+}
+.archivio-page table.archivio-table thead {
+    display: table-header-group !important;
+}
+.archivio-page table.archivio-table tbody {
+    display: table-row-group !important;
+}
+.archivio-page table.archivio-table tr {
+    display: table-row !important;
+    height: 16px !important;
+    min-height: 0 !important;
+}
+.archivio-page table.archivio-table th,
+.archivio-page table.archivio-table td {
+    display: table-cell !important;
+}
+
 /* Contenitore pagina */
 .archivio-page {
     padding: 10px 20px !important;
@@ -59,22 +79,16 @@
 }
 
 /* Tabella molto compatta */
-#archivio-consegnati {
+.archivio-page .archivio-table {
     width: 100% !important;
     border-collapse: collapse !important;
     border-spacing: 0 !important;
     font-size: 11px !important;
 }
 
-/* Forzo altezza riga al minimo possibile */
-#archivio-consegnati tbody tr {
-    height: 16px !important;
-    min-height: 0 !important;
-}
-
-/* Celle ultra-basse (override globale) */
-#archivio-consegnati th,
-#archivio-consegnati td {
+/* Celle ultra-basse */
+.archivio-page .archivio-table th,
+.archivio-page .archivio-table td {
     padding: 1px 4px !important;
     line-height: 1 !important;
     white-space: nowrap !important;
@@ -83,54 +97,61 @@
 }
 
 /* Header */
-#archivio-consegnati th {
+.archivio-page .archivio-table th {
     background-color: #00bfff !important;
     color: #fff !important;
     text-align: left !important;
 }
 
 /* Colonne numeriche / centrate */
-#archivio-consegnati td.num {
+.archivio-page .archivio-table td.num {
     text-align: right !important;
 }
-#archivio-consegnati td.center {
+.archivio-page .archivio-table td.center {
     text-align: center !important;
 }
 
 /* Colonna azione più stretta */
-#archivio-consegnati th.col-azione,
-#archivio-consegnati td.col-azione {
+.archivio-page .archivio-table th.col-azione,
+.archivio-page .archivio-table td.col-azione {
     text-align: center !important;
-    width: 100px !important;
+    width: 90px !important;
 }
 
 /* Righe alterne */
-#archivio-consegnati tbody tr:nth-child(even) {
+.archivio-page .archivio-table tbody tr:nth-child(even) {
     background-color: #26283a !important;
 }
-#archivio-consegnati tbody tr:nth-child(odd) {
+.archivio-page .archivio-table tbody tr:nth-child(odd) {
     background-color: #1e202e !important;
 }
 
-/* Righe non saldate evidenziate in rosso (sovrascrive le alterne) */
-#archivio-consegnati tr.riga-non-saldata {
+/* Righe non saldate in rosso (vince sulle alterne) */
+.archivio-page .archivio-table tr.riga-non-saldata {
     background-color: #5b2323 !important;
 }
 
-/* Form della colonna azione senza margini verticali */
+/* Form colonna azione senza margini */
 .archivio-page td.col-azione form {
     margin: 0 !important;
+    padding: 0 !important;
 }
 
-/* Pulsante Cambia super-compatto */
+/* Bottone Cambia: niente classi globali .btn, stile minimale */
 .archivio-page .btn-archivio {
-    padding: 0 8px !important;
-    font-size: 10px !important;
-    height: 16px !important;
-    line-height: 16px !important;
-    border-radius: 6px !important;
-    border: none !important;
-    display: inline-block !important;
+    background: #007bff;
+    color: #fff;
+    border: none;
+    padding: 0 8px;
+    font-size: 10px;
+    height: 16px;
+    line-height: 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: inline-block;
+}
+.archivio-page .btn-archivio:hover {
+    opacity: 0.9;
 }
 </style>
 
