@@ -419,8 +419,18 @@ def lista_commesse():
             SELECT *
             FROM commesse
             ORDER BY
-                CASE WHEN data_inizio IS NULL THEN 1 ELSE 0 END,
-                COALESCE(data_inizio, data_conferma) ASC,
+                -- 1) Prima quelle con data_inizio valorizzata
+                CASE
+                    WHEN data_inizio IS NULL OR data_inizio = '' THEN 1
+                    ELSE 0
+                END,
+                -- 2) Per quelle iniziate ordino per data_inizio,
+                --    per le altre per data_conferma, ma tutto come TEXT
+                CASE
+                    WHEN data_inizio IS NULL OR data_inizio = '' THEN data_conferma::text
+                    ELSE data_inizio::text
+                END ASC,
+                -- 3) A parità di data, ordino per id
                 id ASC
         """)
 
@@ -433,7 +443,6 @@ def lista_commesse():
         if conn is not None:
             conn.close()
         print("ERRORE lista_commesse:", e)
-        # messaggio visibile nel browser, utile se qualcosa non torna
         return "Errore nella lista_commesse: {}".format(e), 500
 
 
