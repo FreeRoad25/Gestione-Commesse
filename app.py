@@ -437,13 +437,13 @@ def lista_commesse():
         commesse = c.fetchall()
         conn.close()
 
-        return render_template("lista_commesse.html", commesse=commesse)
+        return render_template("commesse.html", commesse=commesse)
 
     except Exception as e:
         if conn is not None:
             conn.close()
-        print("ERRORE lista_commesse:", e)
-        return "Errore nella lista_commesse: {}".format(e), 500
+        print("ERRORE commesse:", e)
+        return "Errore nella commesse: {}".format(e), 500
 
 
 
