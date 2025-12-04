@@ -410,37 +410,32 @@ def home():
 def lista_commesse():
     import psycopg2.extras
 
-    conn = get_db_connection()
-    c = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    conn = None
+    try:
+        conn = get_db_connection()
+        c = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
-    c.execute("""
-        SELECT
-            id,
-            nome,
-            tipo_intervento,
-            marca_veicolo,
-            modello_veicolo,
-            data_conferma,
-            data_inizio,
-            data_consegna,
-            ore_necessarie,
-            ore_eseguite
-        FROM commesse
-        ORDER BY
-            -- prima quelle con data_inizio valorizzata
-            CASE WHEN data_inizio IS NULL THEN 1 ELSE 0 END,
-            -- per quelle iniziate ordino per data_inizio,
-            -- per le altre per data_conferma
-            CASE
-                WHEN data_inizio IS NULL THEN data_conferma
-                ELSE data_inizio
-            END ASC
-    """)
+        c.execute("""
+            SELECT *
+            FROM commesse
+            ORDER BY
+                CASE WHEN data_inizio IS NULL THEN 1 ELSE 0 END,
+                COALESCE(data_inizio, data_conferma) ASC,
+                id ASC
+        """)
 
-    commesse = c.fetchall()
-    conn.close()
+        commesse = c.fetchall()
+        conn.close()
 
-    return render_template("lista_commesse.html", commesse=commesse)
+        return render_template("lista_commesse.html", commesse=commesse)
+
+    except Exception as e:
+        if conn is not None:
+            conn.close()
+        print("ERRORE lista_commesse:", e)
+        # messaggio visibile nel browser, utile se qualcosa non torna
+        return "Errore nella lista_commesse: {}".format(e), 500
+
 
 
 
