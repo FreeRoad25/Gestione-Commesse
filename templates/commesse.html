@@ -1,4 +1,4 @@
-{% extends "layout.html" %}
+{% extends "layout.html" %} 
 {% block title %}Elenco Commesse{% endblock %}
 
 {% block content %}
@@ -48,6 +48,7 @@
                 <th>Marca</th>
                 <th>Modello</th>
                 <th class="narrow">Data Conferma</th>
+                <th class="narrow">Data Inizio</th>
                 <th class="narrow">Data Consegna</th>
                 <th class="narrow">Ore Prev.</th>
                 <th class="narrow">Ore Eseg.</th>
@@ -57,13 +58,15 @@
         </thead>
         <tbody>
             {% for com in commesse %}
-            <tr>
+            <!-- riga verde se i lavori sono iniziati -->
+            <tr class="{% if com.data_inizio %}riga-iniziata{% endif %}">
                 <td>{{ com.id }}</td>
                 <td>{{ com.nome }}</td>
                 <td>{{ com.tipo_intervento }}</td>
                 <td>{{ com.marca_veicolo }}</td>
                 <td>{{ com.modello_veicolo }}</td>
                 <td>{{ com.data_conferma or '-' }}</td>
+                <td>{{ com.data_inizio or '-' }}</td>
                 <td>{{ com.data_consegna or '-' }}</td>
                 <td>{{ com.ore_necessarie or '-' }}</td>
                 <td>{{ com.ore_eseguite or '-' }}</td>
@@ -186,6 +189,11 @@ th {
 }
 tr:nth-child(even) {
     background-color: #34374a;
+}
+
+/* riga con lavori iniziati in verde tenue */
+tr.riga-iniziata {
+    background-color: #245430;
 }
 
 /* Pulsanti azioni */

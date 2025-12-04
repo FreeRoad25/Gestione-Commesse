@@ -407,14 +407,41 @@ def home():
 # COMMESSE
 # =========================================================
 @app.route("/lista_commesse")
-#@login_required
 def lista_commesse():
+    import psycopg2.extras
+
     conn = get_db_connection()
-    c = conn.cursor()
-    c.execute("SELECT * FROM commesse ORDER BY id DESC")
+    c = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+    c.execute("""
+        SELECT
+            id,
+            nome,
+            tipo_intervento,
+            marca_veicolo,
+            modello_veicolo,
+            data_conferma,
+            data_inizio,
+            data_consegna,
+            ore_necessarie,
+            ore_eseguite
+        FROM commesse
+        ORDER BY
+            -- prima quelle con data_inizio valorizzata
+            CASE WHEN data_inizio IS NULL THEN 1 ELSE 0 END,
+            -- per quelle iniziate ordino per data_inizio,
+            -- per le altre per data_conferma
+            CASE
+                WHEN data_inizio IS NULL THEN data_conferma
+                ELSE data_inizio
+            END ASC
+    """)
+
     commesse = c.fetchall()
     conn.close()
-    return render_template("commesse.html", commesse=commesse)
+
+    return render_template("lista_commesse.html", commesse=commesse)
+
 
 
 @app.route("/elenco_soffietti")
