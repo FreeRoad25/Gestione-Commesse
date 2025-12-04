@@ -24,8 +24,8 @@
 
             <tbody>
                 {% for c in commesse %}
-                {# riga rossa se NON saldata, qualunque maiuscolo/minuscolo/spazi #}
-                <tr class="{% if c.saldata and c.saldata|trim|lower == 'no' %}riga-non-saldata{% endif %}">
+                {# riga rossa se non_saldata = True #}
+                <tr class="{% if c.non_saldata %}riga-non-saldata{% endif %}">
                     <td>{{ c.nome }}</td>
                     <td>{{ c.tipo_intervento }}</td>
                     <td>{{ c.data_conferma }}</td>
@@ -47,7 +47,7 @@
 </div>
 
 <style>
-/* Forzo gli elementi ad essere una TABELL A pura, ignorando eventuali flex ecc. */
+/* Forzo gli elementi ad essere una TABELLA pura, ignorando eventuali flex ecc. */
 .archivio-page table.archivio-table {
     display: table !important;
 }
@@ -119,15 +119,15 @@
 }
 
 /* Righe alterne */
-.archivio-page .archivio-table tbody tr:nth-child(even) {
+.archivio-page .archivio-table tbody tr:nth-child(even) td {
     background-color: #26283a !important;
 }
-.archivio-page .archivio-table tbody tr:nth-child(odd) {
+.archivio-page .archivio-table tbody tr:nth-child(odd) td {
     background-color: #1e202e !important;
 }
 
 /* Righe non saldate in rosso (vince sulle alterne) */
-.archivio-page .archivio-table tr.riga-non-saldata {
+.archivio-page .archivio-table tr.riga-non-saldata td {
     background-color: #5b2323 !important;
 }
 
