@@ -1097,8 +1097,14 @@ def operatori():
     c.execute("SELECT * FROM operatori ORDER BY nome ASC")
     operatori = c.fetchall()
 
-    c.execute("SELECT id, nome FROM commesse ORDER BY id DESC")
+    c.execute("""
+        SELECT id, nome, data_inizio
+        FROM commesse
+        WHERE NULLIF(TRIM(COALESCE(data_inizio::text, '')), '') IS NOT NULL
+        ORDER BY data_inizio::text ASC, id ASC
+    """)
     commesse = c.fetchall()
+
 
     conn.close()
     return render_template("operatori.html", operatori=operatori, commesse=commesse)
