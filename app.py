@@ -1237,11 +1237,6 @@ def conferma_consegna(id):
 
 
 
-
-
-
-
-
 @app.route("/archivio_consegnati")
 def archivio_consegnati():
     import psycopg2.extras
@@ -1260,10 +1255,11 @@ def archivio_consegnati():
                 data_consegna,
                 ore_necessarie,
                 ore_eseguite,
-                saldata
+                saldata,
+                (LOWER(TRIM(COALESCE(saldata, ''))) = 'no') AS non_saldata
             FROM commesse_consegnate
             ORDER BY
-                CASE WHEN LOWER(saldata) = 'no' THEN 0 ELSE 1 END,
+                CASE WHEN LOWER(TRIM(COALESCE(saldata, ''))) = 'no' THEN 0 ELSE 1 END,
                 id DESC
         """)
 
@@ -1275,6 +1271,7 @@ def archivio_consegnati():
     except Exception as e:
         print("ERRORE ARCHIVIO CONSEGNATI:", e)
         return "Errore caricamento archivio", 500
+
 
 
 
