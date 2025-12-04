@@ -24,8 +24,8 @@
 
             <tbody>
                 {% for c in commesse %}
-                {# riga rossa se NON saldata (qualsiasi maiuscolo/minuscolo/spazi) #}
-                <tr class="{% if c.saldata and c.saldata|trim|lower == 'no' %}riga-non-saldata{% endif %}">
+                {# riga rossa se NON saldata (No) #}
+                <tr class="{% if c.saldata == 'No' %}riga-non-saldata{% endif %}">
                     <td>{{ c.nome }}</td>
                     <td>{{ c.tipo_intervento }}</td>
                     <td>{{ c.data_conferma }}</td>
@@ -66,12 +66,17 @@
     font-size: 11px !important;
 }
 
-/* Celle ultra-basse (override di qualsiasi stile globale) */
+/* Forzo altezza riga al minimo possibile */
+#archivio-consegnati tbody tr {
+    height: 16px !important;
+    min-height: 0 !important;
+}
+
+/* Celle ultra-basse (override globale) */
 #archivio-consegnati th,
 #archivio-consegnati td {
     padding: 1px 4px !important;
     line-height: 1 !important;
-    height: 18px !important;
     white-space: nowrap !important;
     margin: 0 !important;
     vertical-align: middle !important;
@@ -107,7 +112,7 @@
     background-color: #1e202e !important;
 }
 
-/* Righe non saldate evidenziate in rosso */
+/* Righe non saldate evidenziate in rosso (sovrascrive le alterne) */
 #archivio-consegnati tr.riga-non-saldata {
     background-color: #5b2323 !important;
 }
@@ -117,12 +122,12 @@
     margin: 0 !important;
 }
 
-/* Pulsante Cambia super-compatto: non deve alzare la riga */
+/* Pulsante Cambia super-compatto */
 .archivio-page .btn-archivio {
     padding: 0 8px !important;
     font-size: 10px !important;
-    height: 18px !important;
-    line-height: 18px !important;
+    height: 16px !important;
+    line-height: 16px !important;
     border-radius: 6px !important;
     border: none !important;
     display: inline-block !important;
