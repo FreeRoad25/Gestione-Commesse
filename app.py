@@ -1244,21 +1244,27 @@ def conferma_consegna(id):
 
 @app.route("/archivio_consegnati")
 def archivio_consegnati():
+    import psycopg2.extras
+
     try:
         conn = get_db_connection()
-        c = conn.cursor()
+        c = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
         c.execute("""
-        SELECT
-            id,
-            nome,
-            tipo_intervento,
-            data_consegna,
-            saldata
-        FROM commesse_consegnate
-        ORDER BY
-            CASE WHEN LOWER(saldata) = 'no' THEN 0 ELSE 1 END,
-            id DESC
+            SELECT
+                id,
+                nome,
+                tipo_intervento,
+                data_conferma,
+                data_arrivo_materiali,
+                data_consegna,
+                ore_necessarie,
+                ore_eseguite,
+                saldata
+            FROM commesse_consegnate
+            ORDER BY
+                CASE WHEN LOWER(saldata) = 'no' THEN 0 ELSE 1 END,
+                id DESC
         """)
 
         commesse = c.fetchall()
@@ -1269,6 +1275,7 @@ def archivio_consegnati():
     except Exception as e:
         print("ERRORE ARCHIVIO CONSEGNATI:", e)
         return "Errore caricamento archivio", 500
+
 
 
 @app.route("/toggle_saldata/<int:id>", methods=["POST"])
