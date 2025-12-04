@@ -79,7 +79,7 @@
                         {% endif %}
                     </td>
                     <td class="actions">
-                        <a href="{{ url_for('modifica_commessa', id=com.id) }}" class="btn btn-edit">✏ Modifica</a>
+                        <a href="{{ url_for('modifica_commessa', id=com.id) }}" class="btn btn-edit">✏ Vedi</a>
                         <a href="{{ url_for('conferma_consegna', id=com.id) }}" class="btn btn-view" onclick="return confirm('Segnare come consegnata questa commessa?')">🚚 Consegna</a>
                         <a href="{{ url_for('elimina_commessa', id=com.id) }}" class="btn btn-delete" onclick="return confirm('Eliminare questa commessa?')">🗑 Elimina</a>
                     </td>
