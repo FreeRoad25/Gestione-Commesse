@@ -6,81 +6,121 @@
 <div class="archivio-page">
     <h1>📁 Archivio Commesse Consegnate</h1>
 
-    <table class="table-archivio">
-        <thead>
-            <tr>
-                <th>Nome</th>
-                <th>Tipo Intervento</th>
-                <th>Data Conferma</th>
-                <th>Data Arrivo Materiali</th>
-                <th>Data Consegna</th>
-                <th>Ore Previste</th>
-                <th>Ore Lavorate</th>
-                <th>Saldata</th>
-                <th>Azione</th>
-            </tr>
-        </thead>
+    <div class="archivio-table-wrapper">
+        <table id="archivio-consegnati" class="table-archivio">
+            <thead>
+                <tr>
+                    <th>Nome</th>
+                    <th>Tipo Intervento</th>
+                    <th>Data Conferma</th>
+                    <th>Data Arrivo Materiali</th>
+                    <th>Data Consegna</th>
+                    <th>Ore Previste</th>
+                    <th>Ore Lavorate</th>
+                    <th>Saldata</th>
+                    <th class="col-azione">Azione</th>
+                </tr>
+            </thead>
 
-        <tbody>
-            {% for c in commesse %}
-            <tr class="{% if c.saldata == 'No' %}riga-non-saldata{% endif %}">
-                <td>{{ c.nome }}</td>
-                <td>{{ c.tipo_intervento }}</td>
-                <td>{{ c.data_conferma }}</td>
-                <td>{{ c.data_arrivo_materiali }}</td>
-                <td>{{ c.data_consegna }}</td>
-                <td>{{ c.ore_previste }}</td>
-                <td>{{ c.ore_lavorate }}</td>
-                <td>{{ c.saldata }}</td>
-
-                <td>
-                    <form action="{{ url_for('toggle_saldata', id=c.id) }}" method="POST">
-                        <button class="btn btn-sm btn-primary">Cambia</button>
-                    </form>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+            <tbody>
+                {% for c in commesse %}
+                <tr class="{% if c.saldata == 'No' %}riga-non-saldata{% endif %}">
+                    <td>{{ c.nome }}</td>
+                    <td>{{ c.tipo_intervento }}</td>
+                    <td>{{ c.data_conferma }}</td>
+                    <td>{{ c.data_arrivo_materiali }}</td>
+                    <td>{{ c.data_consegna }}</td>
+                    <td class="num">{{ c.ore_previste }}</td>
+                    <td class="num">{{ c.ore_lavorate }}</td>
+                    <td class="center">{{ c.saldata }}</td>
+                    <td class="col-azione">
+                        <form action="{{ url_for('toggle_saldata', id=c.id) }}" method="POST">
+                            <button class="btn btn-archivio">Cambia</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 </div>
 
-<!-- FIX NODEFINITIVE E SICURO SOLO PER QUESTA PAGINA -->
 <style>
-.archivio-page table,
-.archivio-page tr,
-.archivio-page td,
-.archivio-page th {
-    padding: 3px 5px !important;
-    margin: 0 !important;
-    height: 18px !important;
-    line-height: 14px !important;
-    font-size: 13px !important;
-    white-space: nowrap !important;
-}
-
-.archivio-page tr {
-    height: 20px !important;
-}
-
+/* Contenitore pagina */
 .archivio-page {
-    padding: 0 !important;
-    margin: 0 !important;
+    padding: 10px 20px;
+}
+
+.archivio-page h1 {
+    margin: 0 0 10px 0;
+    font-size: 22px;
+}
+
+/* Contenitore scrollabile, per evitare che la tabella allunghi troppo la pagina */
+.archivio-table-wrapper {
+    max-height: calc(100vh - 150px);
+    overflow-y: auto;
+}
+
+/* Tabella compatta */
+#archivio-consegnati {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+/* Celle più basse e strette */
+#archivio-consegnati th,
+#archivio-consegnati td {
+    padding: 4px 6px;
+    line-height: 1.2;
+    height: 28px;
+    white-space: nowrap;
+    vertical-align: middle;
 }
 
 /* Header */
-.table-archivio th {
-    background-color: #00bfff !important;
-    color: #fff !important;
+#archivio-consegnati th {
+    background-color: #00bfff;
+    color: #fff;
+    text-align: left;
+}
+
+/* Colonne numeriche/centrate */
+#archivio-consegnati td.num {
+    text-align: right;
+}
+#archivio-consegnati td.center {
+    text-align: center;
+}
+
+/* Colonna azione più stretta */
+#archivio-consegnati th.col-azione,
+#archivio-consegnati td.col-azione {
+    text-align: center;
+    width: 110px;
 }
 
 /* Righe alterne */
-.table-archivio tr:nth-child(even) {
-    background-color: #26283a !important;
+#archivio-consegnati tbody tr:nth-child(even) {
+    background-color: #26283a;
+}
+#archivio-consegnati tbody tr:nth-child(odd) {
+    background-color: #1e202e;
 }
 
-/* Righe non saldate */
-.riga-non-saldata {
-    background-color: #4b1f1f !important;
+/* Righe non saldate evidenziate */
+#archivio-consegnati tr.riga-non-saldata {
+    background-color: #4b1f1f;
+}
+
+/* Pulsante Cambia compatto */
+.btn-archivio {
+    padding: 3px 10px;
+    font-size: 12px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
 }
 </style>
 
