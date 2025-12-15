@@ -586,8 +586,12 @@ def login():
 
 @app.route("/logout")
 def logout():
+    ruolo = session.get("ruolo")
     session.clear()
-    return redirect(url_for("login"))
+    if ruolo == "falegnameria":
+        return redirect(url_for("falegnameria_login"))
+    return redirect(url_for("admin_login"))
+
 
 
 
