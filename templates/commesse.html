@@ -48,13 +48,13 @@
             <th class="col-modello">Modello</th>
             <th class="col-dim">Dim.</th>
             <th class="col-date">Conf.</th>
-            <th class="col-date">Arrivo Mat.</th>
+            <th class="col-date">Arr. Mat.</th>
             <th class="col-date">Inizio</th>
-            <th class="col-date">Consegna</th>
-            <th class="col-ore">Ore Prev.</th>
-            <th class="col-ore">Ore Eseg.</th>
-            <th class="col-ore">Ore Rim.</th>
-            <th class="col-stato">Stato</th>
+            <th class="col-date">Cons.</th>
+            <th class="col-ore">Prev.</th>
+            <th class="col-ore">Eseg.</th>
+            <th class="col-ore">Rim.</th>
+            <th class="col-stato">St.</th>
             <th class="col-azioni">Azioni</th>
           </tr>
         </thead>
@@ -89,17 +89,22 @@
             </td>
 
             <td class="col-stato">
-              {% if com.stato %}
-                {{ com.stato }}
+              {% set stato_raw = com.stato if com.stato else 'OFFICINA' %}
+              {% if (not com.stato) or (stato_raw == 'OFFICINA') %}
+                <span title="OFFICINA">OFF</span>
+              {% elif stato_raw == STATO_FALEGNAMERIA %}
+                <span title="{{ stato_raw }}">FAL</span>
               {% else %}
-                OFFICINA
+                <span title="{{ stato_raw }}">{{ stato_raw[:3]|upper }}</span>
               {% endif %}
             </td>
 
             <td class="col-azioni azioni">
               <a href="{{ url_for('modifica_commessa', id=com.id) }}" class="btn btn-edit" title="Vedi">✏</a>
+
               <a href="{{ url_for('conferma_consegna', id=com.id) }}" class="btn btn-view"
                  onclick="return confirm('Segnare come consegnata questa commessa?')" title="Consegna">🚚</a>
+
               <a href="{{ url_for('elimina_commessa', id=com.id) }}" class="btn btn-delete"
                  onclick="return confirm('Eliminare questa commessa?')" title="Elimina">🗑</a>
 
@@ -112,7 +117,7 @@
                 {% else %}
                   <form method="POST" action="{{ url_for('admin_manda_falegnameria', id_commessa=com.id) }}" class="inlineform">
                     <button type="submit" class="btn btn-faleg"
-                      onclick="return confirm('Mandare questa commessa in FALEGNAMERIA?')" title="In falegnameria">🪵</button>
+                      onclick="return confirm('Mandare questa commessa in FALEGNAMERIA?')" title="Falegnameria">🪵</button>
                   </form>
                 {% endif %}
               {% endif %}
@@ -129,7 +134,11 @@
 <style>
 /* wrapper */
 .commesse-wrapper { display:flex; justify-content:center; margin-top:35px; padding: 0 10px; }
-.commesse-card { width:100%; max-width: 100% !important; }
+/* più spazio utile (senza toccare layout globale) */
+.commesse-card{
+  width: calc(100vw - 280px);
+  max-width: 1600px !important;
+}
 
 /* filtri */
 .filter-box{
@@ -157,7 +166,7 @@
 }
 .hidden{ display:none; }
 
-/* tabella: SOLO commesseTable */
+/* tabella */
 .table-scroll{ overflow-x:auto; border-radius:10px; }
 #commesseTable{
   width:100%;
@@ -166,18 +175,18 @@
   background:#2f3241;
   border-radius:8px;
   overflow:hidden;
-  table-layout: fixed;              /* ✅ fa rispettare le larghezze */
+  table-layout:fixed;
 }
 #commesseTable th, #commesseTable td{
   border:1px solid #444;
-  padding:6px 8px;
+  padding:6px 8px;           /* NON tocchiamo l’altezza righe */
   text-align:center;
   color:#e0e0e0;
   line-height:1.2;
   white-space:nowrap;
   vertical-align:middle;
-  overflow:hidden;                  /* ✅ evita allargamenti */
-  text-overflow:ellipsis;           /* ✅ puntini */
+  overflow:hidden;
+  text-overflow:ellipsis;
 }
 #commesseTable th{
   background:#00a6c7; color:#fff; font-weight:600; font-size:12px;
@@ -188,17 +197,17 @@
 #commesseTable tbody tr.riga-iniziata{ background-color:#245430; }
 #commesseTable tbody tr.riga-falegn{ outline:2px solid rgba(111,66,193,0.8); outline-offset:-2px; }
 
-/* colonne (più strette) */
+/* colonne più strette */
 .col-id{ width:45px; }
-.col-nome{ width:160px; }
-.col-tipo{ width:140px; }
-.col-marca{ width:85px; }
-.col-modello{ width:95px; }
-.col-dim{ width:65px; }
-.col-date{ width:80px; }
-.col-ore{ width:65px; }
-.col-stato{ width:90px; }
-.col-azioni{ width:170px; }
+.col-nome{ width:150px; }
+.col-tipo{ width:130px; }
+.col-marca{ width:75px; }
+.col-modello{ width:85px; }
+.col-dim{ width:55px; }
+.col-date{ width:72px; }
+.col-ore{ width:58px; }
+.col-stato{ width:48px; }     /* ✅ Stato OFF/FAL */
+.col-azioni{ width:150px; }   /* ✅ più stretta (icone) */
 
 /* azioni */
 .azioni{
@@ -206,12 +215,12 @@
   gap:4px;
   justify-content:flex-end;
   align-items:center;
-  flex-wrap:nowrap;               /* ✅ una riga, non aumenta l’altezza */
+  flex-wrap:nowrap;
   background:transparent !important;
 }
 .inlineform{ display:inline-block; margin:0; padding:0; background:transparent !important; }
 
-/* bottoni compatti (icone) */
+/* bottoni super compatti */
 .azioni .btn{
   display:inline-flex;
   align-items:center;
@@ -224,7 +233,7 @@
   cursor:pointer;
   border:none;
   line-height:1;
-  min-width: 28px;               /* ✅ tutti uguali e stretti */
+  min-width:26px;
 }
 .btn-edit{ background:#28a745; }
 .btn-view{ background:#00bfff; }
@@ -255,7 +264,7 @@
   }
 
   function filtraAvanzato(){
-    // se vuoi lo implementiamo dopo, intanto non rompe niente
+    // lo facciamo dopo, intanto non rompe nulla
   }
 </script>
 {% endblock %}
