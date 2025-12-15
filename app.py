@@ -533,6 +533,26 @@ def admin_manda_falegnameria(id_commessa):
     return redirect(request.referrer or url_for("home"))
 
 
+@app.route("/admin/commesse/<int:id_commessa>/rientro_officina", methods=["POST"])
+def admin_rientro_officina(id_commessa):
+    if not ENABLE_PORTALI:
+        abort(404)
+
+    if session.get("ruolo") != "amministratore":
+        abort(403)
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    # torna "in officina": svuoto lo stato
+    cur.execute("UPDATE commesse SET stato = NULL WHERE id = %s", (id_commessa,))
+
+    conn.commit()
+    conn.close()
+
+    return redirect(request.referrer or url_for("lista_commesse"))
+
+
 
 
 @app.route("/login", methods=["GET", "POST"])

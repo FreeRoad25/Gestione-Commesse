@@ -3,277 +3,262 @@
 
 {% block content %}
 <div class="commesse-wrapper">
-    <div class="container commesse-card">
-        <h1>📋 Elenco Commesse</h1>
+  <div class="container commesse-card">
+    <h1>📋 Elenco Commesse</h1>
 
-        <!-- 🔹 Pulsante Nuova Commessa -->
-        <div class="top-bar">
-            <a href="{{ url_for('aggiungi_commessa') }}" class="btn btn-add">➕ Nuova Commessa</a>
-        </div>
-
-        <!-- 🔍 SEZIONE RICERCA E FILTRI -->
-        <div class="filter-box">
-            <div class="search-row">
-                <input type="text" id="searchInput" placeholder="🔍 Cerca per nome, tipo intervento o veicolo...">
-                <div class="filter-buttons">
-                    <button class="btn btn-filter" id="toggleAdvanced" type="button">⚙ Filtri</button>
-                    <button class="btn btn-reset" type="button" onclick="resetFiltri()">🔄 Reset</button>
-                </div>
-            </div>
-
-            <div class="advanced-filters hidden" id="advancedFilters">
-                <select id="filterTipo">
-                    <option value="">Tipo intervento...</option>
-                    <option value="Carrozzeria">Carrozzeria</option>
-                    <option value="Allestimento">Allestimento</option>
-                    <option value="Riparazione">Riparazione</option>
-                    <option value="Tetto a Soffietto">Tetto a Soffietto</option>
-                </select>
-
-                <label>Dal:</label>
-                <input type="date" id="filterDataDa">
-                <label>Al:</label>
-                <input type="date" id="filterDataA">
-
-                <button class="btn btn-apply" type="button" onclick="filtraAvanzato()">Applica</button>
-            </div>
-        </div>
-
-        <!-- 📋 Tabella -->
-        <table id="commesseTable">
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Nome</th>
-                    <th>Tipo Intervento</th>
-                    <th>Marca</th>
-                    <th>Modello</th>
-                    <th class="narrow">Data Conferma</th>
-                    <th class="narrow">Data Inizio</th>
-                    <th class="narrow">Data Consegna</th>
-                    <th class="narrow">Ore Prev.</th>
-                    <th class="narrow">Ore Eseg.</th>
-                    <th class="narrow">Ore Rim.</th>
-                    <th class="actions-col">Azioni</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for com in commesse %}
-                <tr class="{% if com.data_inizio %}riga-iniziata{% endif %}">
-                    <td>{{ com.id }}</td>
-                    <td>{{ com.nome }}</td>
-                    <td>{{ com.tipo_intervento }}</td>
-                    <td>{{ com.marca_veicolo }}</td>
-                    <td>{{ com.modello_veicolo }}</td>
-                    <td>{{ com.data_conferma or '-' }}</td>
-                    <td>{{ com.data_inizio or '-' }}</td>
-                    <td>{{ com.data_consegna or '-' }}</td>
-                    <td>{{ com.ore_necessarie or '-' }}</td>
-                    <td>{{ com.ore_eseguite or '-' }}</td>
-                    <td>
-                        {% if com.ore_necessarie and com.ore_eseguite %}
-                            {{ com.ore_necessarie - com.ore_eseguite }}
-                        {% else %}
-                            -
-                        {% endif %}
-                    </td>
-                    <td class="actions">
-                        <a href="{{ url_for('modifica_commessa', id=com.id) }}" class="btn btn-edit">✏ Vedi</a>
-                        <a href="{{ url_for('conferma_consegna', id=com.id) }}" class="btn btn-view"
-                           onclick="return confirm('Segnare come consegnata questa commessa?')">🚚 Consegna</a>
-                        <a href="{{ url_for('elimina_commessa', id=com.id) }}" class="btn btn-delete"
-                           onclick="return confirm('Eliminare questa commessa?')">🗑 Elimina</a>
-
-                        {% if ENABLE_PORTALI %}
-                            {% if (com.stato or '')|trim == STATO_FALEGNAMERIA %}
-                                <span class="badge-faleg">🪵 In falegnameria</span>
-                            {% else %}
-                                <form method="POST" action="{{ url_for('admin_manda_falegnameria', id_commessa=com.id) }}" style="display:inline;">
-                                    <button type="submit" class="btn btn-faleg"
-                                            onclick="return confirm('Mandare questa commessa in falegnameria?')">🪵 Falegn.</button>
-                                </form>
-                            {% endif %}
-                        {% endif %}
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    <div class="top-bar">
+      <a href="{{ url_for('aggiungi_commessa') }}" class="btn btn-add">➕ Nuova Commessa</a>
     </div>
+
+    <div class="filter-box">
+      <div class="search-row">
+        <input type="text" id="searchInput" placeholder="🔍 Cerca per nome, tipo intervento o veicolo...">
+        <div class="filter-buttons">
+          <button class="btn btn-filter" id="toggleAdvanced" type="button">⚙ Filtri</button>
+          <button class="btn btn-reset" type="button" onclick="resetFiltri()">🔄 Reset</button>
+        </div>
+      </div>
+
+      <div class="advanced-filters hidden" id="advancedFilters">
+        <select id="filterTipo">
+          <option value="">Tipo intervento...</option>
+          <option value="Carrozzeria">Carrozzeria</option>
+          <option value="Allestimento">Allestimento</option>
+          <option value="Riparazione">Riparazione</option>
+          <option value="Tetto a Soffietto">Tetto a Soffietto</option>
+        </select>
+
+        <label>Dal:</label>
+        <input type="date" id="filterDataDa">
+        <label>Al:</label>
+        <input type="date" id="filterDataA">
+
+        <button class="btn btn-apply" type="button" onclick="filtraAvanzato()">Applica</button>
+      </div>
+    </div>
+
+    <div class="table-scroll">
+      <table id="commesseTable">
+        <thead>
+          <tr>
+            <th class="col-id">ID</th>
+            <th class="col-nome">Nome</th>
+            <th class="col-tipo">Tipo</th>
+            <th class="col-marca">Marca</th>
+            <th class="col-modello">Modello</th>
+            <th class="col-dim">Dim.</th>
+            <th class="col-date">Conf.</th>
+            <th class="col-date">Arrivo Mat.</th>
+            <th class="col-date">Inizio</th>
+            <th class="col-date">Consegna</th>
+            <th class="col-ore">Ore Prev.</th>
+            <th class="col-ore">Ore Eseg.</th>
+            <th class="col-ore">Ore Rim.</th>
+            <th class="col-stato">Stato</th>
+            <th class="col-note">Note Falegn.</th>
+            <th class="col-azioni">Azioni</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {% for com in commesse %}
+          <tr class="
+              {% if com.data_inizio %}riga-iniziata{% endif %}
+              {% if com.stato == STATO_FALEGNAMERIA %}riga-falegn{% endif %}
+          ">
+            <td class="col-id">{{ com.id }}</td>
+
+            <td class="col-nome" title="{{ com.nome }}">{{ com.nome }}</td>
+            <td class="col-tipo" title="{{ com.tipo_intervento }}">{{ com.tipo_intervento }}</td>
+            <td class="col-marca">{{ com.marca_veicolo }}</td>
+            <td class="col-modello">{{ com.modello_veicolo }}</td>
+            <td class="col-dim">{{ com.dimensioni or '-' }}</td>
+
+            <td class="col-date">{{ com.data_conferma or '-' }}</td>
+            <td class="col-date">{{ com.data_arrivo_materiali or '-' }}</td>
+            <td class="col-date">{{ com.data_inizio or '-' }}</td>
+            <td class="col-date">{{ com.data_consegna or '-' }}</td>
+
+            <td class="col-ore">{{ com.ore_necessarie or '-' }}</td>
+            <td class="col-ore">{{ com.ore_eseguite or '-' }}</td>
+            <td class="col-ore">
+              {% if com.ore_necessarie and com.ore_eseguite %}
+                {{ com.ore_necessarie - com.ore_eseguite }}
+              {% else %}
+                -
+              {% endif %}
+            </td>
+
+            <td class="col-stato">
+              {% if com.stato %}
+                {{ com.stato }}
+              {% else %}
+                OFFICINA
+              {% endif %}
+            </td>
+
+            <td class="col-note" title="{{ com.note_falegnameria or '' }}">
+              {% if com.note_falegnameria %}
+                {{ com.note_falegnameria|truncate(24, True, '…') }}
+              {% else %}
+                -
+              {% endif %}
+            </td>
+
+            <td class="col-azioni azioni">
+              <a href="{{ url_for('modifica_commessa', id=com.id) }}" class="btn btn-edit">✏ Vedi</a>
+              <a href="{{ url_for('conferma_consegna', id=com.id) }}" class="btn btn-view"
+                 onclick="return confirm('Segnare come consegnata questa commessa?')">🚚 Consegna</a>
+              <a href="{{ url_for('elimina_commessa', id=com.id) }}" class="btn btn-delete"
+                 onclick="return confirm('Eliminare questa commessa?')">🗑 Elimina</a>
+
+              {% if ENABLE_PORTALI %}
+                {% if com.stato == STATO_FALEGNAMERIA %}
+                  <form method="POST" action="{{ url_for('admin_rientro_officina', id_commessa=com.id) }}" class="inlineform">
+                    <button type="submit" class="btn btn-rientro"
+                      onclick="return confirm('Riportare la commessa in OFFICINA?')">↩ Rientro</button>
+                  </form>
+                {% else %}
+                  <form method="POST" action="{{ url_for('admin_manda_falegnameria', id_commessa=com.id) }}" class="inlineform">
+                    <button type="submit" class="btn btn-faleg"
+                      onclick="return confirm('Mandare questa commessa in FALEGNAMERIA?')">🪵 In falegnameria</button>
+                  </form>
+                {% endif %}
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+  </div>
 </div>
 
 <style>
-/* === WRAPPER SOLO PER QUESTA PAGINA === */
-.commesse-wrapper {
-    display: flex;
-    justify-content: center;
-    margin-top: 35px;
-}
+/* wrapper */
+.commesse-wrapper { display:flex; justify-content:center; margin-top:35px; }
+.commesse-card { width:100%; max-width:1150px; }
 
-.commesse-wrapper .commesse-card {
-    width: 100%;
-    max-width: 1150px;
+/* filtri */
+.filter-box{
+  background:#22283a; border:1px solid #333a50; border-radius:10px;
+  padding:15px 20px; margin-bottom:20px;
+  box-shadow:0 2px 8px rgba(0,0,0,0.4);
 }
+.search-row{ display:flex; justify-content:center; flex-wrap:wrap; align-items:center; gap:10px; }
+.search-row input{
+  flex:1; min-width:300px; padding:10px;
+  border-radius:8px; border:1px solid #444;
+  background:#1c1f2b; color:#fff; font-size:14px;
+}
+.filter-buttons{ display:flex; gap:8px; }
+.btn-filter,.btn-reset,.btn-apply{
+  padding:8px 14px; border-radius:8px; font-size:13px;
+  border:none; cursor:pointer; transition:0.2s;
+}
+.btn-filter{ background:#00b4ff; color:#fff; }
+.btn-reset{ background:#ffc107; color:#000; }
+.btn-apply{ background:#28a745; color:#fff; }
+.advanced-filters{ display:flex; justify-content:center; flex-wrap:wrap; align-items:center; gap:10px; margin-top:15px; font-size:13px; }
+.advanced-filters select,.advanced-filters input[type="date"]{
+  padding:8px; border-radius:6px; background:#1e2230; color:#fff; border:1px solid #555;
+}
+.hidden{ display:none; }
 
-/* === SEZIONE FILTRI MODERNA === */
-.filter-box {
-    background: #22283a;
-    border: 1px solid #333a50;
-    border-radius: 10px;
-    padding: 15px 20px;
-    margin-bottom: 20px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+/* tabella: SOLO commesseTable (evita casini globali) */
+.table-scroll{ overflow-x:auto; border-radius:10px; }
+#commesseTable{
+  width:100%;
+  border-collapse:collapse;
+  font-size:12px;
+  background:#2f3241;
+  border-radius:8px;
+  overflow:hidden;
 }
+#commesseTable th, #commesseTable td{
+  border:1px solid #444;
+  padding:6px 8px;
+  text-align:center;
+  color:#e0e0e0;
+  line-height:1.2;
+  white-space:nowrap;
+  vertical-align:middle;
+}
+#commesseTable th{
+  background:#00a6c7; color:#fff; font-weight:600; font-size:12px;
+}
+#commesseTable tbody tr:nth-child(even){ background:#34374a; }
 
-.search-row {
-    display: flex;
-    justify-content: center;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 10px;
-}
+/* evidenze */
+#commesseTable tbody tr.riga-iniziata{ background-color:#245430; }
+#commesseTable tbody tr.riga-falegn{ outline:2px solid rgba(111,66,193,0.8); outline-offset:-2px; }
 
-.search-row input {
-    flex: 1;
-    min-width: 300px;
-    padding: 10px;
-    border-radius: 8px;
-    border: 1px solid #444;
-    background-color: #1c1f2b;
-    color: #fff;
-    font-size: 14px;
-}
+/* colonne */
+.col-id{ width:50px; }
+.col-date{ width:95px; }
+.col-ore{ width:80px; }
+.col-dim{ width:80px; }
+.col-stato{ width:120px; }
+.col-note{ width:140px; }
+.col-azioni{ width:300px; }
 
-.filter-buttons {
-    display: flex;
-    gap: 8px;
+/* azioni: rinominate per evitare conflitti con CSS globali */
+.azioni{
+  display:flex;
+  gap:6px;
+  justify-content:flex-end;
+  align-items:center;
+  flex-wrap:wrap;
+  white-space:normal;            /* permette wrap SOLO qui */
+  background:transparent !important;
 }
+.inlineform{ display:inline-block; margin:0; padding:0; background:transparent !important; }
 
-.btn-filter, .btn-reset, .btn-apply {
-    padding: 8px 14px;
-    border-radius: 8px;
-    font-size: 13px;
-    border: none;
-    cursor: pointer;
-    transition: 0.2s;
+/* bottoni */
+.azioni .btn{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  font-size:11px;
+  padding:6px 10px;
+  border-radius:8px;
+  color:#fff;
+  text-decoration:none;
+  cursor:pointer;
+  border:none;
+  line-height:1;
 }
-.btn-filter { background-color: #00b4ff; color: white; }
-.btn-reset { background-color: #ffc107; color: black; }
-.btn-apply { background-color: #28a745; color: white; }
-
-.btn-filter:hover, .btn-reset:hover, .btn-apply:hover {
-    transform: scale(1.05);
-    opacity: 0.9;
-}
-
-.advanced-filters {
-    display: flex;
-    justify-content: center;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 10px;
-    margin-top: 15px;
-    font-size: 13px;
-}
-
-.advanced-filters select, .advanced-filters input[type="date"] {
-    padding: 8px;
-    border-radius: 6px;
-    background-color: #1e2230;
-    color: #fff;
-    border: 1px solid #555;
-}
-.hidden { display: none; }
-
-/* === STILE TABELLA === */
-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 12px;
-    background-color: #2f3241;
-    border-radius: 8px;
-    overflow: hidden;
-}
-th, td {
-    border: 1px solid #444;
-    padding: 6px 6px;
-    text-align: center;
-    color: #e0e0e0;
-    white-space: nowrap;
-}
-th {
-    background-color: #00a6c7;
-    color: #fff;
-    font-weight: 600;
-    font-size: 12px;
-}
-.narrow { width: 80px; }
-.actions-col { width: 230px; }
-
-tr:nth-child(even) { background-color: #34374a; }
-
-/* riga con lavori iniziati in verde tenue */
-tr.riga-iniziata { background-color: #245430; }
-
-/* Pulsanti azioni */
-.actions {
-    display: flex;
-    justify-content: center;
-    gap: 6px;
-    flex-wrap: wrap;
-}
-.actions .btn {
-    font-size: 11px;
-    padding: 5px 8px;
-    border-radius: 6px;
-    color: #fff;
-    text-decoration: none;
-    cursor: pointer;
-    transition: 0.2s;
-    border: none;
-}
-
-.btn-edit { background-color: #28a745; }
-.btn-view { background-color: #00bfff; }
-.btn-delete { background-color: #dc3545; }
-.btn-faleg { background-color: #6f42c1; }
-
-.badge-faleg {
-    background: #6f42c1;
-    color: #fff;
-    padding: 5px 8px;
-    border-radius: 6px;
-    font-size: 11px;
-    display: inline-block;
-}
-
-.actions .btn:hover {
-    opacity: 0.85;
-    transform: scale(1.04);
-}
+.btn-edit{ background:#28a745; }
+.btn-view{ background:#00bfff; }
+.btn-delete{ background:#dc3545; }
+.btn-faleg{ background:#6f42c1; }
+.btn-rientro{ background:#ff8c00; }
 </style>
 
 <script>
-    // Ricerca
-    const input = document.getElementById("searchInput");
-    input.addEventListener("keyup", function() {
-        const filter = input.value.toLowerCase();
-        const rows = document.querySelectorAll("#commesseTable tbody tr");
-        rows.forEach(row => {
-            const text = row.textContent.toLowerCase();
-            row.style.display = text.includes(filter) ? "" : "none";
-        });
+  const input = document.getElementById("searchInput");
+  input.addEventListener("keyup", function() {
+    const filter = input.value.toLowerCase();
+    const rows = document.querySelectorAll("#commesseTable tbody tr");
+    rows.forEach(row => {
+      const text = row.textContent.toLowerCase();
+      row.style.display = text.includes(filter) ? "" : "none";
     });
+  });
 
-    // Filtri avanzati (toggle box)
-    const toggleBtn = document.getElementById("toggleAdvanced");
-    const filtersBox = document.getElementById("advancedFilters");
-    toggleBtn.addEventListener("click", () => {
-        filtersBox.classList.toggle("hidden");
-    });
+  const toggleBtn = document.getElementById("toggleAdvanced");
+  const filtersBox = document.getElementById("advancedFilters");
+  toggleBtn.addEventListener("click", () => filtersBox.classList.toggle("hidden"));
 
-    // Placeholder: evita errori JS se non hai ancora queste funzioni definite altrove
-    function resetFiltri() {}
-    function filtraAvanzato() {}
+  function resetFiltri(){
+    document.getElementById("searchInput").value = "";
+    const rows = document.querySelectorAll("#commesseTable tbody tr");
+    rows.forEach(r => r.style.display = "");
+  }
+
+  function filtraAvanzato(){
+    // se vuoi lo implementiamo dopo, intanto non rompe niente
+  }
 </script>
 {% endblock %}
