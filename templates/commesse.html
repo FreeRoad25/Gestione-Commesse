@@ -1,4 +1,3 @@
-
 {% extends "layout.html" %} 
 {% block title %}Elenco Commesse{% endblock %}
 
@@ -70,8 +69,8 @@
 
             <td class="col-nome" title="{{ com.nome }}">{{ com.nome }}</td>
             <td class="col-tipo" title="{{ com.tipo_intervento }}">{{ com.tipo_intervento }}</td>
-            <td class="col-marca">{{ com.marca_veicolo }}</td>
-            <td class="col-modello">{{ com.modello_veicolo }}</td>
+            <td class="col-marca" title="{{ com.marca_veicolo }}">{{ com.marca_veicolo }}</td>
+            <td class="col-modello" title="{{ com.modello_veicolo }}">{{ com.modello_veicolo }}</td>
             <td class="col-dim">{{ com.dimensioni or '-' }}</td>
 
             <td class="col-date">{{ com.data_conferma or '-' }}</td>
@@ -98,22 +97,22 @@
             </td>
 
             <td class="col-azioni azioni">
-              <a href="{{ url_for('modifica_commessa', id=com.id) }}" class="btn btn-edit">✏ Vedi</a>
+              <a href="{{ url_for('modifica_commessa', id=com.id) }}" class="btn btn-edit" title="Vedi">✏</a>
               <a href="{{ url_for('conferma_consegna', id=com.id) }}" class="btn btn-view"
-                 onclick="return confirm('Segnare come consegnata questa commessa?')">🚚 Consegna</a>
+                 onclick="return confirm('Segnare come consegnata questa commessa?')" title="Consegna">🚚</a>
               <a href="{{ url_for('elimina_commessa', id=com.id) }}" class="btn btn-delete"
-                 onclick="return confirm('Eliminare questa commessa?')">🗑 Elimina</a>
+                 onclick="return confirm('Eliminare questa commessa?')" title="Elimina">🗑</a>
 
               {% if ENABLE_PORTALI %}
                 {% if com.stato == STATO_FALEGNAMERIA %}
                   <form method="POST" action="{{ url_for('admin_rientro_officina', id_commessa=com.id) }}" class="inlineform">
                     <button type="submit" class="btn btn-rientro"
-                      onclick="return confirm('Riportare la commessa in OFFICINA?')">↩ Rientro</button>
+                      onclick="return confirm('Riportare la commessa in OFFICINA?')" title="Rientro">↩</button>
                   </form>
                 {% else %}
                   <form method="POST" action="{{ url_for('admin_manda_falegnameria', id_commessa=com.id) }}" class="inlineform">
                     <button type="submit" class="btn btn-faleg"
-                      onclick="return confirm('Mandare questa commessa in FALEGNAMERIA?')">🪵 Falegn.</button>
+                      onclick="return confirm('Mandare questa commessa in FALEGNAMERIA?')" title="In falegnameria">🪵</button>
                   </form>
                 {% endif %}
               {% endif %}
@@ -129,8 +128,8 @@
 
 <style>
 /* wrapper */
-.commesse-wrapper { display:flex; justify-content:center; margin-top:35px; }
-.commesse-card { width:100%; max-width:1150px; }
+.commesse-wrapper { display:flex; justify-content:center; margin-top:35px; padding: 0 10px; }
+.commesse-card { width:100%; max-width: 100% !important; }
 
 /* filtri */
 .filter-box{
@@ -167,6 +166,7 @@
   background:#2f3241;
   border-radius:8px;
   overflow:hidden;
+  table-layout: fixed;              /* ✅ fa rispettare le larghezze */
 }
 #commesseTable th, #commesseTable td{
   border:1px solid #444;
@@ -176,6 +176,8 @@
   line-height:1.2;
   white-space:nowrap;
   vertical-align:middle;
+  overflow:hidden;                  /* ✅ evita allargamenti */
+  text-overflow:ellipsis;           /* ✅ puntini */
 }
 #commesseTable th{
   background:#00a6c7; color:#fff; font-weight:600; font-size:12px;
@@ -186,39 +188,43 @@
 #commesseTable tbody tr.riga-iniziata{ background-color:#245430; }
 #commesseTable tbody tr.riga-falegn{ outline:2px solid rgba(111,66,193,0.8); outline-offset:-2px; }
 
-/* colonne */
-.col-id{ width:50px; }
-.col-date{ width:95px; }
-.col-ore{ width:80px; }
-.col-dim{ width:80px; }
-.col-stato{ width:120px; }
-.col-azioni{ width:210px; } /* più stretta */
+/* colonne (più strette) */
+.col-id{ width:45px; }
+.col-nome{ width:160px; }
+.col-tipo{ width:140px; }
+.col-marca{ width:85px; }
+.col-modello{ width:95px; }
+.col-dim{ width:65px; }
+.col-date{ width:80px; }
+.col-ore{ width:65px; }
+.col-stato{ width:90px; }
+.col-azioni{ width:170px; }
 
 /* azioni */
 .azioni{
   display:flex;
-  gap:4px;                 /* più stretto */
+  gap:4px;
   justify-content:flex-end;
   align-items:center;
-  flex-wrap:wrap;
-  white-space:normal;
+  flex-wrap:nowrap;               /* ✅ una riga, non aumenta l’altezza */
   background:transparent !important;
 }
 .inlineform{ display:inline-block; margin:0; padding:0; background:transparent !important; }
 
-/* bottoni più compatti */
+/* bottoni compatti (icone) */
 .azioni .btn{
   display:inline-flex;
   align-items:center;
-  gap:4px;
-  font-size:10px;          /* più piccolo */
-  padding:4px 6px;         /* più piccolo */
+  justify-content:center;
+  font-size:12px;
+  padding:4px 6px;
   border-radius:6px;
   color:#fff;
   text-decoration:none;
   cursor:pointer;
   border:none;
   line-height:1;
+  min-width: 28px;               /* ✅ tutti uguali e stretti */
 }
 .btn-edit{ background:#28a745; }
 .btn-view{ background:#00bfff; }
