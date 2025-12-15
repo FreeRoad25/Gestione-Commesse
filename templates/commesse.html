@@ -43,8 +43,16 @@
           <th class="c-nome">Nome</th>
           <th class="c-tipo">Tipo</th>
           <th class="c-veicolo">Veicolo</th>
-          <th class="c-date">Date</th>
-          <th class="c-ore">Ore</th>
+
+          <th class="c-date">Conf</th>
+          <th class="c-date">Arr</th>
+          <th class="c-date">Iniz</th>
+          <th class="c-date">Cons</th>
+
+          <th class="c-ore">Prev</th>
+          <th class="c-ore">Eseg</th>
+          <th class="c-ore">Rim</th>
+
           <th class="c-stato">St</th>
           <th class="c-az">Az</th>
         </tr>
@@ -65,25 +73,14 @@
             <div class="v2">{{ com.dimensioni or '-' }}</div>
           </td>
 
-          <td class="c-date">
-            <div class="d1">
-              <span class="k">C</span> {{ com.data_conferma or '-' }}
-              <span class="sep">•</span>
-              <span class="k">A</span> {{ com.data_arrivo_materiali or '-' }}
-            </div>
-            <div class="d2">
-              <span class="k">I</span> {{ com.data_inizio or '-' }}
-              <span class="sep">•</span>
-              <span class="k">K</span> {{ com.data_consegna or '-' }}
-            </div>
-          </td>
+          <td class="c-date">{{ com.data_conferma or '-' }}</td>
+          <td class="c-date">{{ com.data_arrivo_materiali or '-' }}</td>
+          <td class="c-date">{{ com.data_inizio or '-' }}</td>
+          <td class="c-date">{{ com.data_consegna or '-' }}</td>
 
+          <td class="c-ore">{{ com.ore_necessarie or '-' }}</td>
+          <td class="c-ore">{{ com.ore_eseguite or '-' }}</td>
           <td class="c-ore">
-            <span class="k">P</span>{{ com.ore_necessarie or '-' }}
-            <span class="sep">/</span>
-            <span class="k">E</span>{{ com.ore_eseguite or '-' }}
-            <span class="sep">/</span>
-            <span class="k">R</span>
             {% if com.ore_necessarie and com.ore_eseguite %}
               {{ com.ore_necessarie - com.ore_eseguite }}
             {% else %}
@@ -92,11 +89,7 @@
           </td>
 
           <td class="c-stato">
-            {% if com.stato == STATO_FALEGNAMERIA %}
-              FAL
-            {% else %}
-              OFF
-            {% endif %}
+            {% if com.stato == STATO_FALEGNAMERIA %}FAL{% else %}OFF{% endif %}
           </td>
 
           <td class="c-az azioni">
@@ -136,17 +129,9 @@
 </div>
 
 <style>
-/* ====== NON restringere il contenuto (override bootstrap container) ====== */
-.commesse-wrapper{
-  display:flex;
-  justify-content:center;
-  margin-top:35px;
-  padding: 0 16px;
-}
-.commesse-card{
-  width: 100%;
-  max-width: 100% !important;
-}
+/* container: piena larghezza */
+.commesse-wrapper{ display:flex; justify-content:center; margin-top:35px; padding:0 16px; }
+.commesse-card{ width:100%; max-width:100% !important; }
 
 /* filtri */
 .filter-box{
@@ -186,42 +171,41 @@
 }
 #commesseTable th, #commesseTable td{
   border:1px solid #444;
-  padding:6px 8px;
+  padding:6px 6px;
   text-align:center;
   color:#e0e0e0;
   line-height:1.15;
   vertical-align:middle;
   overflow:hidden;
   text-overflow:ellipsis;
+  white-space:nowrap;
 }
-#commesseTable th{
-  background:#00a6c7; color:#fff; font-weight:600;
-}
+#commesseTable th{ background:#00a6c7; color:#fff; font-weight:600; }
 #commesseTable tbody tr:nth-child(even){ background:#34374a; }
 
 /* evidenze */
 #commesseTable tbody tr.riga-iniziata{ background-color:#245430; }
 #commesseTable tbody tr.riga-falegn{ outline:2px solid rgba(111,66,193,0.8); outline-offset:-2px; }
 
-/* colonne: progettate per NON fare overflow su viewport stretti */
-.c-nome{ width: 140px; text-align:left; padding-left:10px; white-space:nowrap; }
-.c-tipo{ width: 120px; text-align:left; padding-left:10px; white-space:nowrap; }
-.c-veicolo{ width: 140px; text-align:left; padding-left:10px; white-space:normal; }
-.c-date{ width: 170px; text-align:left; white-space:normal; font-size:11px; }
-.c-ore{ width: 120px; white-space:nowrap; font-size:11px; }
-.c-stato{ width: 45px; font-weight:700; white-space:nowrap; }
+/* colonne: più strette per Nome/Tipo/Veicolo */
+.c-nome{ width: 140px; text-align:left; padding-left:10px; }
+.c-tipo{ width: 135px; text-align:left; padding-left:10px; }
+.c-veicolo{
+  width: 150px;
+  text-align:left;
+  padding-left:10px;
+  white-space:normal;              /* 2 righe */
+}
+.c-date{ width: 92px; font-size:11px; }
+.c-ore{ width: 70px; font-size:11px; }
+.c-stato{ width: 45px; font-weight:700; }
 .c-az{ width: 120px; }
 
-/* veicolo multi-riga compatto */
-.v1{ font-weight:600; }
-.v2{ opacity:0.85; font-size:11px; margin-top:2px; }
+/* veicolo su 2 righe */
+.v1{ font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.v2{ opacity:0.85; font-size:11px; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 
-/* date multi-riga */
-.d1,.d2{ white-space:nowrap; }
-.k{ font-weight:700; opacity:0.95; }
-.sep{ opacity:0.8; margin:0 4px; }
-
-/* azioni super compatte */
+/* azioni compatte */
 .azioni{
   display:flex;
   gap:4px;
@@ -232,19 +216,14 @@
 }
 .inlineform{ display:inline-block; margin:0; padding:0; background:transparent !important; }
 .azioni .btn{
-  width:26px;
-  height:22px;
+  width:26px; height:22px;
   display:inline-flex;
-  align-items:center;
-  justify-content:center;
+  align-items:center; justify-content:center;
   font-size:12px;
   padding:0;
   border-radius:6px;
-  color:#fff;
-  text-decoration:none;
-  cursor:pointer;
-  border:none;
-  line-height:1;
+  color:#fff; text-decoration:none;
+  cursor:pointer; border:none; line-height:1;
 }
 .btn-edit{ background:#28a745; }
 .btn-view{ background:#00bfff; }
