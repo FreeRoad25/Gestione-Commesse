@@ -1,4 +1,4 @@
-{% extends "layout.html" %} 
+{% extends "layout.html" %}
 {% block title %}Elenco Commesse{% endblock %}
 
 {% block content %}
@@ -41,21 +41,20 @@
       <table id="commesseTable">
         <thead>
           <tr>
-            <th class="col-id">ID</th>
             <th class="col-nome">Nome</th>
             <th class="col-tipo">Tipo</th>
             <th class="col-marca">Marca</th>
             <th class="col-modello">Modello</th>
             <th class="col-dim">Dim.</th>
             <th class="col-date">Conf.</th>
-            <th class="col-date">Arr. Mat.</th>
+            <th class="col-date">Arrivo</th>
             <th class="col-date">Inizio</th>
-            <th class="col-date">Cons.</th>
-            <th class="col-ore">Prev.</th>
-            <th class="col-ore">Eseg.</th>
-            <th class="col-ore">Rim.</th>
-            <th class="col-stato">St.</th>
-            <th class="col-azioni">Azioni</th>
+            <th class="col-date">Consegna</th>
+            <th class="col-ore">Prev</th>
+            <th class="col-ore">Eseg</th>
+            <th class="col-ore">Rim</th>
+            <th class="col-stato">Stato</th>
+            <th class="col-azioni">Az.</th>
           </tr>
         </thead>
 
@@ -65,13 +64,11 @@
               {% if com.data_inizio %}riga-iniziata{% endif %}
               {% if com.stato == STATO_FALEGNAMERIA %}riga-falegn{% endif %}
           ">
-            <td class="col-id">{{ com.id }}</td>
-
             <td class="col-nome" title="{{ com.nome }}">{{ com.nome }}</td>
             <td class="col-tipo" title="{{ com.tipo_intervento }}">{{ com.tipo_intervento }}</td>
             <td class="col-marca" title="{{ com.marca_veicolo }}">{{ com.marca_veicolo }}</td>
             <td class="col-modello" title="{{ com.modello_veicolo }}">{{ com.modello_veicolo }}</td>
-            <td class="col-dim">{{ com.dimensioni or '-' }}</td>
+            <td class="col-dim" title="{{ com.dimensioni or '-' }}">{{ com.dimensioni or '-' }}</td>
 
             <td class="col-date">{{ com.data_conferma or '-' }}</td>
             <td class="col-date">{{ com.data_arrivo_materiali or '-' }}</td>
@@ -89,35 +86,41 @@
             </td>
 
             <td class="col-stato">
-              {% set stato_raw = com.stato if com.stato else 'OFFICINA' %}
-              {% if (not com.stato) or (stato_raw == 'OFFICINA') %}
-                <span title="OFFICINA">OFF</span>
-              {% elif stato_raw == STATO_FALEGNAMERIA %}
-                <span title="{{ stato_raw }}">FAL</span>
+              {% if com.stato == STATO_FALEGNAMERIA %}
+                FAL
               {% else %}
-                <span title="{{ stato_raw }}">{{ stato_raw[:3]|upper }}</span>
+                OFF
               {% endif %}
             </td>
 
             <td class="col-azioni azioni">
-              <a href="{{ url_for('modifica_commessa', id=com.id) }}" class="btn btn-edit" title="Vedi">✏</a>
+              <a href="{{ url_for('modifica_commessa', id=com.id) }}"
+                 class="btn btn-edit" title="Vedi" aria-label="Vedi">👁</a>
 
-              <a href="{{ url_for('conferma_consegna', id=com.id) }}" class="btn btn-view"
-                 onclick="return confirm('Segnare come consegnata questa commessa?')" title="Consegna">🚚</a>
+              <a href="{{ url_for('conferma_consegna', id=com.id) }}"
+                 class="btn btn-view" title="Consegna" aria-label="Consegna"
+                 onclick="return confirm('Segnare come consegnata questa commessa?')">🚚</a>
 
-              <a href="{{ url_for('elimina_commessa', id=com.id) }}" class="btn btn-delete"
-                 onclick="return confirm('Eliminare questa commessa?')" title="Elimina">🗑</a>
+              <a href="{{ url_for('elimina_commessa', id=com.id) }}"
+                 class="btn btn-delete" title="Elimina" aria-label="Elimina"
+                 onclick="return confirm('Eliminare questa commessa?')">🗑</a>
 
               {% if ENABLE_PORTALI %}
                 {% if com.stato == STATO_FALEGNAMERIA %}
-                  <form method="POST" action="{{ url_for('admin_rientro_officina', id_commessa=com.id) }}" class="inlineform">
+                  <form method="POST"
+                        action="{{ url_for('admin_rientro_officina', id_commessa=com.id) }}"
+                        class="inlineform">
                     <button type="submit" class="btn btn-rientro"
-                      onclick="return confirm('Riportare la commessa in OFFICINA?')" title="Rientro">↩</button>
+                      title="Rientro" aria-label="Rientro"
+                      onclick="return confirm('Riportare la commessa in OFFICINA?')">↩</button>
                   </form>
                 {% else %}
-                  <form method="POST" action="{{ url_for('admin_manda_falegnameria', id_commessa=com.id) }}" class="inlineform">
+                  <form method="POST"
+                        action="{{ url_for('admin_manda_falegnameria', id_commessa=com.id) }}"
+                        class="inlineform">
                     <button type="submit" class="btn btn-faleg"
-                      onclick="return confirm('Mandare questa commessa in FALEGNAMERIA?')" title="Falegnameria">🪵</button>
+                      title="In falegnameria" aria-label="In falegnameria"
+                      onclick="return confirm('Mandare questa commessa in FALEGNAMERIA?')">🪵</button>
                   </form>
                 {% endif %}
               {% endif %}
@@ -133,12 +136,8 @@
 
 <style>
 /* wrapper */
-.commesse-wrapper { display:flex; justify-content:center; margin-top:35px; padding: 0 10px; }
-/* più spazio utile (senza toccare layout globale) */
-.commesse-card{
-  width: calc(100vw - 280px);
-  max-width: 1600px !important;
-}
+.commesse-wrapper { display:flex; justify-content:center; margin-top:35px; }
+.commesse-card { width:100%; max-width:1150px; }
 
 /* filtri */
 .filter-box{
@@ -166,20 +165,20 @@
 }
 .hidden{ display:none; }
 
-/* tabella */
+/* tabella: SOLO commesseTable */
 .table-scroll{ overflow-x:auto; border-radius:10px; }
 #commesseTable{
   width:100%;
+  table-layout:fixed;
   border-collapse:collapse;
   font-size:12px;
   background:#2f3241;
   border-radius:8px;
   overflow:hidden;
-  table-layout:fixed;
 }
 #commesseTable th, #commesseTable td{
   border:1px solid #444;
-  padding:6px 8px;           /* NON tocchiamo l’altezza righe */
+  padding:6px 8px;
   text-align:center;
   color:#e0e0e0;
   line-height:1.2;
@@ -197,17 +196,16 @@
 #commesseTable tbody tr.riga-iniziata{ background-color:#245430; }
 #commesseTable tbody tr.riga-falegn{ outline:2px solid rgba(111,66,193,0.8); outline-offset:-2px; }
 
-/* colonne più strette */
-.col-id{ width:45px; }
-.col-nome{ width:150px; }
-.col-tipo{ width:130px; }
-.col-marca{ width:75px; }
-.col-modello{ width:85px; }
-.col-dim{ width:55px; }
-.col-date{ width:72px; }
-.col-ore{ width:58px; }
-.col-stato{ width:48px; }     /* ✅ Stato OFF/FAL */
-.col-azioni{ width:150px; }   /* ✅ più stretta (icone) */
+/* colonne (somma studiata per stare dentro 1150px) */
+.col-nome{ width:130px; text-align:left; padding-left:10px; }
+.col-tipo{ width:120px; text-align:left; padding-left:10px; }
+.col-marca{ width:60px; }
+.col-modello{ width:70px; }
+.col-dim{ width:50px; }
+.col-date{ width:80px; }
+.col-ore{ width:55px; }
+.col-stato{ width:45px; font-weight:700; }
+.col-azioni{ width:120px; }
 
 /* azioni */
 .azioni{
@@ -216,24 +214,26 @@
   justify-content:flex-end;
   align-items:center;
   flex-wrap:nowrap;
+  white-space:nowrap;
   background:transparent !important;
 }
 .inlineform{ display:inline-block; margin:0; padding:0; background:transparent !important; }
 
 /* bottoni super compatti */
 .azioni .btn{
+  width:26px;
+  height:22px;
   display:inline-flex;
   align-items:center;
   justify-content:center;
   font-size:12px;
-  padding:4px 6px;
+  padding:0;
   border-radius:6px;
   color:#fff;
   text-decoration:none;
   cursor:pointer;
   border:none;
   line-height:1;
-  min-width:26px;
 }
 .btn-edit{ background:#28a745; }
 .btn-view{ background:#00bfff; }
@@ -264,7 +264,7 @@
   }
 
   function filtraAvanzato(){
-    // lo facciamo dopo, intanto non rompe nulla
+    // lo implementiamo dopo (non rompe nulla)
   }
 </script>
 {% endblock %}
