@@ -1,0 +1,98 @@
+{% extends "layout.html" %}
+{% block title %}Commesse Falegnameria{% endblock %}
+
+{% block content %}
+<div class="commesse-wrapper">
+  <div class="container commesse-card">
+    <h1>🪵 Commesse in Falegnameria</h1>
+
+    {% if not commesse or commesse|length == 0 %}
+      <div class="empty-box">
+        <p>Nessuna commessa in falegnameria.</p>
+      </div>
+    {% else %}
+      <table id="falegnTable">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Nome</th>
+            <th>Tipo</th>
+            <th class="narrow">Inizio</th>
+            <th class="narrow">Consegna</th>
+            <th>Note falegnameria</th>
+            <th class="actions-col">Azione</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for com in commesse %}
+          <tr>
+            <td>{{ com.id }}</td>
+            <td>{{ com.nome }}</td>
+            <td>{{ com.tipo_intervento }}</td>
+            <td>{{ com.data_inizio or '-' }}</td>
+            <td>{{ com.data_consegna or '-' }}</td>
+
+            <td class="note-cell">
+              <form method="POST" action="{{ url_for('falegnameria_salva_note', id_commessa=com.id) }}">
+                <textarea name="note_falegnameria" rows="3">{{ com.note_falegnameria or '' }}</textarea>
+            </td>
+
+            <td class="actions">
+                <button type="submit" class="btn btn-save">💾 Salva</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% endif %}
+  </div>
+</div>
+
+<style>
+.commesse-wrapper { display:flex; justify-content:center; margin-top:35px; }
+.commesse-card { width:100%; max-width:1150px; }
+
+table { width:100%; border-collapse:collapse; font-size:12px; background:#2f3241; border-radius:8px; overflow:hidden; }
+th, td { border:1px solid #444; padding:8px; text-align:center; color:#e0e0e0; }
+th { background:#00a6c7; color:#fff; font-weight:600; }
+tr:nth-child(even) { background:#34374a; }
+
+.narrow { width:90px; white-space:nowrap; }
+.actions-col { width:140px; }
+
+.note-cell textarea{
+  width: 100%;
+  min-width: 260px;
+  max-width: 520px;
+  background:#1c1f2b;
+  color:#fff;
+  border:1px solid #555;
+  border-radius:8px;
+  padding:8px;
+  resize: vertical;
+}
+
+td.actions{
+  vertical-align: middle;
+}
+
+td.actions .btn{
+  padding:8px 12px;
+  border-radius:8px;
+  border:none;
+  cursor:pointer;
+  font-size:12px;
+}
+
+.btn-save{ background:#28a745; color:#fff; }
+
+.empty-box{
+  background:#22283a;
+  border:1px solid #333a50;
+  border-radius:10px;
+  padding:18px;
+  margin-top:15px;
+}
+</style>
+{% endblock %}

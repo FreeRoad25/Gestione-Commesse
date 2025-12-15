@@ -483,45 +483,9 @@ def falegnameria_commesse():
     commesse = cur.fetchall()
     conn.close()
 
-    if not commesse:
-        return f"""
-        <h2>Commesse in Falegnameria</h2>
-        <p>Nessuna commessa trovata con stato = <b>{escape(STATO_FALEGNAMERIA)}</b>.</p>
-        <p>Nota: se è la prima volta, le commesse esistenti hanno stato vuoto.</p>
-        """
+    # Template allineato al layout del gestionale
+    return render_template("falegnameria_commesse.html", commesse=commesse)
 
-    righe = ""
-    for c in commesse:
-        idc = c.get("id")
-        righe += f"""
-        <tr>
-          <td>{idc}</td>
-          <td>{escape(c.get('nome','') or '')}</td>
-          <td>{escape(c.get('tipo_intervento','') or '')}</td>
-          <td>{c.get('data_inizio') or ''}</td>
-          <td>{c.get('data_consegna') or ''}</td>
-          <td>
-            <form method="POST" action="/falegnameria/commesse/{idc}/note">
-              <textarea name="note_falegnameria" rows="2" cols="35">{escape(c.get('note_falegnameria') or '')}</textarea><br>
-              <button type="submit">Salva</button>
-            </form>
-          </td>
-        </tr>
-        """
-
-    return f"""
-    <h2>Commesse in Falegnameria</h2>
-    <table border="1" cellpadding="6" cellspacing="0">
-      <thead>
-        <tr>
-          <th>ID</th><th>Nome</th><th>Tipo</th><th>Inizio</th><th>Consegna</th><th>Note falegnameria</th>
-        </tr>
-      </thead>
-      <tbody>
-        {righe}
-      </tbody>
-    </table>
-    """
 
 
 
