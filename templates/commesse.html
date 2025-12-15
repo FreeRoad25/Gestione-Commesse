@@ -1,4 +1,5 @@
-{% extends "layout.html" %}
+
+{% extends "layout.html" %} 
 {% block title %}Elenco Commesse{% endblock %}
 
 {% block content %}
@@ -55,7 +56,6 @@
             <th class="col-ore">Ore Eseg.</th>
             <th class="col-ore">Ore Rim.</th>
             <th class="col-stato">Stato</th>
-            <th class="col-note">Note Falegn.</th>
             <th class="col-azioni">Azioni</th>
           </tr>
         </thead>
@@ -97,14 +97,6 @@
               {% endif %}
             </td>
 
-            <td class="col-note" title="{{ com.note_falegnameria or '' }}">
-              {% if com.note_falegnameria %}
-                {{ com.note_falegnameria|truncate(24, True, '…') }}
-              {% else %}
-                -
-              {% endif %}
-            </td>
-
             <td class="col-azioni azioni">
               <a href="{{ url_for('modifica_commessa', id=com.id) }}" class="btn btn-edit">✏ Vedi</a>
               <a href="{{ url_for('conferma_consegna', id=com.id) }}" class="btn btn-view"
@@ -121,7 +113,7 @@
                 {% else %}
                   <form method="POST" action="{{ url_for('admin_manda_falegnameria', id_commessa=com.id) }}" class="inlineform">
                     <button type="submit" class="btn btn-faleg"
-                      onclick="return confirm('Mandare questa commessa in FALEGNAMERIA?')">🪵 In falegnameria</button>
+                      onclick="return confirm('Mandare questa commessa in FALEGNAMERIA?')">🪵 Falegn.</button>
                   </form>
                 {% endif %}
               {% endif %}
@@ -166,7 +158,7 @@
 }
 .hidden{ display:none; }
 
-/* tabella: SOLO commesseTable (evita casini globali) */
+/* tabella: SOLO commesseTable */
 .table-scroll{ overflow-x:auto; border-radius:10px; }
 #commesseTable{
   width:100%;
@@ -200,29 +192,28 @@
 .col-ore{ width:80px; }
 .col-dim{ width:80px; }
 .col-stato{ width:120px; }
-.col-note{ width:140px; }
-.col-azioni{ width:300px; }
+.col-azioni{ width:210px; } /* più stretta */
 
-/* azioni: rinominate per evitare conflitti con CSS globali */
+/* azioni */
 .azioni{
   display:flex;
-  gap:6px;
+  gap:4px;                 /* più stretto */
   justify-content:flex-end;
   align-items:center;
   flex-wrap:wrap;
-  white-space:normal;            /* permette wrap SOLO qui */
+  white-space:normal;
   background:transparent !important;
 }
 .inlineform{ display:inline-block; margin:0; padding:0; background:transparent !important; }
 
-/* bottoni */
+/* bottoni più compatti */
 .azioni .btn{
   display:inline-flex;
   align-items:center;
-  gap:6px;
-  font-size:11px;
-  padding:6px 10px;
-  border-radius:8px;
+  gap:4px;
+  font-size:10px;          /* più piccolo */
+  padding:4px 6px;         /* più piccolo */
+  border-radius:6px;
   color:#fff;
   text-decoration:none;
   cursor:pointer;
