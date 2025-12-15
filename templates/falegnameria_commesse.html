@@ -33,11 +33,15 @@
             <td>{{ com.data_consegna or '-' }}</td>
 
             <td class="note-cell">
-              <form method="POST" action="{{ url_for('falegnameria_salva_note', id_commessa=com.id) }}">
-                <textarea name="note_falegnameria" rows="3">{{ com.note_falegnameria or '' }}</textarea>
+              <textarea
+                name="note_falegnameria"
+                rows="3"
+                form="noteform-{{ com.id }}"
+              >{{ com.note_falegnameria or '' }}</textarea>
             </td>
 
             <td class="actions">
+              <form id="noteform-{{ com.id }}" method="POST" action="{{ url_for('falegnameria_salva_note', id_commessa=com.id) }}">
                 <button type="submit" class="btn btn-save">💾 Salva</button>
               </form>
             </td>
@@ -61,15 +65,29 @@ tr:nth-child(even) { background:#34374a; }
 .narrow { width:90px; white-space:nowrap; }
 .actions-col { width:140px; }
 
+/* === COMPATTA RIGHE === */
+#falegnTable th, #falegnTable td {
+  padding: 6px 8px;
+  vertical-align: middle;
+}
+
+/* === NOTE COMPATTE === */
 .note-cell textarea{
   width: 100%;
   min-width: 260px;
   max-width: 520px;
+
+  height: 60px;
+  min-height: 60px;
+  max-height: 120px;
+
+  line-height: 1.2;
+  padding: 6px 8px;
+
   background:#1c1f2b;
   color:#fff;
   border:1px solid #555;
   border-radius:8px;
-  padding:8px;
   resize: vertical;
 }
 
@@ -77,8 +95,12 @@ td.actions{
   vertical-align: middle;
 }
 
+td.actions form{
+  margin: 0;
+}
+
 td.actions .btn{
-  padding:8px 12px;
+  padding: 6px 10px;
   border-radius:8px;
   border:none;
   cursor:pointer;
