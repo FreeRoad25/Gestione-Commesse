@@ -1,4 +1,4 @@
-{% extends "layout.html" %} 
+{% extends "layout.html" %}
 {% block title %}Elenco Commesse{% endblock %}
 
 {% block content %}
@@ -16,8 +16,8 @@
             <div class="search-row">
                 <input type="text" id="searchInput" placeholder="🔍 Cerca per nome, tipo intervento o veicolo...">
                 <div class="filter-buttons">
-                    <button class="btn btn-filter" id="toggleAdvanced">⚙ Filtri</button>
-                    <button class="btn btn-reset" onclick="resetFiltri()">🔄 Reset</button>
+                    <button class="btn btn-filter" id="toggleAdvanced" type="button">⚙ Filtri</button>
+                    <button class="btn btn-reset" type="button" onclick="resetFiltri()">🔄 Reset</button>
                 </div>
             </div>
 
@@ -35,7 +35,7 @@
                 <label>Al:</label>
                 <input type="date" id="filterDataA">
 
-                <button class="btn btn-apply" onclick="filtraAvanzato()">Applica</button>
+                <button class="btn btn-apply" type="button" onclick="filtraAvanzato()">Applica</button>
             </div>
         </div>
 
@@ -59,7 +59,6 @@
             </thead>
             <tbody>
                 {% for com in commesse %}
-                <!-- riga verde se i lavori sono iniziati -->
                 <tr class="{% if com.data_inizio %}riga-iniziata{% endif %}">
                     <td>{{ com.id }}</td>
                     <td>{{ com.nome }}</td>
@@ -80,8 +79,21 @@
                     </td>
                     <td class="actions">
                         <a href="{{ url_for('modifica_commessa', id=com.id) }}" class="btn btn-edit">✏ Vedi</a>
-                        <a href="{{ url_for('conferma_consegna', id=com.id) }}" class="btn btn-view" onclick="return confirm('Segnare come consegnata questa commessa?')">🚚 Consegna</a>
-                        <a href="{{ url_for('elimina_commessa', id=com.id) }}" class="btn btn-delete" onclick="return confirm('Eliminare questa commessa?')">🗑 Elimina</a>
+                        <a href="{{ url_for('conferma_consegna', id=com.id) }}" class="btn btn-view"
+                           onclick="return confirm('Segnare come consegnata questa commessa?')">🚚 Consegna</a>
+                        <a href="{{ url_for('elimina_commessa', id=com.id) }}" class="btn btn-delete"
+                           onclick="return confirm('Eliminare questa commessa?')">🗑 Elimina</a>
+
+                        {% if ENABLE_PORTALI %}
+                            {% if (com.stato or '')|trim == STATO_FALEGNAMERIA %}
+                                <span class="badge-faleg">🪵 In falegnameria</span>
+                            {% else %}
+                                <form method="POST" action="{{ url_for('admin_manda_falegnameria', id_commessa=com.id) }}" style="display:inline;">
+                                    <button type="submit" class="btn btn-faleg"
+                                            onclick="return confirm('Mandare questa commessa in falegnameria?')">🪵 Falegn.</button>
+                                </form>
+                            {% endif %}
+                        {% endif %}
                     </td>
                 </tr>
                 {% endfor %}
@@ -94,13 +106,13 @@
 /* === WRAPPER SOLO PER QUESTA PAGINA === */
 .commesse-wrapper {
     display: flex;
-    justify-content: center;   /* centra orizzontalmente rispetto al pannello grigio */
-    margin-top: 35px;          /* abbassa un po' tutto il blocco */
+    justify-content: center;
+    margin-top: 35px;
 }
 
 .commesse-wrapper .commesse-card {
     width: 100%;
-    max-width: 1150px;         /* larghezza “card” come prima */
+    max-width: 1150px;
 }
 
 /* === SEZIONE FILTRI MODERNA === */
@@ -195,26 +207,20 @@ th {
     font-weight: 600;
     font-size: 12px;
 }
-.narrow {
-    width: 80px;
-}
-.actions-col {
-    width: 230px;
-}
-tr:nth-child(even) {
-    background-color: #34374a;
-}
+.narrow { width: 80px; }
+.actions-col { width: 230px; }
+
+tr:nth-child(even) { background-color: #34374a; }
 
 /* riga con lavori iniziati in verde tenue */
-tr.riga-iniziata {
-    background-color: #245430;
-}
+tr.riga-iniziata { background-color: #245430; }
 
 /* Pulsanti azioni */
 .actions {
     display: flex;
     justify-content: center;
     gap: 6px;
+    flex-wrap: wrap;
 }
 .actions .btn {
     font-size: 11px;
@@ -224,10 +230,23 @@ tr.riga-iniziata {
     text-decoration: none;
     cursor: pointer;
     transition: 0.2s;
+    border: none;
 }
+
 .btn-edit { background-color: #28a745; }
 .btn-view { background-color: #00bfff; }
 .btn-delete { background-color: #dc3545; }
+.btn-faleg { background-color: #6f42c1; }
+
+.badge-faleg {
+    background: #6f42c1;
+    color: #fff;
+    padding: 5px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    display: inline-block;
+}
+
 .actions .btn:hover {
     opacity: 0.85;
     transform: scale(1.04);
@@ -246,11 +265,15 @@ tr.riga-iniziata {
         });
     });
 
-    // Filtri avanzati
+    // Filtri avanzati (toggle box)
     const toggleBtn = document.getElementById("toggleAdvanced");
     const filtersBox = document.getElementById("advancedFilters");
     toggleBtn.addEventListener("click", () => {
         filtersBox.classList.toggle("hidden");
     });
+
+    // Placeholder: evita errori JS se non hai ancora queste funzioni definite altrove
+    function resetFiltri() {}
+    function filtraAvanzato() {}
 </script>
 {% endblock %}

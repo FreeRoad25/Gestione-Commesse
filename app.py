@@ -1,13 +1,12 @@
 from flask import send_file
 from reportlab.lib.styles import ParagraphStyle
-from flask import Flask, render_template, request, redirect, url_for, flash, session, make_response
+from flask import Flask, render_template, request, redirect, url_for, flash, session, make_response, abort
 import psycopg2
 import psycopg2.extras
 import os
 from dotenv import load_dotenv
 from crea_tabelle_pg import create_tables
-from datetime import date  # una sola volta in alto al file, se non c'è già
-
+from markupsafe import escape
 
 
 load_dotenv()
@@ -16,12 +15,9 @@ DB_PORT = os.getenv("DB_PORT", "5432")
 DB_NAME = os.getenv("DB_NAME")
 DB_USER = os.getenv("DB_USER")
 DB_PASSWORD = os.getenv("DB_PASSWORD")
-print("DB_HOST:", DB_HOST)
-print("DB_NAME:", DB_NAME)
-print("DB_USER:", DB_USER)
 
 def get_db_connection():
-    conn = psycopg2.connect(
+    return psycopg2.connect(
         host=DB_HOST,
         port=DB_PORT,
         database=DB_NAME,
@@ -29,18 +25,6 @@ def get_db_connection():
         password=DB_PASSWORD,
         cursor_factory=psycopg2.extras.RealDictCursor
     )
-    return conn
-
-# ✅ Test connessione isolato (solo diagnostica, non interferisce con il flusso)
-def test_pg_connection():
-    try:
-        conn = get_db_connection()
-        conn.close()
-        print(">>> POSTGRES: CONNESSIONE OK ✔")
-    except Exception as e:
-        print(">>> POSTGRES: ERRORE ❌")
-        print(e)
-
 
 from datetime import datetime, date
 from functools import wraps
@@ -49,14 +33,94 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 
 app = Flask(__name__)
+
+ENABLE_PORTALI = os.environ.get("ENABLE_PORTALI", "0") == "1"
+ADMIN_PIN = os.environ.get("ADMIN_PIN", "9999")
+FALEGNAMERIA_PIN = os.environ.get("FALEGNAMERIA_PIN", "1234")
+STATO_FALEGNAMERIA = os.environ.get("STATO_FALEGNAMERIA", "FALEGNAMERIA")
+
+
+
 create_tables()
+
+def ensure_commesse_columns():
+    # Tocchiamo il DB SOLO quando i portali sono attivi
+    if not ENABLE_PORTALI:
+        return
+
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+
+        # Se la tabella commesse non esiste, non facciamo nulla (evita crash)
+        cur.execute("SELECT to_regclass('public.commesse') AS tab;")
+        row = cur.fetchone()
+        if not row or row.get("tab") is None:
+            conn.close()
+            print("ensure_commesse_columns: tabella commesse non trovata, salto.")
+            return
+
+        # Aggiunge colonne se mancano (operazione safe)
+        cur.execute("ALTER TABLE commesse ADD COLUMN IF NOT EXISTS stato TEXT")
+        cur.execute("ALTER TABLE commesse ADD COLUMN IF NOT EXISTS note_falegnameria TEXT")
+
+        conn.commit()
+        conn.close()
+        print("ensure_commesse_columns: OK (stato, note_falegnameria).")
+
+    except Exception as e:
+        print("ensure_commesse_columns: ERRORE (non blocco l'app):", e)
+
+ensure_commesse_columns()
+
 
 # =========================
 # BYPASS LOGIN TEMPORANEO
 # =========================
 @app.before_request
 def bypass_login():
-    session["ruolo"] = "amministratore"
+    # FINCHÉ ENABLE_PORTALI=0: comportamento IDENTICO a oggi
+    if not ENABLE_PORTALI:
+        session["ruolo"] = "amministratore"
+        session["logged_in"] = True
+        session["username"] = "admin"
+        return
+
+    # Quando abiliterai i portali: qui NON forzi più admin
+    return
+
+@app.before_request
+def lock_falegnameria_area():
+    if not ENABLE_PORTALI:
+        return
+    if session.get("logged_in") and session.get("ruolo") == "falegnameria":
+        path = request.path or ""
+        allowed = ("/falegnameria", "/falegnameria/login", "/static", "/logout")
+        if not path.startswith(allowed):
+            return redirect(url_for("falegnameria_home"))
+
+
+
+@app.before_request
+def require_login_when_portali_enabled():
+    if not ENABLE_PORTALI:
+        return
+
+    path = request.path or ""
+
+    public = (
+        "/admin/login",
+        "/falegnameria/login",
+        "/static",
+        "/logout",
+        "/favicon.ico",
+    )
+
+    if path.startswith(public):
+        return
+
+    if not session.get("logged_in"):
+        return redirect(url_for("admin_login"))
 
 # =========================
 # LOGIN MANAGER
@@ -67,8 +131,7 @@ login_manager = LoginManager()
 def load_user_from_request(request):
     class FakeUser(UserMixin):
         id = 1
-        ruolo = "amministratore"
-    session["ruolo"] = "amministratore"
+     
     return FakeUser()
 
 login_manager.init_app(app)
@@ -336,8 +399,185 @@ def crea_database():
 # LOGIN / LOGOUT / CAMBIO PASSWORD (STABILE)
 # =========================================================
 
+@app.route("/admin/login", methods=["GET", "POST"])
+def admin_login():
+    # Se i portali NON sono attivi, questa pagina non serve
+    if not ENABLE_PORTALI:
+        return redirect(url_for("home"))
+
+    error = None
+    if request.method == "POST":
+        pin = (request.form.get("pin") or "").strip()
+        if pin == ADMIN_PIN:
+            session.clear()
+            session["logged_in"] = True
+            session["username"] = "admin"
+            session["ruolo"] = "amministratore"
+            session.permanent = True
+            return redirect(url_for("home"))
+        error = "PIN errato."
+
+    return f"""
+    <h2>Accesso Admin</h2>
+    {'<p style="color:red;">'+error+'</p>' if error else ''}
+    <form method="POST">
+        <input type="password" name="pin" placeholder="PIN admin" required>
+        <button type="submit">Entra</button>
+    </form>
+    """
+@app.route("/falegnameria/login", methods=["GET", "POST"])
+def falegnameria_login():
+    # Se i portali NON sono attivi, non serve questa pagina
+    if not ENABLE_PORTALI:
+        return redirect(url_for("home"))
+
+    error = None
+    if request.method == "POST":
+        pin = (request.form.get("pin") or "").strip()
+        if pin == FALEGNAMERIA_PIN:
+            session.clear()
+            session["logged_in"] = True
+            session["username"] = "falegnameria"
+            session["ruolo"] = "falegnameria"
+            session.permanent = True
+            return redirect(url_for("falegnameria_home"))
+        error = "PIN errato."
+
+    return f"""
+    <h2>Accesso Falegnameria</h2>
+    {'<p style="color:red;">'+error+'</p>' if error else ''}
+    <form method="POST">
+        <input type="password" name="pin" placeholder="PIN falegnameria" required>
+        <button type="submit">Entra</button>
+    </form>
+    """
+
+
+@app.route("/falegnameria")
+def falegnameria_home():
+    if not ENABLE_PORTALI:
+        abort(404)
+    return redirect(url_for("falegnameria_commesse"))
+
+
+
+
+
+@app.route("/falegnameria/commesse")
+def falegnameria_commesse():
+    if not ENABLE_PORTALI:
+        abort(404)
+
+    # Accesso consentito solo a falegnameria (e admin per controllo)
+    if session.get("ruolo") not in ("falegnameria", "amministratore"):
+        abort(403)
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT id, nome, tipo_intervento, data_inizio, data_consegna, note_falegnameria
+        FROM commesse
+        WHERE stato = %s
+        ORDER BY id DESC
+    """, (STATO_FALEGNAMERIA,))
+    commesse = cur.fetchall()
+    conn.close()
+
+    if not commesse:
+        return f"""
+        <h2>Commesse in Falegnameria</h2>
+        <p>Nessuna commessa trovata con stato = <b>{escape(STATO_FALEGNAMERIA)}</b>.</p>
+        <p>Nota: se è la prima volta, le commesse esistenti hanno stato vuoto.</p>
+        """
+
+    righe = ""
+    for c in commesse:
+        idc = c.get("id")
+        righe += f"""
+        <tr>
+          <td>{idc}</td>
+          <td>{escape(c.get('nome','') or '')}</td>
+          <td>{escape(c.get('tipo_intervento','') or '')}</td>
+          <td>{c.get('data_inizio') or ''}</td>
+          <td>{c.get('data_consegna') or ''}</td>
+          <td>
+            <form method="POST" action="/falegnameria/commesse/{idc}/note">
+              <textarea name="note_falegnameria" rows="2" cols="35">{escape(c.get('note_falegnameria') or '')}</textarea><br>
+              <button type="submit">Salva</button>
+            </form>
+          </td>
+        </tr>
+        """
+
+    return f"""
+    <h2>Commesse in Falegnameria</h2>
+    <table border="1" cellpadding="6" cellspacing="0">
+      <thead>
+        <tr>
+          <th>ID</th><th>Nome</th><th>Tipo</th><th>Inizio</th><th>Consegna</th><th>Note falegnameria</th>
+        </tr>
+      </thead>
+      <tbody>
+        {righe}
+      </tbody>
+    </table>
+    """
+
+
+
+@app.route("/falegnameria/commesse/<int:id_commessa>/note", methods=["POST"])
+def falegnameria_salva_note(id_commessa):
+    if not ENABLE_PORTALI:
+        abort(404)
+
+    if session.get("ruolo") not in ("falegnameria", "amministratore"):
+        abort(403)
+
+    note = (request.form.get("note_falegnameria") or "").strip()
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute(
+        "UPDATE commesse SET note_falegnameria = %s WHERE id = %s",
+        (note, id_commessa)
+    )
+    conn.commit()
+    conn.close()
+
+    return redirect(url_for("falegnameria_commesse"))
+
+
+
+@app.route("/admin/commesse/<int:id_commessa>/manda_falegnameria", methods=["POST"])
+def admin_manda_falegnameria(id_commessa):
+    if not ENABLE_PORTALI:
+        abort(404)
+
+    if session.get("ruolo") != "amministratore":
+        abort(403)
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute(
+        "UPDATE commesse SET stato = %s WHERE id = %s",
+        (STATO_FALEGNAMERIA, id_commessa)
+    )
+    conn.commit()
+    conn.close()
+
+    # torna alla pagina precedente (comodo quando poi mettiamo il bottone)
+    return redirect(request.referrer or url_for("home"))
+
+
+
+
 @app.route("/login", methods=["GET", "POST"])
 def login():
+    # Se attivi i portali, /login porta alla pagina admin con PIN
+    if ENABLE_PORTALI:
+        return redirect(url_for("admin_login"))
+
+    # Comportamento attuale (uguale a prima)
     session["logged_in"] = True
     session["username"] = "admin"
     session["ruolo"] = "amministratore"
@@ -348,6 +588,7 @@ def login():
 def logout():
     session.clear()
     return redirect(url_for("login"))
+
 
 
 def login_required(f):
@@ -437,7 +678,9 @@ def lista_commesse():
         commesse = c.fetchall()
         conn.close()
 
-        return render_template("commesse.html", commesse=commesse)
+        return render_template("commesse.html", commesse=commesse, ENABLE_PORTALI=ENABLE_PORTALI, STATO_FALEGNAMERIA=STATO_FALEGNAMERIA)
+
+
 
     except Exception as e:
         if conn is not None:
