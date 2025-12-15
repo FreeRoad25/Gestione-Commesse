@@ -91,12 +91,22 @@ tr:nth-child(even) { background:#34374a; }
   resize: vertical;
 }
 
-td.actions{
-  vertical-align: middle;
+/* === ELIMINA RIQUADRO GRIGIO IN AZIONE === */
+#falegnTable td.actions,
+#falegnTable td.actions * {
+  background: transparent !important;
+  box-shadow: none !important;
 }
 
-td.actions form{
-  margin: 0;
+#falegnTable td.actions {
+  padding: 6px 8px !important;
+}
+
+#falegnTable td.actions form{
+  display: inline-block;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
 }
 
 td.actions .btn{
@@ -107,7 +117,7 @@ td.actions .btn{
   font-size:12px;
 }
 
-.btn-save{ background:#28a745; color:#fff; }
+.btn-save{ background:#28a745 !important; color:#fff !important; }
 
 .empty-box{
   background:#22283a;
