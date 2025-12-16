@@ -43,35 +43,64 @@ STATO_FALEGNAMERIA = os.environ.get("STATO_FALEGNAMERIA", "FALEGNAMERIA")
 
 create_tables()
 
+
+def ensure_falegnameria_flags_columns():
+    """Aggiunge colonne per evidenziare 'note nuove' senza usare pgAdmin."""
+    conn = get_db_connection()
+    cur = conn.cursor()
+    try:
+        cur.execute("ALTER TABLE commesse ADD COLUMN IF NOT EXISTS note_falegnameria_updated_at TIMESTAMP NULL;")
+        cur.execute("ALTER TABLE commesse ADD COLUMN IF NOT EXISTS note_falegnameria_seen_at TIMESTAMP NULL;")
+        conn.commit()
+    finally:
+        conn.close()
+
+# dopo create_tables()
+ensure_falegnameria_flags_columns()
+
+
 def ensure_commesse_columns():
     # Tocchiamo il DB SOLO quando i portali sono attivi
     if not ENABLE_PORTALI:
         return
-
     try:
-        conn = get_db_connection()
-        cur = conn.cursor()
+       conn = get_db_connection()
+       cur = conn.cursor()
 
-        # Se la tabella commesse non esiste, non facciamo nulla (evita crash)
-        cur.execute("SELECT to_regclass('public.commesse') AS tab;")
-        row = cur.fetchone()
-        if not row or row.get("tab") is None:
-            conn.close()
-            print("ensure_commesse_columns: tabella commesse non trovata, salto.")
-            return
+    # Se la tabella commesse non esiste, non facciamo nulla (evita crash)
+       cur.execute("SELECT to_regclass('public.commesse') AS tab;")
+       row = cur.fetchone()
 
-        # Aggiunge colonne se mancano (operazione safe)
-        cur.execute("ALTER TABLE commesse ADD COLUMN IF NOT EXISTS stato TEXT")
-        cur.execute("ALTER TABLE commesse ADD COLUMN IF NOT EXISTS note_falegnameria TEXT")
+    # con RealDictCursor row è dict; con cursor normale può essere tupla
+       tab_ok = False
+       if isinstance(row, dict):
+            tab_ok = row.get("tab") is not None
+       elif row:
+            tab_ok = row[0] is not None
 
-        conn.commit()
-        conn.close()
-        print("ensure_commesse_columns: OK (stato, note_falegnameria).")
+       if not tab_ok:
+           conn.close()
+           print("ensure_commesse_columns: tabella commesse non trovata, salto.")
+           return
+
+    # Aggiunge colonne se mancano (operazione safe)
+       cur.execute("ALTER TABLE commesse ADD COLUMN IF NOT EXISTS stato TEXT;")
+       cur.execute("ALTER TABLE commesse ADD COLUMN IF NOT EXISTS note_falegnameria TEXT;")
+
+    # NUOVO: flag per evidenziare note nuove in lista admin
+       cur.execute("ALTER TABLE commesse ADD COLUMN IF NOT EXISTS note_falegnameria_updated_at TIMESTAMP NULL;")
+       cur.execute("ALTER TABLE commesse ADD COLUMN IF NOT EXISTS note_falegnameria_seen_at TIMESTAMP NULL;")
+
+       conn.commit()
+       conn.close()
+       print("ensure_commesse_columns: OK (stato, note_falegnameria, flags note).")
 
     except Exception as e:
-        print("ensure_commesse_columns: ERRORE (non blocco l'app):", e)
+       print("ensure_commesse_columns: ERRORE (non blocco l'app):", e)
 
-ensure_commesse_columns()
+    ensure_commesse_columns()
+
+
 
 
 # =========================
@@ -501,14 +530,19 @@ def falegnameria_salva_note(id_commessa):
 
     conn = get_db_connection()
     cur = conn.cursor()
-    cur.execute(
-        "UPDATE commesse SET note_falegnameria = %s WHERE id = %s",
-        (note, id_commessa)
-    )
-    conn.commit()
-    conn.close()
+    try:
+        cur.execute("""
+            UPDATE commesse
+            SET note_falegnameria = %s,
+                note_falegnameria_updated_at = NOW()
+            WHERE id = %s
+        """, (note, id_commessa))
+        conn.commit()
+    finally:
+        conn.close()
 
     return redirect(url_for("falegnameria_commesse"))
+
 
 
 
