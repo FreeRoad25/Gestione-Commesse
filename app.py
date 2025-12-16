@@ -965,6 +965,20 @@ def modifica_commessa(id):
             return "Errore modifica commessa", 500
 
     # -------- GET --------
+
+    # ✅ Segna come "lette" le note della falegnameria quando l'admin apre "Vedi"
+    if session.get("ruolo") == "amministratore":
+        try:
+            c.execute("""
+                UPDATE commesse
+                SET note_falegnameria_seen_at = NOW()
+                WHERE id = %s
+            """, (id,))
+            conn.commit()
+        except Exception as e:
+            conn.rollback()
+            print("ERRORE set note_falegnameria_seen_at:", e)
+
     # elenco tipi intervento
     c.execute("SELECT nome FROM tipi_intervento ORDER BY nome ASC")
     tipi_intervento = [row["nome"] for row in c.fetchall()]
@@ -991,6 +1005,7 @@ def modifica_commessa(id):
         tipi_intervento=tipi_intervento,
         marche=marche
     )
+
 
 
 

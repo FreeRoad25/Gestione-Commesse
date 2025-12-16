@@ -60,9 +60,16 @@
 
       <tbody>
         {% for com in commesse %}
+
+        {# --- NOTE NUOVE: evidenzia finché non apri "Vedi" --- #}
+        {% set upd = com.note_falegnameria_updated_at %}
+        {% set seen = com.note_falegnameria_seen_at %}
+        {% set note_nuove = upd and (not seen or seen < upd) %}
+
         <tr class="
           {% if com.data_inizio %}riga-iniziata{% endif %}
           {% if com.stato == STATO_FALEGNAMERIA %}riga-falegn{% endif %}
+          {% if note_nuove %}riga-note-nuove{% endif %}
         ">
           <td class="c-nome" title="{{ com.nome }}">{{ com.nome }}</td>
 
@@ -187,14 +194,19 @@
 #commesseTable tbody tr.riga-iniziata{ background-color:#245430; }
 #commesseTable tbody tr.riga-falegn{ outline:2px solid rgba(111,66,193,0.8); outline-offset:-2px; }
 
-/* colonne: più strette per Nome/Tipo/Veicolo */
+/* ✅ evidenzia NOTE NUOVE senza cambiare altezza righe */
+#commesseTable tbody tr.riga-note-nuove{
+  box-shadow: inset 4px 0 0 rgba(255,193,7,0.95);
+}
+
+/* colonne */
 .c-nome{ width: 140px; text-align:left; padding-left:10px; }
 .c-tipo{ width: 135px; text-align:left; padding-left:10px; }
 .c-veicolo{
   width: 150px;
   text-align:left;
   padding-left:10px;
-  white-space:normal;              /* 2 righe */
+  white-space:normal;
 }
 .c-date{ width: 92px; font-size:11px; }
 .c-ore{ width: 70px; font-size:11px; }
