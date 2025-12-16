@@ -71,24 +71,21 @@ def ensure_commesse_columns():
             print("ensure_commesse_columns: tabella commesse non trovata, salto.")
             return
 
-        # colonne base
         cur.execute("ALTER TABLE commesse ADD COLUMN IF NOT EXISTS stato TEXT")
         cur.execute("ALTER TABLE commesse ADD COLUMN IF NOT EXISTS note_falegnameria TEXT")
 
-        # colonne per evidenziazione “nuove note”
-        cur.execute("ALTER TABLE commesse ADD COLUMN IF NOT EXISTS note_falegnameria_updated_at TIMESTAMP")
-        cur.execute("ALTER TABLE commesse ADD COLUMN IF NOT EXISTS note_falegnameria_updated_by TEXT")
-        cur.execute("ALTER TABLE commesse ADD COLUMN IF NOT EXISTS note_falegnameria_seen_admin_at TIMESTAMP")
-        cur.execute("ALTER TABLE commesse ADD COLUMN IF NOT EXISTS note_falegnameria_seen_faleg_at TIMESTAMP")
+        # ✅ FLAG: note nuove da falegnameria (evidenzia finché admin non apre “Vedi”)
+        cur.execute("ALTER TABLE commesse ADD COLUMN IF NOT EXISTS note_falegnameria_nuove BOOLEAN NOT NULL DEFAULT FALSE")
 
         conn.commit()
         conn.close()
-        print("ensure_commesse_columns: OK (stato, note_falegnameria + tracking note).")
+        print("ensure_commesse_columns: OK (stato, note_falegnameria, note_falegnameria_nuove).")
 
     except Exception as e:
         print("ensure_commesse_columns: ERRORE (non blocco l'app):", e)
 
 ensure_commesse_columns()
+
 
 
 
@@ -519,21 +516,43 @@ def falegnameria_salva_note(id_commessa):
 
     note = (request.form.get("note_falegnameria") or "").strip()
 
+    # chi sta aggiornando?
+    upd_by = "admin" if session.get("ruolo") == "amministratore" else "falegnameria"
+
     conn = get_db_connection()
     cur = conn.cursor()
-    cur.execute("""
-        UPDATE commesse
-        SET note_falegnameria = %s,
-            note_falegnameria_updated_at = NOW(),
-            note_falegnameria_updated_by = 'falegnameria',
-            note_falegnameria_seen_admin_at = NULL,
-            note_falegnameria_seen_faleg_at = NOW()
-        WHERE id = %s
-    """, (note, id_commessa))
+
+    # ✅ aggiorna note + metadati
+    # ✅ gestisce correttamente il "letto" a seconda di chi salva
+    if upd_by == "falegnameria":
+        # falegnameria scrive: admin deve vedere evidenziato finché non apre "Vedi"
+        cur.execute("""
+            UPDATE commesse
+            SET note_falegnameria = %s,
+                note_falegnameria_updated_at = NOW(),
+                note_falegnameria_updated_by = %s,
+                note_falegnameria_seen_at = NULL
+            WHERE id = %s
+        """, (note, upd_by, id_commessa))
+    else:
+        # admin scrive: per definizione l'ha già vista lui -> segna "letto ora"
+        cur.execute("""
+            UPDATE commesse
+            SET note_falegnameria = %s,
+                note_falegnameria_updated_at = NOW(),
+                note_falegnameria_updated_by = %s,
+                note_falegnameria_seen_at = NOW()
+            WHERE id = %s
+        """, (note, upd_by, id_commessa))
+
     conn.commit()
     conn.close()
 
+    # torna dove era più sensato in base al ruolo
+    if upd_by == "admin":
+        return redirect(url_for("modifica_commessa", id=id_commessa))
     return redirect(url_for("falegnameria_commesse"))
+
 
 
 @app.route("/admin/commesse/<int:id_commessa>/note_falegnameria", methods=["POST"])
@@ -877,70 +896,95 @@ def modifica_commessa(id):
     conn = get_db_connection()
     c = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
-    # Recupero commessa
-    c.execute("SELECT * FROM commesse WHERE id = %s", (id,))
-    commessa = c.fetchone()
-    if not commessa:
-        conn.close()
-        return "Commessa non trovata", 404
+    try:
+        # ✅ Safe: colonne tracking note (se già esistono non fa nulla)
+        c.execute("ALTER TABLE commesse ADD COLUMN IF NOT EXISTS note_falegnameria TEXT")
+        c.execute("ALTER TABLE commesse ADD COLUMN IF NOT EXISTS note_falegnameria_updated_at TIMESTAMP")
+        c.execute("ALTER TABLE commesse ADD COLUMN IF NOT EXISTS note_falegnameria_updated_by TEXT")
+        c.execute("ALTER TABLE commesse ADD COLUMN IF NOT EXISTS note_falegnameria_seen_admin_at TIMESTAMP")
+        c.execute("ALTER TABLE commesse ADD COLUMN IF NOT EXISTS note_falegnameria_seen_falegnameria_at TIMESTAMP")
+        conn.commit()
 
-    if request.method == "POST":
-        nome = (request.form.get("nome") or "").strip()
+        # Recupero commessa
+        c.execute("SELECT * FROM commesse WHERE id = %s", (id,))
+        commessa = c.fetchone()
+        if not commessa:
+            conn.close()
+            return "Commessa non trovata", 404
 
-        # ---- TIPO INTERVENTO (con gestione 'Altro') ----
-        tipo_sel = request.form.get("tipo_intervento")
-        nuovo_intervento = (request.form.get("nuovo_intervento") or "").strip()
+        is_admin = (session.get("ruolo") == "amministratore")
 
-        if tipo_sel == "Altro" and nuovo_intervento:
-            tipo_intervento = nuovo_intervento
-            # lo salvo in tabella tipi_intervento se non esiste
-            c.execute("""
-                INSERT INTO tipi_intervento (nome)
-                VALUES (%s)
-                ON CONFLICT (nome) DO NOTHING
-            """, (nuovo_intervento,))
-        else:
-            tipo_intervento = tipo_sel
+        # ✅ Se ADMIN apre "Vedi" e le note sono state aggiornate dalla falegnameria, segna come viste
+        if request.method == "GET" and is_admin:
+            upd_at = commessa.get("note_falegnameria_updated_at")
+            upd_by = (commessa.get("note_falegnameria_updated_by") or "").strip()
+            seen_admin = commessa.get("note_falegnameria_seen_admin_at")
 
-        # ---- MARCA VEICOLO (con gestione 'nuova') ----
-        marca_sel = request.form.get("marca_veicolo")
-        nuova_marca = (request.form.get("nuova_marca") or "").strip()
+            if upd_by == "falegnameria" and upd_at and (not seen_admin or seen_admin < upd_at):
+                c.execute("""
+                    UPDATE commesse
+                    SET note_falegnameria_seen_admin_at = NOW()
+                    WHERE id = %s
+                """, (id,))
+                conn.commit()
 
-        if marca_sel == "nuova" and nuova_marca:
-            marca_veicolo = nuova_marca
-            c.execute("""
-                INSERT INTO marche (nome)
-                VALUES (%s)
-                ON CONFLICT (nome) DO NOTHING
-            """, (nuova_marca,))
-        else:
-            marca_veicolo = marca_sel
+                # refresh commessa
+                c.execute("SELECT * FROM commesse WHERE id = %s", (id,))
+                commessa = c.fetchone()
 
-        modello_veicolo = request.form.get("modello_veicolo")
-        dimensioni = request.form.get("dimensioni")
+        if request.method == "POST":
+            nome = (request.form.get("nome") or "").strip()
 
-        # Date (gestite come NULL se vuote)
-        data_conferma_raw = request.form.get("data_conferma")
-        data_conferma = data_conferma_raw if data_conferma_raw else None
+            # ---- TIPO INTERVENTO (con gestione 'Altro') ----
+            tipo_sel = request.form.get("tipo_intervento")
+            nuovo_intervento = (request.form.get("nuovo_intervento") or "").strip()
 
-        data_arrivo_materiali_raw = request.form.get("data_arrivo_materiali")
-        data_arrivo_materiali = data_arrivo_materiali_raw if data_arrivo_materiali_raw else None
+            if tipo_sel == "Altro" and nuovo_intervento:
+                tipo_intervento = nuovo_intervento
+                c.execute("""
+                    INSERT INTO tipi_intervento (nome)
+                    VALUES (%s)
+                    ON CONFLICT (nome) DO NOTHING
+                """, (nuovo_intervento,))
+            else:
+                tipo_intervento = tipo_sel
 
-        data_inizio_raw = request.form.get("data_inizio")
-        data_inizio = data_inizio_raw if data_inizio_raw else None
+            # ---- MARCA VEICOLO (con gestione 'nuova') ----
+            marca_sel = request.form.get("marca_veicolo")
+            nuova_marca = (request.form.get("nuova_marca") or "").strip()
 
-        data_consegna_raw = request.form.get("data_consegna")
-        data_consegna = data_consegna_raw if data_consegna_raw else None
+            if marca_sel == "nuova" and nuova_marca:
+                marca_veicolo = nuova_marca
+                c.execute("""
+                    INSERT INTO marche (nome)
+                    VALUES (%s)
+                    ON CONFLICT (nome) DO NOTHING
+                """, (nuova_marca,))
+            else:
+                marca_veicolo = marca_sel
 
-        note_importanti = request.form.get("note_importanti")
+            modello_veicolo = request.form.get("modello_veicolo")
+            dimensioni = request.form.get("dimensioni")
 
-        # Ore
-        ore_raw = request.form.get("ore_necessarie") or 0
-        ore_necessarie = float(ore_raw)
-        ore_eseguite = float(commessa.get("ore_eseguite", 0) or 0)
-        ore_rimanenti = ore_necessarie - ore_eseguite
+            # Date (NULL se vuote)
+            data_conferma = request.form.get("data_conferma") or None
+            data_arrivo_materiali = request.form.get("data_arrivo_materiali") or None
+            data_inizio = request.form.get("data_inizio") or None
+            data_consegna = request.form.get("data_consegna") or None
 
-        try:
+            note_importanti = request.form.get("note_importanti")
+
+            # Ore
+            ore_raw = request.form.get("ore_necessarie") or 0
+            ore_necessarie = float(ore_raw)
+            ore_eseguite = float(commessa.get("ore_eseguite", 0) or 0)
+            ore_rimanenti = ore_necessarie - ore_eseguite
+
+            # ✅ Note falegnameria (solo admin)
+            old_note_fal = (commessa.get("note_falegnameria") or "").strip()
+            new_note_fal = (request.form.get("note_falegnameria") or "").strip() if is_admin else old_note_fal
+
+            # update commessa base
             c.execute("""
                 UPDATE commesse SET
                     nome = %s,
@@ -974,57 +1018,63 @@ def modifica_commessa(id):
                 id
             ))
 
+            # ✅ se admin ha cambiato le note falegnameria -> traccia modifica e avvisa falegnameria (non visto)
+            if is_admin and new_note_fal != old_note_fal:
+                c.execute("""
+                    UPDATE commesse
+                    SET note_falegnameria = %s,
+                        note_falegnameria_updated_at = NOW(),
+                        note_falegnameria_updated_by = 'admin',
+                        note_falegnameria_seen_admin_at = NOW(),
+                        note_falegnameria_seen_falegnameria_at = NULL
+                    WHERE id = %s
+                """, (new_note_fal, id))
+            else:
+                # ✅ anche se admin salva senza modificare note, se erano "nuove" le segna lette
+                if is_admin:
+                    c.execute("""
+                        UPDATE commesse
+                        SET note_falegnameria_seen_admin_at = NOW()
+                        WHERE id = %s
+                    """, (id,))
+
             conn.commit()
             conn.close()
             return redirect(url_for("lista_commesse"))
 
-        except Exception as e:
-            conn.rollback()
-            print("ERRORE MODIFICA COMMESSA:", e)
-            conn.close()
-            return "Errore modifica commessa", 500
+        # -------- GET --------
+        c.execute("SELECT nome FROM tipi_intervento ORDER BY nome ASC")
+        tipi_intervento = [row["nome"] for row in c.fetchall()]
 
-    # -------- GET --------
+        c.execute("SELECT id, nome FROM marche ORDER BY nome ASC")
+        marche = c.fetchall()
 
-    # ✅ Segna come "lette" le note della falegnameria quando l'admin apre "Vedi"
-    if session.get("ruolo") == "amministratore":
-        try:
-            c.execute("""
-                UPDATE commesse
-                SET note_falegnameria_seen_at = NOW()
-                WHERE id = %s
-            """, (id,))
-            conn.commit()
-        except Exception as e:
-            conn.rollback()
-            print("ERRORE set note_falegnameria_seen_at:", e)
+        c.execute("""
+            SELECT * FROM commessa_files
+            WHERE id_commessa = %s
+            ORDER BY upload_date DESC
+        """, (id,))
+        files = c.fetchall()
 
-    # elenco tipi intervento
-    c.execute("SELECT nome FROM tipi_intervento ORDER BY nome ASC")
-    tipi_intervento = [row["nome"] for row in c.fetchall()]
+        conn.close()
 
-    # elenco marche
-    c.execute("SELECT id, nome FROM marche ORDER BY nome ASC")
-    marche = c.fetchall()
+        return render_template(
+            "modifica_commessa.html",
+            id_commessa=id,
+            commessa=commessa,
+            files=files,
+            tipi_intervento=tipi_intervento,
+            marche=marche,
+            is_admin=is_admin
+        )
 
-    # file allegati
-    c.execute("""
-        SELECT * FROM commessa_files
-        WHERE id_commessa = %s
-        ORDER BY upload_date DESC
-    """, (id,))
-    files = c.fetchall()
+    except Exception as e:
+        conn.rollback()
+        conn.close()
+        print("ERRORE MODIFICA COMMESSA:", e)
+        return "Errore modifica commessa", 500
 
-    conn.close()
 
-    return render_template(
-        "modifica_commessa.html",
-        id_commessa=id,
-        commessa=commessa,
-        files=files,
-        tipi_intervento=tipi_intervento,
-        marche=marche
-    )
 
 
 
