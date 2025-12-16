@@ -912,9 +912,12 @@ def modifica_commessa(id):
             conn.close()
             return "Commessa non trovata", 404
 
-        is_admin = (session.get("ruolo") == "amministratore")
+        ruolo = (session.get("ruolo") or "").strip()
+        is_admin = (ruolo == "amministratore")
+        is_falegnameria = (ruolo == "falegnameria")
+        can_edit_note_fal = (is_admin or is_falegnameria)
 
-        # ✅ Se ADMIN apre "Vedi" e le note sono state aggiornate dalla falegnameria, segna come viste
+        # ✅ Se ADMIN apre in GET e le note sono state aggiornate dalla falegnameria, segna come viste
         if request.method == "GET" and is_admin:
             upd_at = commessa.get("note_falegnameria_updated_at")
             upd_by = (commessa.get("note_falegnameria_updated_by") or "").strip()
@@ -927,8 +930,22 @@ def modifica_commessa(id):
                     WHERE id = %s
                 """, (id,))
                 conn.commit()
+                c.execute("SELECT * FROM commesse WHERE id = %s", (id,))
+                commessa = c.fetchone()
 
-                # refresh commessa
+        # ✅ (Speculare) Se FALEGNAMERIA apre e le note sono state aggiornate dall'admin, segna come viste
+        if request.method == "GET" and is_falegnameria:
+            upd_at = commessa.get("note_falegnameria_updated_at")
+            upd_by = (commessa.get("note_falegnameria_updated_by") or "").strip()
+            seen_fal = commessa.get("note_falegnameria_seen_falegnameria_at")
+
+            if upd_by == "admin" and upd_at and (not seen_fal or seen_fal < upd_at):
+                c.execute("""
+                    UPDATE commesse
+                    SET note_falegnameria_seen_falegnameria_at = NOW()
+                    WHERE id = %s
+                """, (id,))
+                conn.commit()
                 c.execute("SELECT * FROM commesse WHERE id = %s", (id,))
                 commessa = c.fetchone()
 
@@ -980,9 +997,9 @@ def modifica_commessa(id):
             ore_eseguite = float(commessa.get("ore_eseguite", 0) or 0)
             ore_rimanenti = ore_necessarie - ore_eseguite
 
-            # ✅ Note falegnameria (solo admin)
+            # ✅ Note falegnameria (admin + falegnameria)
             old_note_fal = (commessa.get("note_falegnameria") or "").strip()
-            new_note_fal = (request.form.get("note_falegnameria") or "").strip() if is_admin else old_note_fal
+            new_note_fal = (request.form.get("note_falegnameria") or "").strip() if can_edit_note_fal else old_note_fal
 
             # update commessa base
             c.execute("""
@@ -1018,23 +1035,37 @@ def modifica_commessa(id):
                 id
             ))
 
-            # ✅ se admin ha cambiato le note falegnameria -> traccia modifica e avvisa falegnameria (non visto)
-            if is_admin and new_note_fal != old_note_fal:
+            # ✅ tracking note falegnameria: chi modifica aggiorna "updated_by" e i flag di lettura corretti
+            if can_edit_note_fal and new_note_fal != old_note_fal:
+                updated_by = "admin" if is_admin else "falegnameria"
+
                 c.execute("""
                     UPDATE commesse
                     SET note_falegnameria = %s,
                         note_falegnameria_updated_at = NOW(),
-                        note_falegnameria_updated_by = 'admin',
-                        note_falegnameria_seen_admin_at = NOW(),
-                        note_falegnameria_seen_falegnameria_at = NULL
+                        note_falegnameria_updated_by = %s,
+                        note_falegnameria_seen_admin_at = CASE
+                            WHEN %s THEN NOW()     -- se modifica l'admin, è già "vista" dall'admin
+                            ELSE NULL              -- se modifica la falegnameria, torna "da vedere" per admin
+                        END,
+                        note_falegnameria_seen_falegnameria_at = CASE
+                            WHEN %s THEN NOW()     -- se modifica la falegnameria, è già "vista" da lei
+                            ELSE NULL              -- se modifica l'admin, torna "da vedere" per falegnameria
+                        END
                     WHERE id = %s
-                """, (new_note_fal, id))
+                """, (new_note_fal, updated_by, is_admin, is_falegnameria, id))
             else:
-                # ✅ anche se admin salva senza modificare note, se erano "nuove" le segna lette
+                # se si salva senza cambiare note, manteniamo la logica "se l'hai aperta/salvata l'hai vista"
                 if is_admin:
                     c.execute("""
                         UPDATE commesse
                         SET note_falegnameria_seen_admin_at = NOW()
+                        WHERE id = %s
+                    """, (id,))
+                if is_falegnameria:
+                    c.execute("""
+                        UPDATE commesse
+                        SET note_falegnameria_seen_falegnameria_at = NOW()
                         WHERE id = %s
                     """, (id,))
 
@@ -1073,6 +1104,7 @@ def modifica_commessa(id):
         conn.close()
         print("ERRORE MODIFICA COMMESSA:", e)
         return "Errore modifica commessa", 500
+
 
 
 

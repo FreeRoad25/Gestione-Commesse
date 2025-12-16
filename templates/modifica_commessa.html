@@ -137,13 +137,16 @@
                 </div>
             </div>
 
-            <!-- NOTE FALEGNAMERIA (SOLO LETTURA) -->
+                        <!-- NOTE FALEGNAMERIA -->
             <div class="form-row">
                 <div class="form-group" style="width:100%;">
-                    <label>🪵 Note Falegnameria (solo lettura)</label>
-                    <textarea rows="4" readonly>{{ commessa['note_falegnameria']|default('', true) }}</textarea>
+                    <label>🪵 Note Falegnameria</label>
+                    <textarea name="note_falegnameria" rows="4"
+                        {% if session.get('ruolo') not in ['falegnameria','amministratore'] %}readonly{% endif %}
+                    >{{ commessa['note_falegnameria']|default('', true) }}</textarea>
                 </div>
             </div>
+
 
             <!-- FILE -->
             <div class="form-row">
