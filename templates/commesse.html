@@ -61,10 +61,11 @@
       <tbody>
         {% for com in commesse %}
 
-        {# --- NOTE NUOVE: evidenzia finché non apri "Vedi" --- #}
+        {# --- NOTE NUOVE: evidenzia SOLO se aggiornate da FALEGNAMERIA e non ancora viste dall'ADMIN --- #}
         {% set upd = com.note_falegnameria_updated_at %}
-        {% set seen = com.note_falegnameria_seen_at %}
-        {% set note_nuove = upd and (not seen or seen < upd) %}
+        {% set seen_admin = com.note_falegnameria_seen_admin_at %}
+        {% set upd_by = com.note_falegnameria_updated_by %}
+        {% set note_nuove = (upd_by == 'falegnameria') and upd and (not seen_admin or seen_admin < upd) %}
 
         <tr class="
           {% if com.data_inizio %}riga-iniziata{% endif %}

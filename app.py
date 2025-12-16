@@ -60,45 +60,36 @@ ensure_falegnameria_flags_columns()
 
 
 def ensure_commesse_columns():
-    # Tocchiamo il DB SOLO quando i portali sono attivi
-    if not ENABLE_PORTALI:
-        return
     try:
-       conn = get_db_connection()
-       cur = conn.cursor()
+        conn = get_db_connection()
+        cur = conn.cursor()
 
-    # Se la tabella commesse non esiste, non facciamo nulla (evita crash)
-       cur.execute("SELECT to_regclass('public.commesse') AS tab;")
-       row = cur.fetchone()
+        cur.execute("SELECT to_regclass('public.commesse') AS tab;")
+        row = cur.fetchone()
+        if not row or row.get("tab") is None:
+            conn.close()
+            print("ensure_commesse_columns: tabella commesse non trovata, salto.")
+            return
 
-    # con RealDictCursor row è dict; con cursor normale può essere tupla
-       tab_ok = False
-       if isinstance(row, dict):
-            tab_ok = row.get("tab") is not None
-       elif row:
-            tab_ok = row[0] is not None
+        # colonne base
+        cur.execute("ALTER TABLE commesse ADD COLUMN IF NOT EXISTS stato TEXT")
+        cur.execute("ALTER TABLE commesse ADD COLUMN IF NOT EXISTS note_falegnameria TEXT")
 
-       if not tab_ok:
-           conn.close()
-           print("ensure_commesse_columns: tabella commesse non trovata, salto.")
-           return
+        # colonne per evidenziazione “nuove note”
+        cur.execute("ALTER TABLE commesse ADD COLUMN IF NOT EXISTS note_falegnameria_updated_at TIMESTAMP")
+        cur.execute("ALTER TABLE commesse ADD COLUMN IF NOT EXISTS note_falegnameria_updated_by TEXT")
+        cur.execute("ALTER TABLE commesse ADD COLUMN IF NOT EXISTS note_falegnameria_seen_admin_at TIMESTAMP")
+        cur.execute("ALTER TABLE commesse ADD COLUMN IF NOT EXISTS note_falegnameria_seen_faleg_at TIMESTAMP")
 
-    # Aggiunge colonne se mancano (operazione safe)
-       cur.execute("ALTER TABLE commesse ADD COLUMN IF NOT EXISTS stato TEXT;")
-       cur.execute("ALTER TABLE commesse ADD COLUMN IF NOT EXISTS note_falegnameria TEXT;")
-
-    # NUOVO: flag per evidenziare note nuove in lista admin
-       cur.execute("ALTER TABLE commesse ADD COLUMN IF NOT EXISTS note_falegnameria_updated_at TIMESTAMP NULL;")
-       cur.execute("ALTER TABLE commesse ADD COLUMN IF NOT EXISTS note_falegnameria_seen_at TIMESTAMP NULL;")
-
-       conn.commit()
-       conn.close()
-       print("ensure_commesse_columns: OK (stato, note_falegnameria, flags note).")
+        conn.commit()
+        conn.close()
+        print("ensure_commesse_columns: OK (stato, note_falegnameria + tracking note).")
 
     except Exception as e:
-       print("ensure_commesse_columns: ERRORE (non blocco l'app):", e)
+        print("ensure_commesse_columns: ERRORE (non blocco l'app):", e)
 
-    ensure_commesse_columns()
+ensure_commesse_columns()
+
 
 
 
@@ -530,18 +521,47 @@ def falegnameria_salva_note(id_commessa):
 
     conn = get_db_connection()
     cur = conn.cursor()
-    try:
-        cur.execute("""
-            UPDATE commesse
-            SET note_falegnameria = %s,
-                note_falegnameria_updated_at = NOW()
-            WHERE id = %s
-        """, (note, id_commessa))
-        conn.commit()
-    finally:
-        conn.close()
+    cur.execute("""
+        UPDATE commesse
+        SET note_falegnameria = %s,
+            note_falegnameria_updated_at = NOW(),
+            note_falegnameria_updated_by = 'falegnameria',
+            note_falegnameria_seen_admin_at = NULL,
+            note_falegnameria_seen_faleg_at = NOW()
+        WHERE id = %s
+    """, (note, id_commessa))
+    conn.commit()
+    conn.close()
 
     return redirect(url_for("falegnameria_commesse"))
+
+
+@app.route("/admin/commesse/<int:id_commessa>/note_falegnameria", methods=["POST"])
+def admin_salva_note_falegnameria(id_commessa):
+    if not ENABLE_PORTALI:
+        abort(404)
+
+    if session.get("ruolo") != "amministratore":
+        abort(403)
+
+    note = (request.form.get("note_falegnameria") or "").strip()
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("""
+        UPDATE commesse
+        SET note_falegnameria = %s,
+            note_falegnameria_updated_at = NOW(),
+            note_falegnameria_updated_by = 'amministratore',
+            note_falegnameria_seen_admin_at = NOW(),
+            note_falegnameria_seen_faleg_at = NULL
+        WHERE id = %s
+    """, (note, id_commessa))
+    conn.commit()
+    conn.close()
+
+    return redirect(request.referrer or url_for("modifica_commessa", id=id_commessa))
+
 
 
 
